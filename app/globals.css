@@ -1,0 +1,414 @@
+@import "tailwindcss";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+:root {
+  --background: #f6f8fb;
+  --foreground: #111827;
+  --neo-bg: #f6f8fb;
+  --neo-surface: #ffffff;
+  --neo-ink: #111827;
+  --neo-muted: #6b7280;
+  --neo-yellow: #f7d774;
+  --neo-pink: #e8f7ef;
+  --neo-cyan: #eef2f7;
+  --neo-green: #07c160;
+  --neo-app-header: rgba(255, 255, 255, 0.94);
+  --neo-section-header: #f8fafc;
+  --neo-template-header: #f8fafc;
+  --neo-sub-header: #f8fafc;
+  --neo-stage: #eef4f7;
+  --neo-on-header: #151515;
+  /* 投影与描边分离：亮色下边线与墨色一致 */
+  --neo-shadow-core: rgb(15 23 42 / 10%);
+  --neo-line: #d9e1ea;
+  --neo-border: 1px solid var(--neo-line);
+  --neo-border-thin: 1px solid var(--neo-line);
+  --neo-shadow: 0 10px 28px rgb(15 23 42 / 7%);
+  --neo-shadow-lg: 0 22px 48px rgb(15 23 42 / 10%);
+  /* 预览手机壳（亮色） */
+  --neo-phone-frame: #ffffff;
+  --neo-phone-rim: #1f2937;
+  --neo-phone-status-bg: rgba(243, 244, 246, 0.92);
+  --neo-phone-status-border: #e5e7eb;
+  --neo-phone-screen: #ffffff;
+  --neo-phone-notch: #1f2937;
+  --neo-on-accent: #111111;
+}
+
+.dark {
+  --background: #0f172a;
+  --foreground: #e5e7eb;
+  --neo-bg: #0f172a;
+  --neo-surface: #111827;
+  --neo-ink: #e5e7eb;
+  --neo-muted: #94a3b8;
+  --neo-yellow: #eab308;
+  --neo-pink: #123024;
+  --neo-cyan: #1f2937;
+  --neo-green: #07c160;
+  /* 顶栏与分区：统一暖灰基底，轻微色相区分，避免霓虹撞色 */
+  --neo-app-header: rgba(17, 24, 39, 0.94);
+  --neo-section-header: #111827;
+  --neo-template-header: #111827;
+  --neo-sub-header: #111827;
+  --neo-stage: #0b1220;
+  --neo-on-header: #ede6dc;
+  /* 暗色投影用深炭色，避免浅色「伪高光」描边感 */
+  --neo-shadow-core: rgb(0 0 0 / 36%);
+  /* 边框用压低亮度的暖灰线，减轻描边糊墙感 */
+  --neo-line: #253244;
+  --neo-border: 1px solid var(--neo-line);
+  --neo-border-thin: 1px solid var(--neo-line);
+  --neo-shadow: 0 14px 32px rgb(0 0 0 / 24%);
+  --neo-shadow-lg: 0 24px 56px rgb(0 0 0 / 34%);
+  /* 预览手机：暖灰帧 + 略浅的屏幕底，减弱中间一道白光 */
+  --neo-phone-frame: #2a2622;
+  --neo-phone-rim: #141210;
+  --neo-phone-status-bg: rgba(34, 31, 27, 0.96);
+  --neo-phone-status-border: #3d3832;
+  --neo-phone-screen: #252220;
+  --neo-phone-notch: #0f0e0c;
+  --neo-on-accent: #0e0e0e;
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+.neo-app-bg {
+  background:
+    radial-gradient(circle at 20% 0%, rgb(7 193 96 / 6%), transparent 28%),
+    linear-gradient(180deg, #ffffff 0%, var(--neo-bg) 38%);
+  color: var(--neo-ink);
+}
+
+.dark .neo-app-bg {
+  background:
+    radial-gradient(circle at 20% 0%, rgb(7 193 96 / 10%), transparent 28%),
+    linear-gradient(180deg, #111827 0%, var(--neo-bg) 42%);
+}
+
+.neo-panel {
+  background-color: var(--neo-surface);
+  border: var(--neo-border);
+  border-radius: 16px;
+  box-shadow: var(--neo-shadow);
+}
+
+.neo-panel-strong {
+  background-color: var(--neo-stage);
+  border: var(--neo-border);
+  border-radius: 18px;
+  box-shadow: var(--neo-shadow-lg);
+}
+
+.neo-strip {
+  background-color: var(--neo-section-header);
+  border-bottom: var(--neo-border);
+  color: var(--neo-on-header);
+}
+
+.neo-button {
+  border: var(--neo-border-thin);
+  border-radius: 10px;
+  box-shadow: 0 1px 2px rgb(15 23 42 / 7%);
+  color: #111111;
+  font-weight: 750;
+  transition:
+    transform 120ms ease,
+    box-shadow 120ms ease,
+    background-color 120ms ease;
+}
+
+.neo-button:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 8px 18px rgb(15 23 42 / 10%);
+}
+
+.neo-button:active {
+  transform: translateY(0);
+  box-shadow: 0 1px 2px rgb(15 23 42 / 8%);
+}
+
+.neo-button-primary {
+  background-color: var(--neo-green);
+  border-color: color-mix(in srgb, var(--neo-green) 88%, #052e16);
+  color: #ffffff;
+}
+
+.neo-button-secondary {
+  background-color: #f8fafc;
+  color: var(--neo-ink);
+}
+
+.neo-button-pink {
+  background-color: color-mix(in srgb, var(--neo-green) 12%, #ffffff);
+  color: #065f46;
+}
+
+.neo-button-cyan {
+  background-color: var(--neo-cyan);
+  color: var(--neo-ink);
+}
+
+.neo-button-ghost {
+  background-color: var(--neo-surface);
+  color: var(--neo-ink);
+}
+
+.neo-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+  transform: none;
+  box-shadow: none;
+}
+
+.neo-input {
+  background-color: var(--neo-surface);
+  border: var(--neo-border-thin);
+  border-radius: 10px;
+  color: var(--neo-ink);
+  box-shadow: none;
+}
+
+.neo-input:focus {
+  outline: 3px solid rgb(7 193 96 / 18%);
+  border-color: var(--neo-green);
+  outline-offset: 0;
+}
+
+.neo-tab {
+  border: var(--neo-border-thin);
+  border-radius: 10px;
+  background-color: var(--neo-surface);
+  color: var(--neo-ink);
+  box-shadow: none;
+  transition:
+    background-color 120ms ease,
+    color 120ms ease,
+    border-color 120ms ease;
+}
+
+.neo-tab-active {
+  background-color: #111827;
+  border-color: #111827;
+  color: #ffffff;
+  transform: none;
+  box-shadow: 0 8px 18px rgb(15 23 42 / 10%);
+}
+
+.neo-toolbar-button {
+  min-width: 32px;
+  border: var(--neo-border-thin);
+  border-radius: 8px;
+  background-color: var(--neo-surface);
+  color: var(--neo-ink);
+  font-weight: 750;
+  box-shadow: none;
+  transition:
+    transform 120ms ease,
+    box-shadow 120ms ease,
+    background-color 120ms ease;
+}
+
+.neo-toolbar-button:hover {
+  background-color: color-mix(in srgb, var(--neo-green) 9%, var(--neo-surface));
+  border-color: color-mix(in srgb, var(--neo-green) 54%, var(--neo-line));
+  transform: translateY(-1px);
+  box-shadow: 0 6px 14px rgb(15 23 42 / 8%);
+}
+
+.neo-toolbar-button:active {
+  transform: translateY(0);
+  box-shadow: none;
+}
+
+.neo-modal-backdrop {
+  background-color: rgba(17, 17, 17, 0.72);
+}
+
+.dark .neo-modal-backdrop {
+  background-color: rgba(0, 0, 0, 0.82);
+}
+
+.neo-modal {
+  background-color: var(--neo-surface);
+  border: var(--neo-border);
+  border-radius: 18px;
+  box-shadow: var(--neo-shadow-lg);
+}
+
+.neo-range {
+  width: 100%;
+  height: 28px;
+  appearance: none;
+  background: transparent;
+  accent-color: var(--neo-green);
+}
+
+.neo-range::-webkit-slider-runnable-track {
+  height: 6px;
+  background: #dbe5ee;
+  border: 0;
+  border-radius: 999px;
+  box-shadow: inset 0 1px 2px rgb(15 23 42 / 10%);
+}
+
+.neo-range::-webkit-slider-thumb {
+  width: 18px;
+  height: 18px;
+  margin-top: -6px;
+  appearance: none;
+  background-color: var(--neo-green);
+  border: 3px solid #ffffff;
+  border-radius: 999px;
+  box-shadow: 0 4px 10px rgb(7 193 96 / 28%);
+}
+
+.neo-range:focus-visible {
+  outline: 3px solid rgb(7 193 96 / 18%);
+  outline-offset: 2px;
+}
+
+.neo-range::-moz-range-track {
+  height: 6px;
+  background: #dbe5ee;
+  border: 0;
+  border-radius: 999px;
+  box-shadow: inset 0 1px 2px rgb(15 23 42 / 10%);
+}
+
+.neo-range::-moz-range-thumb {
+  width: 18px;
+  height: 18px;
+  background-color: var(--neo-green);
+  border: 3px solid #ffffff;
+  border-radius: 999px;
+  box-shadow: 0 4px 10px rgb(7 193 96 / 28%);
+}
+
+.neo-text-muted {
+  color: var(--neo-muted);
+}
+
+.custom-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+.custom-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.neo-scrollbar::-webkit-scrollbar {
+  width: 10px;
+}
+
+.neo-scrollbar::-webkit-scrollbar-track {
+  background: var(--neo-surface);
+  border-left: 1px solid var(--neo-line);
+}
+
+.neo-scrollbar::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border: 3px solid var(--neo-surface);
+  border-radius: 999px;
+  box-shadow: none;
+}
+
+.neo-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+.neo-scrollbar::-webkit-scrollbar-thumb:active {
+  background: var(--neo-green);
+}
+
+.neo-scrollbar {
+  scrollbar-width: auto;
+  scrollbar-color: #cbd5e1 var(--neo-surface);
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* 预览手机外壳（正文区内仍为模板内联样式，仅统一设备框体感） */
+.neo-phone-shell {
+  overflow: hidden;
+  background-color: var(--neo-phone-frame);
+  border: 6px solid var(--neo-phone-rim);
+  border-radius: 2.35rem;
+  box-shadow:
+    0 22px 56px rgb(15 23 42 / 16%),
+    inset 0 1px 0 rgb(255 255 255 / 8%);
+}
+
+.dark .neo-phone-shell {
+  box-shadow:
+    0 22px 48px rgb(0 0 0 / 42%),
+    inset 0 1px 0 rgb(255 255 255 / 6%);
+}
+
+.neo-phone-status-strip {
+  background-color: var(--neo-phone-status-bg);
+  border-bottom: 1px solid var(--neo-phone-status-border);
+}
+
+.neo-phone-screen-area {
+  background-color: var(--neo-phone-screen);
+}
+
+.neo-phone-notch {
+  background-color: var(--neo-phone-notch);
+}
+
+.neo-preview-empty {
+  padding: 40px;
+  text-align: center;
+  color: var(--neo-muted);
+  font-size: 14px;
+  background-color: color-mix(in srgb, var(--neo-phone-screen) 92%, var(--neo-ink));
+  border-radius: 8px;
+  margin: 20px;
+}
+
+header [class*="border-(--neo-ink)"],
+footer [class*="border-(--neo-ink)"],
+.neo-panel [class*="border-(--neo-ink)"],
+.neo-panel-strong [class*="border-(--neo-ink)"],
+.neo-modal [class*="border-(--neo-ink)"] {
+  border-color: var(--neo-line);
+}
+
+.neo-panel [class*="border-2"],
+.neo-panel [class*="border-[3px]"],
+.neo-panel-strong [class*="border-2"],
+.neo-panel-strong [class*="border-[3px]"],
+.neo-modal [class*="border-2"],
+.neo-modal [class*="border-[3px]"] {
+  border-width: 1px;
+}
+
+header [class*="shadow-["],
+footer [class*="shadow-["],
+.neo-panel [class*="shadow-["],
+.neo-panel-strong [class*="shadow-["],
+.neo-modal [class*="shadow-["] {
+  box-shadow: 0 4px 12px rgb(15 23 42 / 7%);
+}
