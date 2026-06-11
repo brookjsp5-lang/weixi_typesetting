@@ -26,7 +26,7 @@ export function AppFooter() {
               href={SITE_URL}
               className="hover:underline underline-offset-4 decoration-2"
             >
-              {FOOTER_BRAND} Team
+              brook
             </a>
           </div>
           <div className="h-4 w-px bg-(--neo-line) hidden md:block" />

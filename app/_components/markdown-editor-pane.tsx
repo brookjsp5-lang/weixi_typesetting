@@ -70,6 +70,7 @@ export function MarkdownEditorPane({
           <button
             onClick={() => insertHeading(1)}
             className="neo-toolbar-button p-1.5 text-sm"
+            data-tooltip="一级标题"
             title="一级标题"
           >
             H1
@@ -77,6 +78,7 @@ export function MarkdownEditorPane({
           <button
             onClick={() => insertHeading(2)}
             className="neo-toolbar-button p-1.5 text-sm"
+            data-tooltip="二级标题"
             title="二级标题"
           >
             H2
@@ -84,6 +86,7 @@ export function MarkdownEditorPane({
           <button
             onClick={() => insertHeading(3)}
             className="neo-toolbar-button p-1.5 text-sm"
+            data-tooltip="三级标题"
             title="三级标题"
           >
             H3
@@ -93,6 +96,7 @@ export function MarkdownEditorPane({
         <button
           onClick={() => insertMarkdown("**", "**", "加粗")}
           className="neo-toolbar-button p-1.5"
+          data-tooltip="加粗"
           title="加粗 (Ctrl+B)"
         >
           B
@@ -100,6 +104,7 @@ export function MarkdownEditorPane({
         <button
           onClick={() => insertMarkdown("*", "*", "斜体")}
           className="neo-toolbar-button p-1.5 italic"
+          data-tooltip="斜体"
           title="斜体 (Ctrl+I)"
         >
           I
@@ -107,6 +112,7 @@ export function MarkdownEditorPane({
         <button
           onClick={() => insertMarkdown("~~", "~~", "删除线")}
           className="neo-toolbar-button p-1.5 line-through"
+          data-tooltip="删除线"
           title="删除线"
         >
           S
@@ -115,6 +121,7 @@ export function MarkdownEditorPane({
         <button
           onClick={() => insertList("ul")}
           className="neo-toolbar-button p-1.5"
+          data-tooltip="无序列表"
           title="无序列表"
         >
           <List className="w-4 h-4" />
@@ -122,6 +129,7 @@ export function MarkdownEditorPane({
         <button
           onClick={() => insertList("ol")}
           className="neo-toolbar-button p-1.5"
+          data-tooltip="有序列表"
           title="有序列表"
         >
           <ListOrdered className="w-4 h-4" />
@@ -129,6 +137,7 @@ export function MarkdownEditorPane({
         <button
           onClick={() => insertMarkdown("> ", "", "引用内容")}
           className="neo-toolbar-button p-1.5"
+          data-tooltip="引用"
           title="引用"
         >
           <Quote className="w-4 h-4" />
@@ -137,6 +146,7 @@ export function MarkdownEditorPane({
         <button
           onClick={() => insertMarkdown("`", "`", "代码")}
           className="neo-toolbar-button p-1.5 font-mono text-sm"
+          data-tooltip="行内代码"
           title="行内代码"
         >
           {"</>"}
@@ -144,6 +154,7 @@ export function MarkdownEditorPane({
         <button
           onClick={insertCodeBlock}
           className="neo-toolbar-button p-1.5"
+          data-tooltip="代码块"
           title="代码块"
         >
           <Code2 className="w-4 h-4" />
@@ -152,6 +163,7 @@ export function MarkdownEditorPane({
         <button
           onClick={insertLink}
           className="neo-toolbar-button p-1.5"
+          data-tooltip="链接"
           title="链接"
         >
           <LinkIcon className="w-4 h-4" />
@@ -159,6 +171,7 @@ export function MarkdownEditorPane({
         <button
           onClick={insertImage}
           className="neo-toolbar-button p-1.5"
+          data-tooltip="图片"
           title="图片"
         >
           <ImageIcon className="w-4 h-4" />
@@ -166,6 +179,7 @@ export function MarkdownEditorPane({
         <button
           onClick={() => insertMarkdown("---\n", "", "")}
           className="neo-toolbar-button p-1.5"
+          data-tooltip="分隔线"
           title="分隔线"
         >
           <Minus className="w-4 h-4" />

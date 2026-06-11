@@ -215,10 +215,55 @@ body {
   color: var(--neo-ink);
   font-weight: 750;
   box-shadow: none;
+  position: relative;
   transition:
     transform 120ms ease,
     box-shadow 120ms ease,
     background-color 120ms ease;
+}
+
+.neo-toolbar-button[data-tooltip]::before,
+.neo-toolbar-button[data-tooltip]::after {
+  position: absolute;
+  left: 50%;
+  z-index: 30;
+  pointer-events: none;
+  opacity: 0;
+  transform: translate(-50%, 4px);
+  transition:
+    opacity 120ms ease,
+    transform 120ms ease;
+}
+
+.neo-toolbar-button[data-tooltip]::before {
+  content: attr(data-tooltip);
+  bottom: calc(100% + 9px);
+  width: max-content;
+  max-width: 120px;
+  padding: 5px 8px;
+  border-radius: 8px;
+  background: #111827;
+  color: #ffffff;
+  box-shadow: 0 8px 20px rgb(15 23 42 / 16%);
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.2;
+  white-space: nowrap;
+}
+
+.neo-toolbar-button[data-tooltip]::after {
+  content: "";
+  bottom: calc(100% + 4px);
+  border: 5px solid transparent;
+  border-top-color: #111827;
+}
+
+.neo-toolbar-button[data-tooltip]:hover::before,
+.neo-toolbar-button[data-tooltip]:hover::after,
+.neo-toolbar-button[data-tooltip]:focus-visible::before,
+.neo-toolbar-button[data-tooltip]:focus-visible::after {
+  opacity: 1;
+  transform: translate(-50%, 0);
 }
 
 .neo-toolbar-button:hover {
