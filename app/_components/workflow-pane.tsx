@@ -466,14 +466,6 @@ export function WorkflowPane({
                     <Wand2 className="w-4 h-4" />
                     提示词改写
                   </h3>
-                  <button
-                    type="button"
-                    disabled={!selectedPrompt || Boolean(runningTask)}
-                    onClick={() => onRewrite(selectedPrompt)}
-                    className="neo-button neo-button-secondary px-3 py-1.5 text-xs"
-                  >
-                    {runningTask === "rewrite" ? "改写中..." : "按提示词改写"}
-                  </button>
                 </div>
                 <div className="flex gap-2">
                   <select
@@ -495,6 +487,15 @@ export function WorkflowPane({
                     编辑提示词
                   </button>
                 </div>
+                <button
+                  type="button"
+                  disabled={!selectedPrompt || Boolean(runningTask)}
+                  onClick={() => onRewrite(selectedPrompt)}
+                  className="neo-button neo-button-primary flex w-full items-center justify-center gap-2 py-2.5 text-sm shadow-sm disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  <Wand2 className="h-4 w-4" />
+                  {runningTask === "rewrite" ? "改写中..." : "按提示词改写"}
+                </button>
                 <p className="text-xs neo-text-muted font-bold leading-relaxed">
                   选择提示词后生成改写稿，确认满意后再替换初稿。
                 </p>
