@@ -342,6 +342,14 @@ export function WorkflowPane({
     setIsPromptManagerOpen(true);
   };
 
+  const editSelectedPrompt = () => {
+    if (selectedPrompt) {
+      loadPromptForEdit(selectedPrompt);
+      return;
+    }
+    setIsPromptManagerOpen(true);
+  };
+
   const clearPromptDraft = () => {
     setPromptDraftId("");
     setPromptName("");
@@ -467,19 +475,28 @@ export function WorkflowPane({
                     {runningTask === "rewrite" ? "改写中..." : "按提示词改写"}
                   </button>
                 </div>
-                <select
-                  value={selectedPromptId}
-                  onChange={(e) => setSelectedPromptId(e.target.value)}
-                  className="neo-input w-full px-3 py-2 text-sm"
-                >
-                  {promptTemplates.map((template) => (
-                    <option key={template.id} value={template.id}>
-                      {template.name}
-                    </option>
-                  ))}
-                </select>
+                <div className="flex gap-2">
+                  <select
+                    value={selectedPromptId}
+                    onChange={(e) => setSelectedPromptId(e.target.value)}
+                    className="neo-input min-w-0 flex-1 px-3 py-2 text-sm"
+                  >
+                    {promptTemplates.map((template) => (
+                      <option key={template.id} value={template.id}>
+                        {template.name}
+                      </option>
+                    ))}
+                  </select>
+                  <button
+                    type="button"
+                    onClick={editSelectedPrompt}
+                    className="neo-button neo-button-ghost shrink-0 px-3 py-2 text-xs"
+                  >
+                    编辑提示词
+                  </button>
+                </div>
                 <p className="text-xs neo-text-muted font-bold leading-relaxed">
-                  {selectedPrompt?.prompt || "选择一个提示词后，可生成改写稿并确认应用。"}
+                  选择提示词后生成改写稿，确认满意后再替换初稿。
                 </p>
                 {hasAppliedRewrite && (
                   <div className="rounded-lg border border-emerald-300 bg-emerald-50 p-2 text-xs font-bold text-emerald-700">
