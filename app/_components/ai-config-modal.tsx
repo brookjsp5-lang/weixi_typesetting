@@ -1,6 +1,6 @@
 import { Check, ExternalLink, Loader2, Search } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
 import type React from "react";
+import { useEffect, useMemo, useState } from "react";
 import { openRouterConfig } from "../_lib/formatter-constants";
 import { getProviderPreset, providerPresets } from "../_lib/workflow-utils";
 import type { AiProviderType, OpenRouterModel } from "../_types/formatter";
@@ -63,6 +63,11 @@ type ProviderDraft = {
   model: string;
 };
 
+type ModelTestState = {
+  status: "idle" | "testing" | "success" | "error";
+  message: string;
+};
+
 const emptyDraft: ProviderDraft = {
   baseUrl: "",
   apiKey: "",
@@ -117,9 +122,13 @@ export function AiConfigModal({
   const [modelQuery, setModelQuery] = useState("");
   const [isLoadingModels, setIsLoadingModels] = useState(false);
   const [modelsError, setModelsError] = useState("");
+  const [modelTest, setModelTest] = useState<ModelTestState>({
+    status: "idle",
+    message: "",
+  });
   const isOpenRouter = aiProviderType === "openrouter";
-  const [providerDrafts, setProviderDrafts] = useState<Record<AiProviderType, ProviderDraft>>(
-    () => createEmptyProviderDrafts(),
+  const [providerDrafts, setProviderDrafts] = useState<Record<AiProviderType, ProviderDraft>>(() =>
+    createEmptyProviderDrafts(),
   );
   const currentPreset = getProviderPreset(aiProviderType);
 
@@ -167,16 +176,14 @@ export function AiConfigModal({
 
     return models
       .filter((model) => {
-        return (
-          model.name.toLowerCase().includes(query) ||
-          model.id.toLowerCase().includes(query)
-        );
+        return model.name.toLowerCase().includes(query) || model.id.toLowerCase().includes(query);
       })
       .slice(0, 80);
   }, [models, modelQuery]);
 
   const handleClear = () => {
     setModelQuery("");
+    setModelTest({ status: "idle", message: "" });
     setProviderDrafts(createEmptyProviderDrafts());
     onClear();
   };
@@ -192,16 +199,19 @@ export function AiConfigModal({
   };
 
   const handleBaseUrlChange = (value: string) => {
+    setModelTest({ status: "idle", message: "" });
     setAiBaseUrl(value);
     syncCurrentDraft({ baseUrl: value });
   };
 
   const handleApiKeyChange = (value: string) => {
+    setModelTest({ status: "idle", message: "" });
     setAiApiKey(value);
     syncCurrentDraft({ apiKey: value });
   };
 
   const handleModelChange = (value: string) => {
+    setModelTest({ status: "idle", message: "" });
     setAiModel(value);
     syncCurrentDraft({ model: value });
   };
@@ -223,10 +233,52 @@ export function AiConfigModal({
     const targetModel = targetDraft.model || preset.defaultModel;
 
     setProviderDrafts(nextDrafts);
+    setModelTest({ status: "idle", message: "" });
     setAiProviderType(provider);
     setAiBaseUrl(targetBaseUrl);
     setAiApiKey(targetDraft.apiKey);
     setAiModel(targetModel);
+  };
+
+  const handleTestModel = async () => {
+    if (modelTest.status === "testing") return;
+
+    setModelTest({ status: "testing", message: "正在测试模型连通性..." });
+
+    try {
+      const res = await fetch("/api/ai-test", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          providerType: aiProviderType,
+          baseUrl: aiBaseUrl,
+          apiKey: aiApiKey,
+          model: aiModel,
+        }),
+      });
+      const data = (await res.json().catch(() => null)) as {
+        message?: string;
+        error?: string;
+      } | null;
+
+      if (!res.ok) {
+        setModelTest({
+          status: "error",
+          message: data?.error || "模型测试失败，请检查配置后重试",
+        });
+        return;
+      }
+
+      setModelTest({
+        status: "success",
+        message: data?.message || "模型可用",
+      });
+    } catch {
+      setModelTest({
+        status: "error",
+        message: "模型测试失败，请检查网络或稍后重试",
+      });
+    }
   };
 
   if (!open) return null;
@@ -249,9 +301,7 @@ export function AiConfigModal({
 
         <div className="flex-1 overflow-y-auto neo-scrollbar p-6 py-4 space-y-4">
           <div>
-            <label className="block text-sm font-black text-(--neo-ink) mb-2">
-              服务商
-            </label>
+            <label className="block text-sm font-black text-(--neo-ink) mb-2">服务商</label>
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 bg-(--neo-cyan) border-[3px] border-(--neo-ink) p-2">
               {providerPresets.map((preset) => (
                 <button
@@ -270,9 +320,7 @@ export function AiConfigModal({
 
           <div>
             <div className="flex items-center justify-between gap-3 mb-1">
-              <label className="block text-sm font-black text-(--neo-ink)">
-                API 地址
-              </label>
+              <label className="block text-sm font-black text-(--neo-ink)">API 地址</label>
               {isOpenRouter && (
                 <button
                   type="button"
@@ -305,9 +353,7 @@ export function AiConfigModal({
 
           <div>
             <div className="flex items-center justify-between gap-3 mb-1">
-              <label className="block text-sm font-black text-(--neo-ink)">
-                API Key
-              </label>
+              <label className="block text-sm font-black text-(--neo-ink)">API Key</label>
               {currentPreset.apiKeyUrl && (
                 <a
                   href={currentPreset.apiKeyUrl}
@@ -348,12 +394,49 @@ export function AiConfigModal({
             />
           </div>
 
+          <div className="rounded-xl border-[3px] border-(--neo-ink) bg-(--neo-surface) p-3 space-y-2">
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <h4 className="text-sm font-black text-(--neo-ink)">模型可用性测试</h4>
+                <p className="text-xs neo-text-muted font-bold">
+                  发送一次极短请求，检查 API Key、地址和模型名是否可用。
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={handleTestModel}
+                disabled={modelTest.status === "testing"}
+                className="neo-button neo-button-secondary shrink-0 px-4 py-2 text-xs disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {modelTest.status === "testing" ? (
+                  <span className="inline-flex items-center gap-2">
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                    测试中
+                  </span>
+                ) : (
+                  "测试模型"
+                )}
+              </button>
+            </div>
+            {modelTest.status !== "idle" && (
+              <div
+                className={`rounded-lg border px-3 py-2 text-xs font-bold ${
+                  modelTest.status === "success"
+                    ? "border-emerald-300 bg-emerald-50 text-emerald-700"
+                    : modelTest.status === "error"
+                      ? "border-red-300 bg-red-50 text-red-700"
+                      : "border-(--neo-line) bg-white text-(--neo-ink)"
+                }`}
+              >
+                {modelTest.message}
+              </div>
+            )}
+          </div>
+
           {isOpenRouter && (
             <div className="space-y-2">
               <div className="flex items-center justify-between gap-3">
-                <label className="block text-sm font-black text-(--neo-ink)">
-                  搜索模型
-                </label>
+                <label className="block text-sm font-black text-(--neo-ink)">搜索模型</label>
                 <a
                   href={openRouterConfig.modelsPageUrl}
                   target="_blank"
@@ -421,9 +504,7 @@ export function AiConfigModal({
                               <Check className="w-4 h-4 shrink-0 text-(--neo-ink)" />
                             )}
                           </div>
-                          <p className="text-xs neo-text-muted font-bold break-all">
-                            {model.id}
-                          </p>
+                          <p className="text-xs neo-text-muted font-bold break-all">{model.id}</p>
                         </div>
                         <div className="text-right shrink-0 space-y-1">
                           <span
@@ -456,22 +537,13 @@ export function AiConfigModal({
         </div>
 
         <div className="flex gap-3 p-6 pt-4 shrink-0 border-t-[3px] border-(--neo-ink)">
-          <button
-            onClick={onSave}
-            className="neo-button neo-button-primary flex-1 py-2.5"
-          >
+          <button onClick={onSave} className="neo-button neo-button-primary flex-1 py-2.5">
             保存配置
           </button>
-          <button
-            onClick={handleClear}
-            className="neo-button neo-button-secondary px-4 py-2.5"
-          >
+          <button onClick={handleClear} className="neo-button neo-button-secondary px-4 py-2.5">
             清空
           </button>
-          <button
-            onClick={onClose}
-            className="neo-button neo-button-ghost px-4 py-2.5"
-          >
+          <button onClick={onClose} className="neo-button neo-button-ghost px-4 py-2.5">
             取消
           </button>
         </div>
