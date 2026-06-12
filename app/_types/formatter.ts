@@ -66,6 +66,11 @@ export type RewriteDraft = {
   promptName: string;
 } | null;
 
+export type FormatDraft = {
+  original: string;
+  formatted: string;
+} | null;
+
 export type PublishCheckStatus = "success" | "warning" | "neutral";
 
 export type PublishCheckItem = {
@@ -73,6 +78,13 @@ export type PublishCheckItem = {
   label: string;
   status: PublishCheckStatus;
   message: string;
+};
+
+export type PublishWorkflowStep = {
+  id: "draft" | "format" | "checks" | "materials" | "copy";
+  label: string;
+  status: "pending" | "active" | "warning" | "done";
+  description: string;
 };
 
 export type PublishOptimizationResult = {

@@ -3,6 +3,7 @@ import { extractJsonObject } from "../_lib/workflow-utils";
 import type {
   AiProviderType,
   AiTaskType,
+  FormatDraft,
   PromptTemplate,
   PublishOptimizationResult,
   RewriteDraft,
@@ -46,6 +47,8 @@ export function useAiWorkflow({
   showToast,
 }: UseAiWorkflowParams) {
   const [runningTask, setRunningTask] = useState<AiTaskType | null>(null);
+  const [formatDraft, setFormatDraft] = useState<FormatDraft>(null);
+  const [hasAppliedFormat, setHasAppliedFormat] = useState(false);
   const [rewriteDraft, setRewriteDraft] = useState<RewriteDraft>(null);
   const [publishOptimization, setPublishOptimization] =
     useState<PublishOptimizationResult>(null);
@@ -116,12 +119,28 @@ export function useAiWorkflow({
   );
 
   const runFormat = useCallback(async () => {
-    const originalText = inputText;
     const result = await requestAiTask("format");
     if (!result) return;
-    setInputText(result || originalText);
-    showToast("AI 一键排版完成");
-  }, [inputText, requestAiTask, setInputText, showToast]);
+    setFormatDraft({
+      original: inputText,
+      formatted: result,
+    });
+    setHasAppliedFormat(false);
+    showToast("排版稿已生成，请确认后应用");
+  }, [inputText, requestAiTask, showToast]);
+
+  const applyFormatDraft = useCallback(() => {
+    if (!formatDraft) return;
+    setInputText(formatDraft.formatted);
+    setFormatDraft(null);
+    setHasAppliedFormat(true);
+    showToast("已应用 AI 排版");
+  }, [formatDraft, setInputText, showToast]);
+
+  const discardFormatDraft = useCallback(() => {
+    setFormatDraft(null);
+    showToast("已取消 AI 排版稿");
+  }, [showToast]);
 
   const runRewrite = useCallback(
     async (promptTemplate?: PromptTemplate) => {
@@ -177,11 +196,16 @@ export function useAiWorkflow({
   return {
     runningTask,
     isAiFormatting: runningTask === "format",
+    formatDraft,
+    setFormatDraft,
+    hasAppliedFormat,
     rewriteDraft,
     setRewriteDraft,
     publishOptimization,
     setPublishOptimization,
     runFormat,
+    applyFormatDraft,
+    discardFormatDraft,
     runRewrite,
     applyRewriteDraft,
     runPublishOptimize,

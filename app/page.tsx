@@ -11,7 +11,7 @@ import { WorkflowPane } from "./_components/workflow-pane";
 import { AppFooter } from "./_components/app-footer";
 import { Toast } from "./_components/toast";
 import { aiStorageKeys, sampleText } from "./_lib/formatter-constants";
-import { runPublishChecks } from "./_lib/workflow-utils";
+import { createPublishWorkflowSteps, runPublishChecks } from "./_lib/workflow-utils";
 import type { ActiveTab, FormatTweaks, WorkflowTab } from "./_types/formatter";
 import { useAiWorkflow } from "./_hooks/use-ai-workflow";
 import { useAiSettings } from "./_hooks/use-ai-settings";
@@ -52,6 +52,7 @@ export default function Home() {
   const [imageMap, setImageMap] = useState<Map<string, string>>(new Map());
   const [imageUrl, setImageUrl] = useState("");
   const [imageDesc, setImageDesc] = useState("");
+  const [hasCopiedForPublish, setHasCopiedForPublish] = useState(false);
 
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -123,8 +124,33 @@ export default function Home() {
 
   const publishChecks = useMemo(() => runPublishChecks(inputText), [inputText]);
 
-  const handleCopy = () => {
-    copyToClipboard(outputHtml);
+  useEffect(() => {
+    setHasCopiedForPublish(false);
+  }, [outputHtml]);
+
+  const publishWorkflowSteps = useMemo(
+    () =>
+      createPublishWorkflowSteps({
+        hasContent: Boolean(inputText.trim()),
+        hasFormatDraft: Boolean(aiWorkflow.formatDraft),
+        hasAppliedFormat: aiWorkflow.hasAppliedFormat,
+        hasCheckWarnings: publishChecks.some((item) => item.status === "warning"),
+        hasPublishOptimization: Boolean(aiWorkflow.publishOptimization),
+        hasCopied: hasCopiedForPublish,
+      }),
+    [
+      inputText,
+      aiWorkflow.formatDraft,
+      aiWorkflow.hasAppliedFormat,
+      publishChecks,
+      aiWorkflow.publishOptimization,
+      hasCopiedForPublish,
+    ],
+  );
+
+  const handleCopy = async () => {
+    const copied = await copyToClipboard(outputHtml);
+    if (copied) setHasCopiedForPublish(true);
   };
 
   const applyTemplateRecommendation = () => {
@@ -235,7 +261,11 @@ export default function Home() {
               setWorkflowTab={setWorkflowTab}
               inputText={inputText}
               runningTask={aiWorkflow.runningTask}
+              publishWorkflowSteps={publishWorkflowSteps}
               onAiFormat={aiWorkflow.runFormat}
+              formatDraft={aiWorkflow.formatDraft}
+              onApplyFormatDraft={aiWorkflow.applyFormatDraft}
+              onDiscardFormatDraft={aiWorkflow.discardFormatDraft}
               onRewrite={aiWorkflow.runRewrite}
               onPublishOptimize={aiWorkflow.runPublishOptimize}
               onOpenAiConfig={() => aiSettings.setShowAiConfigModal(true)}

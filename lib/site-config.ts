@@ -4,7 +4,7 @@ export const SITE_HOST = "typezen.online" as const;
 
 export const SITE_URL = `https://${SITE_HOST}` as const;
 
-export const SITE_BRAND = "TypeZen";
+export const SITE_BRAND = "WX";
 
 export const SITE_PRODUCT_NAME = "公众号一键排版助手";
 

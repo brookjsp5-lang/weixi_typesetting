@@ -122,6 +122,48 @@ export function extractJsonObject(text) {
   return JSON.parse(withoutFence.slice(start, end + 1));
 }
 
+export function createPublishWorkflowSteps({
+  hasContent,
+  hasFormatDraft,
+  hasAppliedFormat,
+  hasCheckWarnings,
+  hasPublishOptimization,
+  hasCopied,
+}) {
+  return [
+    {
+      id: "draft",
+      label: "初稿",
+      status: hasContent ? "done" : "pending",
+      description: hasContent ? "已输入正文" : "等待输入正文",
+    },
+    {
+      id: "format",
+      label: "AI 排版",
+      status: hasFormatDraft ? "active" : hasAppliedFormat ? "done" : "pending",
+      description: hasFormatDraft ? "排版稿待确认" : hasAppliedFormat ? "已应用排版" : "可选 AI 整理结构",
+    },
+    {
+      id: "checks",
+      label: "检查",
+      status: !hasContent ? "pending" : hasCheckWarnings ? "warning" : "done",
+      description: !hasContent ? "等待正文" : hasCheckWarnings ? "有项目需确认" : "检查通过",
+    },
+    {
+      id: "materials",
+      label: "发布物料",
+      status: hasPublishOptimization ? "done" : "pending",
+      description: hasPublishOptimization ? "已生成标题摘要" : "等待生成优化",
+    },
+    {
+      id: "copy",
+      label: "复制发布",
+      status: hasCopied ? "done" : "pending",
+      description: hasCopied ? "已复制到剪贴板" : "等待复制发布",
+    },
+  ];
+}
+
 function countMatches(text, pattern) {
   return (text.match(pattern) || []).length;
 }

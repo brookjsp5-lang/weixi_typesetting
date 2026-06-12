@@ -16,10 +16,12 @@ import type React from "react";
 import type {
   ActiveTab,
   AiTaskType,
+  FormatDraft,
   FormatTweaks,
   PromptTemplate,
   PublishCheckItem,
   PublishOptimizationResult,
+  PublishWorkflowStep,
   RewriteDraft,
   WorkflowTab,
 } from "../_types/formatter";
@@ -38,7 +40,11 @@ type WorkflowPaneProps = {
   setWorkflowTab: React.Dispatch<React.SetStateAction<WorkflowTab>>;
   inputText: string;
   runningTask: AiTaskType | null;
+  publishWorkflowSteps: PublishWorkflowStep[];
   onAiFormat: () => void;
+  formatDraft: FormatDraft;
+  onApplyFormatDraft: () => void;
+  onDiscardFormatDraft: () => void;
   onRewrite: (promptTemplate?: PromptTemplate) => void;
   onPublishOptimize: () => void;
   onOpenAiConfig: () => void;
@@ -81,13 +87,31 @@ const statusClassNames = {
   neutral: "bg-(--neo-surface)",
 } as const;
 
+const workflowStepClassNames = {
+  done: "border-(--neo-green) bg-(--neo-pink) text-[#065f46]",
+  active: "border-(--neo-green) bg-white text-[#065f46] shadow-sm",
+  warning: "border-amber-300 bg-amber-50 text-amber-800",
+  pending: "border-(--neo-line) bg-(--neo-surface) text-(--neo-muted)",
+} as const;
+
+const workflowStepStatusLabels = {
+  done: "完成",
+  active: "待确认",
+  warning: "提醒",
+  pending: "待处理",
+} as const;
+
 export function WorkflowPane({
   activeTab,
   workflowTab,
   setWorkflowTab,
   inputText,
   runningTask,
+  publishWorkflowSteps,
   onAiFormat,
+  formatDraft,
+  onApplyFormatDraft,
+  onDiscardFormatDraft,
   onRewrite,
   onPublishOptimize,
   onOpenAiConfig,
@@ -164,6 +188,25 @@ export function WorkflowPane({
               <Settings className="w-4 h-4" />
             </button>
           </div>
+          <div className="mb-3 rounded-xl border border-(--neo-line) bg-(--neo-surface) p-2">
+            <div className="grid grid-cols-5 gap-1.5">
+              {publishWorkflowSteps.map((step, index) => (
+                <div
+                  key={step.id}
+                  className={`rounded-lg border px-1.5 py-2 text-center ${workflowStepClassNames[step.status]}`}
+                  title={`${step.label}：${step.description}`}
+                >
+                  <div className="mx-auto mb-1 flex h-5 w-5 items-center justify-center rounded-full bg-white/80 text-[10px] font-black">
+                    {index + 1}
+                  </div>
+                  <div className="truncate text-[10px] font-black">{step.label}</div>
+                  <div className="mt-0.5 truncate text-[9px] font-bold opacity-75">
+                    {workflowStepStatusLabels[step.status]}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
           <div className="grid grid-cols-4 gap-2">
             {workflowTabs.map((tab) => (
               <button
@@ -184,33 +227,89 @@ export function WorkflowPane({
           {workflowTab === "ai" && (
             <div className="space-y-4">
               <div className="grid grid-cols-1 gap-3">
-                <button
-                  type="button"
-                  onClick={onAiFormat}
-                  disabled={!inputText.trim() || Boolean(runningTask)}
-                  className="neo-button neo-button-pink px-4 py-3 flex items-center justify-center gap-2"
-                >
-                  {runningTask === "format" ? (
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                  ) : (
-                    <Sparkles className="w-4 h-4" />
-                  )}
-                  AI 一键排版
-                </button>
-                <button
-                  type="button"
-                  onClick={onPublishOptimize}
-                  disabled={!inputText.trim() || Boolean(runningTask)}
-                  className="neo-button neo-button-primary px-4 py-3 flex items-center justify-center gap-2"
-                >
-                  {runningTask === "publishOptimize" ? (
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                  ) : (
-                    <FileCheck2 className="w-4 h-4" />
-                  )}
-                  生成发布优化
-                </button>
+                <div className="space-y-1">
+                  <button
+                    type="button"
+                    onClick={onAiFormat}
+                    disabled={!inputText.trim() || Boolean(runningTask)}
+                    className="neo-button neo-button-pink w-full px-4 py-3 flex items-center justify-center gap-2"
+                  >
+                    {runningTask === "format" ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <Sparkles className="w-4 h-4" />
+                    )}
+                    AI 一键排版
+                  </button>
+                  <p className="px-1 text-[11px] font-bold leading-relaxed neo-text-muted">
+                    整理 Markdown 结构，不改写正文。
+                  </p>
+                </div>
+                <div className="space-y-1">
+                  <button
+                    type="button"
+                    onClick={onPublishOptimize}
+                    disabled={!inputText.trim() || Boolean(runningTask)}
+                    className="neo-button neo-button-primary w-full px-4 py-3 flex items-center justify-center gap-2"
+                  >
+                    {runningTask === "publishOptimize" ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <FileCheck2 className="w-4 h-4" />
+                    )}
+                    生成发布优化
+                  </button>
+                  <p className="px-1 text-[11px] font-bold leading-relaxed neo-text-muted">
+                    生成标题、摘要、关键词和发布建议。
+                  </p>
+                </div>
               </div>
+
+              {formatDraft && (
+                <section className="border border-(--neo-line) rounded-xl p-3 bg-(--neo-cyan) text-(--neo-ink) space-y-3">
+                  <div className="flex items-center justify-between gap-2">
+                    <h3 className="text-xs font-black">排版稿确认</h3>
+                    <button
+                      type="button"
+                      onClick={onDiscardFormatDraft}
+                      className="neo-toolbar-button p-1"
+                      title="取消排版稿"
+                    >
+                      <X className="w-3 h-3" />
+                    </button>
+                  </div>
+                  <div className="space-y-2">
+                    <div>
+                      <div className="mb-1 text-[10px] font-black neo-text-muted">原文</div>
+                      <div className="max-h-32 overflow-y-auto rounded-lg border border-(--neo-line) bg-white p-2 text-xs leading-relaxed whitespace-pre-wrap">
+                        {formatDraft.original}
+                      </div>
+                    </div>
+                    <div>
+                      <div className="mb-1 text-[10px] font-black neo-text-muted">排版后</div>
+                      <div className="max-h-40 overflow-y-auto rounded-lg border border-(--neo-line) bg-white p-2 text-xs leading-relaxed whitespace-pre-wrap">
+                        {formatDraft.formatted}
+                      </div>
+                    </div>
+                  </div>
+                  <div className="flex gap-2">
+                    <button
+                      type="button"
+                      onClick={onApplyFormatDraft}
+                      className="neo-button neo-button-primary flex-1 py-2 text-xs"
+                    >
+                      应用排版
+                    </button>
+                    <button
+                      type="button"
+                      onClick={onDiscardFormatDraft}
+                      className="neo-button neo-button-ghost px-3 py-2 text-xs"
+                    >
+                      取消
+                    </button>
+                  </div>
+                </section>
+              )}
 
               <section className="border border-(--neo-line) rounded-xl p-3 bg-(--neo-surface) space-y-3">
                 <div className="flex items-center justify-between gap-2">

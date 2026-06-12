@@ -2,7 +2,7 @@ import { SITE_URL } from "@/lib/site-config";
 import { Heart, Star } from "lucide-react";
 
 const FOOTER_BRAND = "WX";
-const FOOTER_HOST = "wx.online";
+const FOOTER_PRODUCT_NAME = "公众号排版助手";
 
 export function AppFooter() {
   const currentYear = new Date().getFullYear();
@@ -40,7 +40,7 @@ export function AppFooter() {
             <Star className="w-4 h-4" />
           </a>
           <div className="text-[10px] font-bold text-(--neo-muted) tracking-tight uppercase">
-            © {currentYear} {FOOTER_HOST.toUpperCase()}
+            © {currentYear} {FOOTER_PRODUCT_NAME}
           </div>
         </div>
       </div>

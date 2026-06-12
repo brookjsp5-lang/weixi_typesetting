@@ -3,6 +3,7 @@ import test from "node:test";
 
 import {
   createDefaultPromptTemplates,
+  createPublishWorkflowSteps,
   extractJsonObject,
   getProviderPreset,
   runPublishChecks,
@@ -55,4 +56,48 @@ test("publish checks flag long paragraphs, missing images, links, and headings",
   assert.equal(checks.find((item) => item.id === "images")?.status, "warning");
   assert.equal(checks.find((item) => item.id === "links")?.status, "warning");
   assert.equal(checks.find((item) => item.id === "code")?.status, "success");
+});
+
+test("publish workflow steps reflect draft, format, check, material, and copy progress", () => {
+  const pending = createPublishWorkflowSteps({
+    hasContent: false,
+    hasFormatDraft: false,
+    hasAppliedFormat: false,
+    hasCheckWarnings: false,
+    hasPublishOptimization: false,
+    hasCopied: false,
+  });
+
+  assert.deepEqual(
+    pending.map((step) => step.status),
+    ["pending", "pending", "pending", "pending", "pending"],
+  );
+
+  const withFormatDraft = createPublishWorkflowSteps({
+    hasContent: true,
+    hasFormatDraft: true,
+    hasAppliedFormat: false,
+    hasCheckWarnings: true,
+    hasPublishOptimization: true,
+    hasCopied: false,
+  });
+
+  assert.deepEqual(
+    withFormatDraft.map((step) => step.status),
+    ["done", "active", "warning", "done", "pending"],
+  );
+
+  const complete = createPublishWorkflowSteps({
+    hasContent: true,
+    hasFormatDraft: false,
+    hasAppliedFormat: true,
+    hasCheckWarnings: false,
+    hasPublishOptimization: true,
+    hasCopied: true,
+  });
+
+  assert.deepEqual(
+    complete.map((step) => step.status),
+    ["done", "done", "done", "done", "done"],
+  );
 });
