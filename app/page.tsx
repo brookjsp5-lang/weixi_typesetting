@@ -2,19 +2,16 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { AiConfigModal } from "./_components/ai-config-modal";
+import { AppFooter } from "./_components/app-footer";
 import { AppHeader } from "./_components/app-header";
 import { ImageInsertModal } from "./_components/image-insert-modal";
 import { MarkdownEditorPane } from "./_components/markdown-editor-pane";
 import { PreviewPane } from "./_components/preview-pane";
 import { RewardModal } from "./_components/reward-modal";
-import { WorkflowPane } from "./_components/workflow-pane";
-import { AppFooter } from "./_components/app-footer";
 import { Toast } from "./_components/toast";
-import { aiStorageKeys, sampleText } from "./_lib/formatter-constants";
-import { createPublishWorkflowSteps, runPublishChecks } from "./_lib/workflow-utils";
-import type { ActiveTab, FormatTweaks, WorkflowTab } from "./_types/formatter";
-import { useAiWorkflow } from "./_hooks/use-ai-workflow";
+import { WorkflowPane } from "./_components/workflow-pane";
 import { useAiSettings } from "./_hooks/use-ai-settings";
+import { useAiWorkflow } from "./_hooks/use-ai-workflow";
 import { useClipboardCopy } from "./_hooks/use-clipboard-copy";
 import { useMarkdownTools } from "./_hooks/use-markdown-tools";
 import { usePromptTemplates } from "./_hooks/use-prompt-templates";
@@ -22,6 +19,9 @@ import { useScrollSync } from "./_hooks/use-scroll-sync";
 import { useTheme } from "./_hooks/use-theme";
 import { useToast } from "./_hooks/use-toast";
 import { useWordCount } from "./_hooks/use-word-count";
+import { aiStorageKeys, sampleText } from "./_lib/formatter-constants";
+import { createPublishWorkflowSteps, runPublishChecks } from "./_lib/workflow-utils";
+import type { ActiveTab, FormatTweaks, PublishStepId } from "./_types/formatter";
 import { allTemplates, groupedTemplates, renderArticle } from "./template-engine";
 
 const DEFAULT_FORMAT_TWEAKS: FormatTweaks = {
@@ -40,10 +40,25 @@ const DEFAULT_FORMAT_TWEAKS: FormatTweaks = {
   h2Layout: "left",
 };
 
+const legacyWorkflowStepMap: Record<string, PublishStepId> = {
+  ai: "rewrite",
+  templates: "format",
+  checks: "check",
+  publish: "publish",
+};
+
+const isPublishStepId = (value: string | null): value is PublishStepId =>
+  value === "draft" ||
+  value === "rewrite" ||
+  value === "format" ||
+  value === "image" ||
+  value === "check" ||
+  value === "publish";
+
 export default function Home() {
   const [inputText, setInputText] = useState(sampleText);
   const [activeTab, setActiveTab] = useState<ActiveTab>("input");
-  const [workflowTab, setWorkflowTab] = useState<WorkflowTab>("ai");
+  const [publishStep, setPublishStep] = useState<PublishStepId>("draft");
   const [currentTemplateId, setCurrentTemplateId] = useState<string>("neo-brutalism-0");
   const [currentCategory, setCurrentCategory] = useState<string>("neo-brutalism");
   const [formatTweaks, setFormatTweaks] = useState<FormatTweaks>(DEFAULT_FORMAT_TWEAKS);
@@ -82,20 +97,20 @@ export default function Home() {
   });
 
   useEffect(() => {
-    const savedTab = localStorage.getItem(aiStorageKeys.workflowTab);
-    if (
-      savedTab === "ai" ||
-      savedTab === "templates" ||
-      savedTab === "checks" ||
-      savedTab === "publish"
-    ) {
-      setWorkflowTab(savedTab);
+    const savedStep = localStorage.getItem(aiStorageKeys.workflowTab);
+    if (isPublishStepId(savedStep)) {
+      setPublishStep(savedStep);
+      return;
+    }
+
+    if (savedStep && legacyWorkflowStepMap[savedStep]) {
+      setPublishStep(legacyWorkflowStepMap[savedStep]);
     }
   }, []);
 
   useEffect(() => {
-    localStorage.setItem(aiStorageKeys.workflowTab, workflowTab);
-  }, [workflowTab]);
+    localStorage.setItem(aiStorageKeys.workflowTab, publishStep);
+  }, [publishStep]);
 
   const aiWorkflow = useAiWorkflow({
     inputText,
@@ -132,16 +147,22 @@ export default function Home() {
     () =>
       createPublishWorkflowSteps({
         hasContent: Boolean(inputText.trim()),
+        hasRewriteDraft: Boolean(aiWorkflow.rewriteDraft),
+        hasAppliedRewrite: aiWorkflow.hasAppliedRewrite,
         hasFormatDraft: Boolean(aiWorkflow.formatDraft),
         hasAppliedFormat: aiWorkflow.hasAppliedFormat,
+        hasImageAssist: aiWorkflow.hasGeneratedImageAssist,
         hasCheckWarnings: publishChecks.some((item) => item.status === "warning"),
         hasPublishOptimization: Boolean(aiWorkflow.publishOptimization),
         hasCopied: hasCopiedForPublish,
       }),
     [
       inputText,
+      aiWorkflow.rewriteDraft,
+      aiWorkflow.hasAppliedRewrite,
       aiWorkflow.formatDraft,
       aiWorkflow.hasAppliedFormat,
+      aiWorkflow.hasGeneratedImageAssist,
       publishChecks,
       aiWorkflow.publishOptimization,
       hasCopiedForPublish,
@@ -169,12 +190,10 @@ export default function Home() {
     setFormatTweaks((current) => ({
       ...current,
       themeColor:
-        optimization.recommendedThemeColor ||
-        recommendedTemplate?.themeColor ||
-        current.themeColor,
+        optimization.recommendedThemeColor || recommendedTemplate?.themeColor || current.themeColor,
       h2Layout: recommendedTemplate?.defaultH2Layout || current.h2Layout,
     }));
-    setWorkflowTab("templates");
+    setPublishStep("format");
     showToast("已应用模板建议");
   };
 
@@ -257,9 +276,10 @@ export default function Home() {
 
             <WorkflowPane
               activeTab={activeTab}
-              workflowTab={workflowTab}
-              setWorkflowTab={setWorkflowTab}
+              publishStep={publishStep}
+              setPublishStep={setPublishStep}
               inputText={inputText}
+              wordCount={wordCount}
               runningTask={aiWorkflow.runningTask}
               publishWorkflowSteps={publishWorkflowSteps}
               onAiFormat={aiWorkflow.runFormat}
@@ -267,7 +287,11 @@ export default function Home() {
               onApplyFormatDraft={aiWorkflow.applyFormatDraft}
               onDiscardFormatDraft={aiWorkflow.discardFormatDraft}
               onRewrite={aiWorkflow.runRewrite}
+              hasAppliedRewrite={aiWorkflow.hasAppliedRewrite}
               onPublishOptimize={aiWorkflow.runPublishOptimize}
+              onImageAssist={aiWorkflow.runImageAssist}
+              imageAssistResult={aiWorkflow.imageAssistResult}
+              onInsertImage={markdownTools.insertImage}
               onOpenAiConfig={() => aiSettings.setShowAiConfigModal(true)}
               promptTemplates={promptSettings.promptTemplates}
               selectedPrompt={promptSettings.selectedPrompt}

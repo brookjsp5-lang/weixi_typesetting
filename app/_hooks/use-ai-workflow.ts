@@ -4,6 +4,7 @@ import type {
   AiProviderType,
   AiTaskType,
   FormatDraft,
+  ImageAssistResult,
   PromptTemplate,
   PublishOptimizationResult,
   RewriteDraft,
@@ -36,6 +37,11 @@ const readStreamText = async (body: ReadableStream<Uint8Array>) => {
   return streamedText.trim();
 };
 
+const normalizeStringArray = (value: unknown, limit: number) =>
+  Array.isArray(value)
+    ? value.filter((item): item is string => typeof item === "string").slice(0, limit)
+    : [];
+
 export function useAiWorkflow({
   inputText,
   setInputText,
@@ -50,8 +56,9 @@ export function useAiWorkflow({
   const [formatDraft, setFormatDraft] = useState<FormatDraft>(null);
   const [hasAppliedFormat, setHasAppliedFormat] = useState(false);
   const [rewriteDraft, setRewriteDraft] = useState<RewriteDraft>(null);
-  const [publishOptimization, setPublishOptimization] =
-    useState<PublishOptimizationResult>(null);
+  const [hasAppliedRewrite, setHasAppliedRewrite] = useState(false);
+  const [publishOptimization, setPublishOptimization] = useState<PublishOptimizationResult>(null);
+  const [imageAssistResult, setImageAssistResult] = useState<ImageAssistResult>(null);
 
   const requestAiTask = useCallback(
     async (taskType: AiTaskType, rewritePrompt = "") => {
@@ -155,6 +162,7 @@ export function useAiWorkflow({
         rewritten: result,
         promptName: promptTemplate.name,
       });
+      setHasAppliedRewrite(false);
       showToast("改写稿已生成，请确认后应用");
     },
     [inputText, requestAiTask, showToast],
@@ -164,6 +172,7 @@ export function useAiWorkflow({
     if (!rewriteDraft) return;
     setInputText(rewriteDraft.rewritten);
     setRewriteDraft(null);
+    setHasAppliedRewrite(true);
     showToast("已应用改写稿");
   }, [rewriteDraft, setInputText, showToast]);
 
@@ -180,16 +189,36 @@ export function useAiWorkflow({
         recommendedCategory:
           typeof parsed.recommendedCategory === "string" ? parsed.recommendedCategory : undefined,
         recommendedTemplateId:
-          typeof parsed.recommendedTemplateId === "string" ? parsed.recommendedTemplateId : undefined,
+          typeof parsed.recommendedTemplateId === "string"
+            ? parsed.recommendedTemplateId
+            : undefined,
         recommendedThemeColor:
           typeof parsed.recommendedThemeColor === "string"
             ? parsed.recommendedThemeColor
             : undefined,
-        suggestions: Array.isArray(parsed.suggestions) ? parsed.suggestions.slice(0, 6) : [],
+        suggestions: normalizeStringArray(parsed.suggestions, 6),
       });
       showToast("发布优化建议已生成");
     } catch {
       showToast("AI 发布优化结果解析失败，请重试", "error");
+    }
+  }, [requestAiTask, showToast]);
+
+  const runImageAssist = useCallback(async () => {
+    const result = await requestAiTask("imageAssist");
+    if (!result) return;
+
+    try {
+      const parsed = extractJsonObject(result) as NonNullable<ImageAssistResult>;
+      setImageAssistResult({
+        coverPrompt: typeof parsed.coverPrompt === "string" ? parsed.coverPrompt : "",
+        articleImagePrompts: normalizeStringArray(parsed.articleImagePrompts, 4),
+        imageDescriptions: normalizeStringArray(parsed.imageDescriptions, 4),
+        insertSuggestions: normalizeStringArray(parsed.insertSuggestions, 4),
+      });
+      showToast("配图建议已生成");
+    } catch {
+      showToast("AI 配图建议解析失败，请重试", "error");
     }
   }, [requestAiTask, showToast]);
 
@@ -201,13 +230,18 @@ export function useAiWorkflow({
     hasAppliedFormat,
     rewriteDraft,
     setRewriteDraft,
+    hasAppliedRewrite,
     publishOptimization,
     setPublishOptimization,
+    imageAssistResult,
+    setImageAssistResult,
+    hasGeneratedImageAssist: Boolean(imageAssistResult),
     runFormat,
     applyFormatDraft,
     discardFormatDraft,
     runRewrite,
     applyRewriteDraft,
     runPublishOptimize,
+    runImageAssist,
   };
 }

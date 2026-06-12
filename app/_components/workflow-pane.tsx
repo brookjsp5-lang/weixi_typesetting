@@ -1,7 +1,11 @@
 import {
+  ArrowLeft,
+  ArrowRight,
   CheckCircle2,
+  ChevronDown,
   Clipboard,
   FileCheck2,
+  Image as ImageIcon,
   Loader2,
   PenLine,
   Send,
@@ -11,19 +15,21 @@ import {
   Wand2,
   X,
 } from "lucide-react";
-import { useState } from "react";
 import type React from "react";
+import { useState } from "react";
 import type {
   ActiveTab,
   AiTaskType,
   FormatDraft,
   FormatTweaks,
+  ImageAssistResult,
   PromptTemplate,
   PublishCheckItem,
   PublishOptimizationResult,
+  PublishStepId,
   PublishWorkflowStep,
   RewriteDraft,
-  WorkflowTab,
+  WordCount,
 } from "../_types/formatter";
 import type { TemplateConfig } from "../template-engine";
 import { SettingsPane } from "./settings-pane";
@@ -36,9 +42,10 @@ type TemplateGroup = {
 
 type WorkflowPaneProps = {
   activeTab: ActiveTab;
-  workflowTab: WorkflowTab;
-  setWorkflowTab: React.Dispatch<React.SetStateAction<WorkflowTab>>;
+  publishStep: PublishStepId;
+  setPublishStep: React.Dispatch<React.SetStateAction<PublishStepId>>;
   inputText: string;
+  wordCount: WordCount;
   runningTask: AiTaskType | null;
   publishWorkflowSteps: PublishWorkflowStep[];
   onAiFormat: () => void;
@@ -46,7 +53,11 @@ type WorkflowPaneProps = {
   onApplyFormatDraft: () => void;
   onDiscardFormatDraft: () => void;
   onRewrite: (promptTemplate?: PromptTemplate) => void;
+  hasAppliedRewrite: boolean;
   onPublishOptimize: () => void;
+  onImageAssist: () => void;
+  imageAssistResult: ImageAssistResult;
+  onInsertImage: () => void;
   onOpenAiConfig: () => void;
   promptTemplates: PromptTemplate[];
   selectedPrompt?: PromptTemplate;
@@ -74,24 +85,20 @@ type WorkflowPaneProps = {
   setSyncScroll: React.Dispatch<React.SetStateAction<boolean>>;
 };
 
-const workflowTabs: Array<{ id: WorkflowTab; label: string }> = [
-  { id: "ai", label: "AI" },
-  { id: "templates", label: "模板" },
-  { id: "checks", label: "检查" },
-  { id: "publish", label: "发布" },
+const publishStepOrder: PublishStepId[] = [
+  "draft",
+  "rewrite",
+  "format",
+  "image",
+  "check",
+  "publish",
 ];
 
-const statusClassNames = {
-  success: "bg-(--neo-green)",
-  warning: "bg-(--neo-yellow)",
-  neutral: "bg-(--neo-surface)",
-} as const;
-
 const workflowStepClassNames = {
-  done: "border-(--neo-green) bg-(--neo-pink) text-[#065f46]",
+  done: "border-emerald-300 bg-emerald-50 text-emerald-700",
   active: "border-(--neo-green) bg-white text-[#065f46] shadow-sm",
   warning: "border-amber-300 bg-amber-50 text-amber-800",
-  pending: "border-(--neo-line) bg-(--neo-surface) text-(--neo-muted)",
+  pending: "border-(--neo-line) bg-white/75 text-(--neo-muted)",
 } as const;
 
 const workflowStepStatusLabels = {
@@ -101,11 +108,184 @@ const workflowStepStatusLabels = {
   pending: "待处理",
 } as const;
 
+const statusClassNames = {
+  success: "bg-(--neo-green)",
+  warning: "bg-(--neo-yellow)",
+  neutral: "bg-(--neo-surface)",
+} as const;
+
+const stepDescriptions: Record<PublishStepId, string> = {
+  draft: "先把文章内容放进左侧初稿。",
+  rewrite: "按提示词生成改写稿，确认后再替换初稿。",
+  format: "整理 Markdown 结构，并选择模板和主题细节。",
+  image: "生成封面和正文配图方向，再插入本地或在线图片。",
+  check: "生成标题、摘要、关键词，并检查发布风险。",
+  publish: "复制正文和发布物料到公众号后台。",
+};
+
+function TextBox({
+  label,
+  text,
+  maxHeight = "max-h-40",
+}: {
+  label: string;
+  text: string;
+  maxHeight?: string;
+}) {
+  return (
+    <div>
+      <div className="mb-1 text-[10px] font-black neo-text-muted">{label}</div>
+      <div
+        className={`${maxHeight} overflow-y-auto rounded-lg border border-(--neo-line) bg-white p-2 text-xs leading-relaxed whitespace-pre-wrap`}
+      >
+        {text}
+      </div>
+    </div>
+  );
+}
+
+function StepActions({
+  currentStep,
+  setPublishStep,
+}: {
+  currentStep: PublishStepId;
+  setPublishStep: React.Dispatch<React.SetStateAction<PublishStepId>>;
+}) {
+  const currentIndex = publishStepOrder.indexOf(currentStep);
+  const previousStep = publishStepOrder[currentIndex - 1];
+  const nextStep = publishStepOrder[currentIndex + 1];
+
+  return (
+    <div className="flex gap-2 pt-1">
+      <button
+        type="button"
+        disabled={!previousStep}
+        onClick={() => previousStep && setPublishStep(previousStep)}
+        className="neo-button neo-button-ghost flex-1 py-2 text-xs flex items-center justify-center gap-1.5 disabled:opacity-40"
+      >
+        <ArrowLeft className="w-3.5 h-3.5" />
+        上一步
+      </button>
+      <button
+        type="button"
+        disabled={!nextStep}
+        onClick={() => nextStep && setPublishStep(nextStep)}
+        className="neo-button neo-button-primary flex-1 py-2 text-xs flex items-center justify-center gap-1.5 disabled:opacity-40"
+      >
+        下一步
+        <ArrowRight className="w-3.5 h-3.5" />
+      </button>
+    </div>
+  );
+}
+
+function PublishMaterials({
+  publishOptimization,
+  onApplyRecommendation,
+  onCopyText,
+  compact = false,
+}: {
+  publishOptimization: PublishOptimizationResult;
+  onApplyRecommendation: () => void;
+  onCopyText: (text: string) => void;
+  compact?: boolean;
+}) {
+  if (!publishOptimization) {
+    return (
+      <div className="rounded-xl border border-(--neo-line) bg-(--neo-surface) p-4 text-sm font-bold neo-text-muted">
+        生成后会显示标题候选、摘要、关键词和模板建议。
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-3">
+      <section className="rounded-xl border border-(--neo-line) bg-(--neo-surface) p-3 space-y-2">
+        <h3 className="text-xs font-black">标题候选</h3>
+        {publishOptimization.titles.map((title) => (
+          <button
+            key={title}
+            type="button"
+            onClick={() => onCopyText(title)}
+            className="w-full rounded-lg border border-(--neo-line) p-2 text-left text-xs font-bold hover:bg-(--neo-cyan)"
+          >
+            {title}
+          </button>
+        ))}
+      </section>
+
+      <section className="rounded-xl border border-(--neo-line) bg-(--neo-surface) p-3 space-y-2">
+        <h3 className="text-xs font-black">摘要</h3>
+        <p className="text-xs neo-text-muted font-bold leading-relaxed">
+          {publishOptimization.summary}
+        </p>
+        <button
+          type="button"
+          onClick={() => onCopyText(publishOptimization.summary)}
+          className="neo-button neo-button-ghost px-3 py-1.5 text-xs"
+        >
+          复制摘要
+        </button>
+      </section>
+
+      <section className="rounded-xl border border-(--neo-line) bg-(--neo-surface) p-3 space-y-2">
+        <h3 className="text-xs font-black flex items-center gap-1.5">
+          <Tags className="w-3.5 h-3.5" />
+          关键词/标签
+        </h3>
+        <div className="flex flex-wrap gap-2">
+          {publishOptimization.keywords.map((keyword) => (
+            <button
+              key={keyword}
+              type="button"
+              onClick={() => onCopyText(keyword)}
+              className="rounded-full border border-(--neo-line) bg-(--neo-cyan) px-2 py-1 text-xs font-bold text-(--neo-ink)"
+            >
+              {keyword}
+            </button>
+          ))}
+        </div>
+      </section>
+
+      {!compact && (
+        <section className="rounded-xl border border-(--neo-line) bg-(--neo-surface) p-3 space-y-2">
+          <h3 className="text-xs font-black">模板建议</h3>
+          <p className="text-xs neo-text-muted font-bold">
+            推荐分类：{publishOptimization.recommendedCategory || "未指定"}
+          </p>
+          <button
+            type="button"
+            onClick={onApplyRecommendation}
+            className="neo-button neo-button-secondary w-full py-2 text-xs flex items-center justify-center gap-2"
+          >
+            <CheckCircle2 className="w-4 h-4" />
+            应用推荐
+          </button>
+        </section>
+      )}
+
+      {!compact && publishOptimization.suggestions.length > 0 && (
+        <section className="rounded-xl border border-(--neo-line) bg-(--neo-surface) p-3 space-y-2">
+          <h3 className="text-xs font-black">发布建议</h3>
+          <div className="space-y-2">
+            {publishOptimization.suggestions.map((suggestion) => (
+              <p key={suggestion} className="text-xs neo-text-muted font-bold leading-relaxed">
+                {suggestion}
+              </p>
+            ))}
+          </div>
+        </section>
+      )}
+    </div>
+  );
+}
+
 export function WorkflowPane({
   activeTab,
-  workflowTab,
-  setWorkflowTab,
+  publishStep,
+  setPublishStep,
   inputText,
+  wordCount,
   runningTask,
   publishWorkflowSteps,
   onAiFormat,
@@ -113,7 +293,11 @@ export function WorkflowPane({
   onApplyFormatDraft,
   onDiscardFormatDraft,
   onRewrite,
+  hasAppliedRewrite,
   onPublishOptimize,
+  onImageAssist,
+  imageAssistResult,
+  onInsertImage,
   onOpenAiConfig,
   promptTemplates,
   selectedPrompt,
@@ -143,11 +327,19 @@ export function WorkflowPane({
   const [promptDraftId, setPromptDraftId] = useState("");
   const [promptName, setPromptName] = useState("");
   const [promptBody, setPromptBody] = useState("");
+  const [isPromptManagerOpen, setIsPromptManagerOpen] = useState(false);
+
+  const headingCount = (inputText.match(/^#{1,6}\s+.+$/gm) || []).length;
+  const imageCount = (inputText.match(/!\[[^\]]*]\([^)]+\)/g) || []).length;
+  const linkCount = Math.max(0, (inputText.match(/\[[^\]]+]\([^)]+\)/g) || []).length - imageCount);
+  const currentStepLabel =
+    publishWorkflowSteps.find((step) => step.id === publishStep)?.label || "发布工作流";
 
   const loadPromptForEdit = (template: PromptTemplate) => {
     setPromptDraftId(template.id);
     setPromptName(template.name);
     setPromptBody(template.prompt);
+    setIsPromptManagerOpen(true);
   };
 
   const clearPromptDraft = () => {
@@ -177,7 +369,7 @@ export function WorkflowPane({
           <div className="flex items-center justify-between gap-3 mb-3">
             <h2 className="text-sm font-black text-(--neo-on-header) uppercase flex items-center gap-2">
               <Send className="w-4 h-4" />
-              发布工作流
+              发布向导
             </h2>
             <button
               type="button"
@@ -188,133 +380,82 @@ export function WorkflowPane({
               <Settings className="w-4 h-4" />
             </button>
           </div>
-          <div className="mb-3 rounded-xl border border-(--neo-line) bg-(--neo-surface) p-2">
-            <div className="grid grid-cols-5 gap-1.5">
+
+          <div className="rounded-xl border border-(--neo-line) bg-(--neo-surface) p-2">
+            <div className="grid grid-cols-3 gap-1.5">
               {publishWorkflowSteps.map((step, index) => (
-                <div
+                <button
                   key={step.id}
-                  className={`rounded-lg border px-1.5 py-2 text-center ${workflowStepClassNames[step.status]}`}
+                  type="button"
+                  onClick={() => setPublishStep(step.id)}
+                  aria-current={publishStep === step.id ? "step" : undefined}
+                  className={`rounded-lg border px-1.5 py-2 text-center transition ${
+                    workflowStepClassNames[step.status]
+                  } ${publishStep === step.id ? "ring-2 ring-(--neo-green)" : ""}`}
                   title={`${step.label}：${step.description}`}
                 >
-                  <div className="mx-auto mb-1 flex h-5 w-5 items-center justify-center rounded-full bg-white/80 text-[10px] font-black">
+                  <div className="mx-auto mb-1 flex h-5 w-5 items-center justify-center rounded-full bg-white/85 text-[10px] font-black">
                     {index + 1}
                   </div>
                   <div className="truncate text-[10px] font-black">{step.label}</div>
                   <div className="mt-0.5 truncate text-[9px] font-bold opacity-75">
                     {workflowStepStatusLabels[step.status]}
                   </div>
-                </div>
+                </button>
               ))}
             </div>
-          </div>
-          <div className="grid grid-cols-4 gap-2">
-            {workflowTabs.map((tab) => (
-              <button
-                key={tab.id}
-                type="button"
-                onClick={() => setWorkflowTab(tab.id)}
-                className={`py-2 text-xs font-black ${
-                  workflowTab === tab.id ? "neo-tab neo-tab-active" : "neo-tab"
-                }`}
-              >
-                {tab.label}
-              </button>
-            ))}
           </div>
         </div>
 
         <div className="flex-1 min-h-0 overflow-y-auto p-3 bg-(--neo-surface) custom-scrollbar">
-          {workflowTab === "ai" && (
+          <div className="mb-3 rounded-xl border border-(--neo-line) bg-white p-3">
+            <div className="text-[11px] font-black neo-text-muted">当前步骤</div>
+            <div className="mt-1 text-lg font-black text-(--neo-ink)">{currentStepLabel}</div>
+            <p className="mt-1 text-xs font-bold leading-relaxed neo-text-muted">
+              {stepDescriptions[publishStep]}
+            </p>
+          </div>
+
+          {publishStep === "draft" && (
+            <div className="space-y-3">
+              <section className="rounded-xl border border-(--neo-line) bg-(--neo-surface) p-3 space-y-3">
+                <h3 className="text-sm font-black">初稿状态</h3>
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="rounded-lg border border-(--neo-line) bg-white p-2">
+                    <div className="text-[10px] font-black neo-text-muted">字符</div>
+                    <div className="text-lg font-black">{wordCount.chars}</div>
+                  </div>
+                  <div className="rounded-lg border border-(--neo-line) bg-white p-2">
+                    <div className="text-[10px] font-black neo-text-muted">预计阅读</div>
+                    <div className="text-lg font-black">{wordCount.readTime} 分钟</div>
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  {[
+                    { label: "标题", value: headingCount > 0 ? `${headingCount} 个` : "未检测到" },
+                    { label: "图片", value: imageCount > 0 ? `${imageCount} 张` : "未检测到" },
+                    { label: "链接", value: linkCount > 0 ? `${linkCount} 个` : "未检测到" },
+                  ].map((item) => (
+                    <div
+                      key={item.label}
+                      className="flex items-center justify-between rounded-lg border border-(--neo-line) bg-white p-2 text-xs font-bold"
+                    >
+                      <span>{item.label}</span>
+                      <span className="neo-text-muted">{item.value}</span>
+                    </div>
+                  ))}
+                </div>
+              </section>
+              <StepActions currentStep={publishStep} setPublishStep={setPublishStep} />
+            </div>
+          )}
+
+          {publishStep === "rewrite" && (
             <div className="space-y-4">
-              <div className="grid grid-cols-1 gap-3">
-                <div className="space-y-1">
-                  <button
-                    type="button"
-                    onClick={onAiFormat}
-                    disabled={!inputText.trim() || Boolean(runningTask)}
-                    className="neo-button neo-button-pink w-full px-4 py-3 flex items-center justify-center gap-2"
-                  >
-                    {runningTask === "format" ? (
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                    ) : (
-                      <Sparkles className="w-4 h-4" />
-                    )}
-                    AI 一键排版
-                  </button>
-                  <p className="px-1 text-[11px] font-bold leading-relaxed neo-text-muted">
-                    整理 Markdown 结构，不改写正文。
-                  </p>
-                </div>
-                <div className="space-y-1">
-                  <button
-                    type="button"
-                    onClick={onPublishOptimize}
-                    disabled={!inputText.trim() || Boolean(runningTask)}
-                    className="neo-button neo-button-primary w-full px-4 py-3 flex items-center justify-center gap-2"
-                  >
-                    {runningTask === "publishOptimize" ? (
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                    ) : (
-                      <FileCheck2 className="w-4 h-4" />
-                    )}
-                    生成发布优化
-                  </button>
-                  <p className="px-1 text-[11px] font-bold leading-relaxed neo-text-muted">
-                    生成标题、摘要、关键词和发布建议。
-                  </p>
-                </div>
-              </div>
-
-              {formatDraft && (
-                <section className="border border-(--neo-line) rounded-xl p-3 bg-(--neo-cyan) text-(--neo-ink) space-y-3">
-                  <div className="flex items-center justify-between gap-2">
-                    <h3 className="text-xs font-black">排版稿确认</h3>
-                    <button
-                      type="button"
-                      onClick={onDiscardFormatDraft}
-                      className="neo-toolbar-button p-1"
-                      title="取消排版稿"
-                    >
-                      <X className="w-3 h-3" />
-                    </button>
-                  </div>
-                  <div className="space-y-2">
-                    <div>
-                      <div className="mb-1 text-[10px] font-black neo-text-muted">原文</div>
-                      <div className="max-h-32 overflow-y-auto rounded-lg border border-(--neo-line) bg-white p-2 text-xs leading-relaxed whitespace-pre-wrap">
-                        {formatDraft.original}
-                      </div>
-                    </div>
-                    <div>
-                      <div className="mb-1 text-[10px] font-black neo-text-muted">排版后</div>
-                      <div className="max-h-40 overflow-y-auto rounded-lg border border-(--neo-line) bg-white p-2 text-xs leading-relaxed whitespace-pre-wrap">
-                        {formatDraft.formatted}
-                      </div>
-                    </div>
-                  </div>
-                  <div className="flex gap-2">
-                    <button
-                      type="button"
-                      onClick={onApplyFormatDraft}
-                      className="neo-button neo-button-primary flex-1 py-2 text-xs"
-                    >
-                      应用排版
-                    </button>
-                    <button
-                      type="button"
-                      onClick={onDiscardFormatDraft}
-                      className="neo-button neo-button-ghost px-3 py-2 text-xs"
-                    >
-                      取消
-                    </button>
-                  </div>
-                </section>
-              )}
-
-              <section className="border border-(--neo-line) rounded-xl p-3 bg-(--neo-surface) space-y-3">
+              <section className="rounded-xl border border-(--neo-line) bg-(--neo-surface) p-3 space-y-3">
                 <div className="flex items-center justify-between gap-2">
-                  <h3 className="text-xs font-black flex items-center gap-1.5">
-                    <Wand2 className="w-3.5 h-3.5" />
+                  <h3 className="text-sm font-black flex items-center gap-1.5">
+                    <Wand2 className="w-4 h-4" />
                     提示词改写
                   </h3>
                   <button
@@ -340,210 +481,379 @@ export function WorkflowPane({
                 <p className="text-xs neo-text-muted font-bold leading-relaxed">
                   {selectedPrompt?.prompt || "选择一个提示词后，可生成改写稿并确认应用。"}
                 </p>
+                {hasAppliedRewrite && (
+                  <div className="rounded-lg border border-emerald-300 bg-emerald-50 p-2 text-xs font-bold text-emerald-700">
+                    已应用过改写稿
+                  </div>
+                )}
               </section>
 
               {rewriteDraft && (
-                <section className="border border-(--neo-line) rounded-xl p-3 bg-(--neo-cyan) text-(--neo-ink) space-y-3">
+                <section className="rounded-xl border border-(--neo-line) bg-(--neo-cyan) p-3 text-(--neo-ink) space-y-3">
                   <div className="flex items-center justify-between gap-2">
                     <h3 className="text-xs font-black">改写草稿 · {rewriteDraft.promptName}</h3>
-                    <button type="button" onClick={onDiscardRewrite} className="neo-toolbar-button p-1">
+                    <button
+                      type="button"
+                      onClick={onDiscardRewrite}
+                      className="neo-toolbar-button p-1"
+                      title="取消改写稿"
+                    >
                       <X className="w-3 h-3" />
                     </button>
                   </div>
-                  <div className="max-h-48 overflow-y-auto bg-white border border-(--neo-line) rounded-lg p-2 text-xs leading-relaxed whitespace-pre-wrap">
-                    {rewriteDraft.rewritten}
-                  </div>
+                  <TextBox label="原文" text={rewriteDraft.original} maxHeight="max-h-28" />
+                  <TextBox label="改写后" text={rewriteDraft.rewritten} />
                   <button
                     type="button"
                     onClick={onApplyRewrite}
                     className="neo-button neo-button-primary w-full py-2"
                   >
-                    应用到编辑区
+                    应用到初稿
                   </button>
                 </section>
               )}
 
-              <section className="border border-(--neo-line) rounded-xl p-3 bg-(--neo-surface) space-y-2">
-                <h3 className="text-xs font-black flex items-center gap-1.5">
-                  <PenLine className="w-3.5 h-3.5" />
-                  保存提示词
-                </h3>
-                <input
-                  value={promptName}
-                  onChange={(e) => setPromptName(e.target.value)}
-                  className="neo-input w-full px-3 py-2 text-sm"
-                  placeholder="提示词名称"
-                />
-                <textarea
-                  value={promptBody}
-                  onChange={(e) => setPromptBody(e.target.value)}
-                  className="neo-input w-full min-h-24 px-3 py-2 text-sm resize-none"
-                  placeholder="输入你的改写提示词"
-                />
-                <div className="flex gap-2">
-                  <button type="button" onClick={savePrompt} className="neo-button neo-button-primary flex-1 py-2 text-xs">
-                    保存
-                  </button>
-                  <button type="button" onClick={clearPromptDraft} className="neo-button neo-button-ghost px-3 py-2 text-xs">
-                    清空
-                  </button>
-                </div>
-                <div className="space-y-2 pt-1">
-                  {promptTemplates.map((template) => (
-                    <div
-                      key={template.id}
-                      className="flex items-center justify-between gap-2 border border-(--neo-line) rounded-lg p-2"
-                    >
+              <section className="rounded-xl border border-(--neo-line) bg-(--neo-surface) overflow-hidden">
+                <button
+                  type="button"
+                  onClick={() => setIsPromptManagerOpen((current) => !current)}
+                  className="flex w-full items-center justify-between gap-2 p-3 text-left"
+                >
+                  <span className="text-sm font-black flex items-center gap-1.5">
+                    <PenLine className="w-4 h-4" />
+                    管理提示词
+                  </span>
+                  <ChevronDown
+                    className={`w-4 h-4 transition-transform ${
+                      isPromptManagerOpen ? "rotate-180" : ""
+                    }`}
+                  />
+                </button>
+
+                {isPromptManagerOpen && (
+                  <div className="border-t border-(--neo-line) p-3 space-y-2">
+                    <input
+                      value={promptName}
+                      onChange={(e) => setPromptName(e.target.value)}
+                      className="neo-input w-full px-3 py-2 text-sm"
+                      placeholder="提示词名称"
+                    />
+                    <textarea
+                      value={promptBody}
+                      onChange={(e) => setPromptBody(e.target.value)}
+                      className="neo-input w-full min-h-24 px-3 py-2 text-sm resize-none"
+                      placeholder="输入你的改写提示词"
+                    />
+                    <div className="flex gap-2">
                       <button
                         type="button"
-                        onClick={() => loadPromptForEdit(template)}
-                        className="text-left text-xs font-black underline truncate"
+                        onClick={savePrompt}
+                        className="neo-button neo-button-primary flex-1 py-2 text-xs"
                       >
-                        {template.name}
+                        保存
                       </button>
                       <button
                         type="button"
-                        onClick={() => onDeletePrompt(template.id)}
-                        className="text-[10px] font-black"
+                        onClick={clearPromptDraft}
+                        className="neo-button neo-button-ghost px-3 py-2 text-xs"
                       >
-                        删除
+                        清空
                       </button>
                     </div>
-                  ))}
+                    <div className="space-y-2 pt-1">
+                      {promptTemplates.map((template) => (
+                        <div
+                          key={template.id}
+                          className="flex items-center justify-between gap-2 rounded-lg border border-(--neo-line) p-2"
+                        >
+                          <button
+                            type="button"
+                            onClick={() => loadPromptForEdit(template)}
+                            className="truncate text-left text-xs font-black underline"
+                          >
+                            {template.name}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => onDeletePrompt(template.id)}
+                            className="text-[10px] font-black"
+                          >
+                            删除
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </section>
+
+              <StepActions currentStep={publishStep} setPublishStep={setPublishStep} />
+            </div>
+          )}
+
+          {publishStep === "format" && (
+            <div className="space-y-4">
+              <section className="rounded-xl border border-(--neo-line) bg-(--neo-surface) p-3 space-y-3">
+                <div className="space-y-1">
+                  <button
+                    type="button"
+                    onClick={onAiFormat}
+                    disabled={!inputText.trim() || Boolean(runningTask)}
+                    className="neo-button neo-button-pink w-full px-4 py-3 flex items-center justify-center gap-2"
+                  >
+                    {runningTask === "format" ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <Sparkles className="w-4 h-4" />
+                    )}
+                    AI 一键排版
+                  </button>
+                  <p className="px-1 text-[11px] font-bold leading-relaxed neo-text-muted">
+                    整理 Markdown 结构，不改写正文。
+                  </p>
                 </div>
               </section>
-            </div>
-          )}
 
-          {workflowTab === "templates" && (
-            <SettingsPane
-              activeTab="workflow"
-              embedded
-              allTemplatesCount={allTemplatesCount}
-              groupedTemplates={groupedTemplates}
-              currentCategory={currentCategory}
-              setCurrentCategory={setCurrentCategory}
-              currentTemplateId={currentTemplateId}
-              setCurrentTemplateId={setCurrentTemplateId}
-              formatTweaks={formatTweaks}
-              setFormatTweaks={setFormatTweaks}
-              onResetFormatTweaks={onResetFormatTweaks}
-              syncScroll={syncScroll}
-              setSyncScroll={setSyncScroll}
-            />
-          )}
-
-          {workflowTab === "checks" && (
-            <div className="space-y-3">
-              {publishChecks.map((item) => (
-                <div key={item.id} className="border border-(--neo-line) rounded-xl p-3 bg-(--neo-surface)">
-                  <div className="flex items-center gap-2 mb-1">
-                    <span
-                      className={`w-3 h-3 rounded-full border border-(--neo-line) ${statusClassNames[item.status]}`}
-                    />
-                    <h3 className="text-sm font-black">{item.label}</h3>
+              {formatDraft && (
+                <section className="rounded-xl border border-(--neo-line) bg-(--neo-cyan) p-3 text-(--neo-ink) space-y-3">
+                  <div className="flex items-center justify-between gap-2">
+                    <h3 className="text-xs font-black">排版稿确认</h3>
+                    <button
+                      type="button"
+                      onClick={onDiscardFormatDraft}
+                      className="neo-toolbar-button p-1"
+                      title="取消排版稿"
+                    >
+                      <X className="w-3 h-3" />
+                    </button>
                   </div>
-                  <p className="text-xs neo-text-muted font-bold leading-relaxed">{item.message}</p>
-                </div>
-              ))}
+                  <TextBox label="原文" text={formatDraft.original} maxHeight="max-h-28" />
+                  <TextBox label="排版后" text={formatDraft.formatted} />
+                  <div className="flex gap-2">
+                    <button
+                      type="button"
+                      onClick={onApplyFormatDraft}
+                      className="neo-button neo-button-primary flex-1 py-2 text-xs"
+                    >
+                      应用排版
+                    </button>
+                    <button
+                      type="button"
+                      onClick={onDiscardFormatDraft}
+                      className="neo-button neo-button-ghost px-3 py-2 text-xs"
+                    >
+                      取消
+                    </button>
+                  </div>
+                </section>
+              )}
+
+              <SettingsPane
+                activeTab="workflow"
+                embedded
+                allTemplatesCount={allTemplatesCount}
+                groupedTemplates={groupedTemplates}
+                currentCategory={currentCategory}
+                setCurrentCategory={setCurrentCategory}
+                currentTemplateId={currentTemplateId}
+                setCurrentTemplateId={setCurrentTemplateId}
+                formatTweaks={formatTweaks}
+                setFormatTweaks={setFormatTweaks}
+                onResetFormatTweaks={onResetFormatTweaks}
+                syncScroll={syncScroll}
+                setSyncScroll={setSyncScroll}
+              />
+
+              <StepActions currentStep={publishStep} setPublishStep={setPublishStep} />
             </div>
           )}
 
-          {workflowTab === "publish" && (
+          {publishStep === "image" && (
             <div className="space-y-4">
-              <button
-                type="button"
-                onClick={onCopy}
-                disabled={!inputText.trim()}
-                className="neo-button neo-button-primary w-full py-3 flex items-center justify-center gap-2"
-              >
-                <Clipboard className="w-4 h-4" />
-                复制到公众号后台
-              </button>
+              <section className="rounded-xl border border-(--neo-line) bg-(--neo-surface) p-3 space-y-3">
+                <button
+                  type="button"
+                  onClick={onImageAssist}
+                  disabled={!inputText.trim() || Boolean(runningTask)}
+                  className="neo-button neo-button-primary w-full px-4 py-3 flex items-center justify-center gap-2"
+                >
+                  {runningTask === "imageAssist" ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <ImageIcon className="w-4 h-4" />
+                  )}
+                  生成配图建议
+                </button>
+                <p className="px-1 text-[11px] font-bold leading-relaxed neo-text-muted">
+                  生成封面和正文配图提示词，不直接创建图片。
+                </p>
+                <button
+                  type="button"
+                  onClick={onInsertImage}
+                  className="neo-button neo-button-secondary w-full py-2 text-xs flex items-center justify-center gap-2"
+                >
+                  <ImageIcon className="w-4 h-4" />
+                  插入本地/在线图片
+                </button>
+              </section>
 
-              {publishOptimization ? (
-                <>
-                  <section className="border border-(--neo-line) rounded-xl p-3 bg-(--neo-surface) space-y-2">
-                    <h3 className="text-xs font-black">标题候选</h3>
-                    {publishOptimization.titles.map((title) => (
+              {imageAssistResult ? (
+                <div className="space-y-3">
+                  <section className="rounded-xl border border-(--neo-line) bg-(--neo-cyan) p-3 space-y-2">
+                    <h3 className="text-xs font-black">封面提示词</h3>
+                    <p className="text-xs font-bold leading-relaxed">
+                      {imageAssistResult.coverPrompt}
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => copyPlainText(imageAssistResult.coverPrompt)}
+                      className="neo-button neo-button-ghost px-3 py-1.5 text-xs"
+                    >
+                      复制封面提示词
+                    </button>
+                  </section>
+
+                  <section className="rounded-xl border border-(--neo-line) bg-(--neo-surface) p-3 space-y-2">
+                    <h3 className="text-xs font-black">正文配图提示词</h3>
+                    {imageAssistResult.articleImagePrompts.map((prompt) => (
                       <button
-                        key={title}
+                        key={prompt}
                         type="button"
-                        onClick={() => copyPlainText(title)}
-                        className="w-full text-left border border-(--neo-line) rounded-lg p-2 text-xs font-bold hover:bg-(--neo-cyan)"
+                        onClick={() => copyPlainText(prompt)}
+                        className="w-full rounded-lg border border-(--neo-line) p-2 text-left text-xs font-bold hover:bg-(--neo-cyan)"
                       >
-                        {title}
+                        {prompt}
                       </button>
                     ))}
                   </section>
 
-                  <section className="border border-(--neo-line) rounded-xl p-3 bg-(--neo-surface) space-y-2">
-                    <h3 className="text-xs font-black">摘要</h3>
-                    <p className="text-xs neo-text-muted font-bold leading-relaxed">
-                      {publishOptimization.summary}
-                    </p>
-                    <button
-                      type="button"
-                      onClick={() => copyPlainText(publishOptimization.summary)}
-                      className="neo-button neo-button-ghost px-3 py-1.5 text-xs"
-                    >
-                      复制摘要
-                    </button>
-                  </section>
-
-                  <section className="border border-(--neo-line) rounded-xl p-3 bg-(--neo-surface) space-y-2">
-                    <h3 className="text-xs font-black flex items-center gap-1.5">
-                      <Tags className="w-3.5 h-3.5" />
-                      关键词/标签
-                    </h3>
+                  <section className="rounded-xl border border-(--neo-line) bg-(--neo-surface) p-3 space-y-2">
+                    <h3 className="text-xs font-black">图片描述</h3>
                     <div className="flex flex-wrap gap-2">
-                      {publishOptimization.keywords.map((keyword) => (
-                        <span
-                          key={keyword}
-                          className="border border-(--neo-line) rounded-full bg-(--neo-cyan) px-2 py-1 text-xs font-bold text-(--neo-ink)"
+                      {imageAssistResult.imageDescriptions.map((description) => (
+                        <button
+                          key={description}
+                          type="button"
+                          onClick={() => copyPlainText(description)}
+                          className="rounded-full border border-(--neo-line) bg-white px-2 py-1 text-xs font-bold"
                         >
-                          {keyword}
-                        </span>
+                          {description}
+                        </button>
                       ))}
                     </div>
                   </section>
 
-                  <section className="border border-(--neo-line) rounded-xl p-3 bg-(--neo-surface) space-y-2">
-                    <h3 className="text-xs font-black">模板建议</h3>
-                    <p className="text-xs neo-text-muted font-bold">
-                      推荐分类：{publishOptimization.recommendedCategory || "未指定"}
-                    </p>
-                    <button
-                      type="button"
-                      onClick={onApplyRecommendation}
-                      className="neo-button neo-button-secondary w-full py-2 text-xs flex items-center justify-center gap-2"
-                    >
-                      <CheckCircle2 className="w-4 h-4" />
-                      应用推荐
-                    </button>
-                  </section>
-
-                  {publishOptimization.suggestions.length > 0 && (
-                    <section className="border border-(--neo-line) rounded-xl p-3 bg-(--neo-surface) space-y-2">
-                      <h3 className="text-xs font-black">发布建议</h3>
-                      <div className="space-y-2">
-                        {publishOptimization.suggestions.map((suggestion) => (
-                          <p
-                            key={suggestion}
-                            className="text-xs neo-text-muted font-bold leading-relaxed"
-                          >
-                            {suggestion}
-                          </p>
-                        ))}
-                      </div>
+                  {imageAssistResult.insertSuggestions.length > 0 && (
+                    <section className="rounded-xl border border-(--neo-line) bg-(--neo-surface) p-3 space-y-2">
+                      <h3 className="text-xs font-black">插入建议</h3>
+                      {imageAssistResult.insertSuggestions.map((suggestion) => (
+                        <p
+                          key={suggestion}
+                          className="text-xs neo-text-muted font-bold leading-relaxed"
+                        >
+                          {suggestion}
+                        </p>
+                      ))}
                     </section>
                   )}
-                </>
+                </div>
               ) : (
-                <div className="border border-(--neo-line) rounded-xl p-4 text-sm font-bold neo-text-muted">
-                  在 AI 标签页点击“生成发布优化”，这里会显示标题、摘要、关键词和模板建议。
+                <div className="rounded-xl border border-(--neo-line) bg-(--neo-surface) p-4 text-sm font-bold neo-text-muted">
+                  生成后会出现封面提示词、正文配图方向和图片描述。
                 </div>
               )}
+
+              <StepActions currentStep={publishStep} setPublishStep={setPublishStep} />
+            </div>
+          )}
+
+          {publishStep === "check" && (
+            <div className="space-y-4">
+              <section className="rounded-xl border border-(--neo-line) bg-(--neo-surface) p-3 space-y-3">
+                <button
+                  type="button"
+                  onClick={onPublishOptimize}
+                  disabled={!inputText.trim() || Boolean(runningTask)}
+                  className="neo-button neo-button-primary w-full px-4 py-3 flex items-center justify-center gap-2"
+                >
+                  {runningTask === "publishOptimize" ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <FileCheck2 className="w-4 h-4" />
+                  )}
+                  生成发布物料
+                </button>
+                <p className="px-1 text-[11px] font-bold leading-relaxed neo-text-muted">
+                  生成标题、摘要、关键词和发布建议。
+                </p>
+              </section>
+
+              <div className="space-y-3">
+                {publishChecks.map((item) => (
+                  <div
+                    key={item.id}
+                    className="rounded-xl border border-(--neo-line) bg-(--neo-surface) p-3"
+                  >
+                    <div className="flex items-center gap-2 mb-1">
+                      <span
+                        className={`w-3 h-3 rounded-full border border-(--neo-line) ${
+                          statusClassNames[item.status]
+                        }`}
+                      />
+                      <h3 className="text-sm font-black">{item.label}</h3>
+                    </div>
+                    <p className="text-xs neo-text-muted font-bold leading-relaxed">
+                      {item.message}
+                    </p>
+                  </div>
+                ))}
+              </div>
+
+              <PublishMaterials
+                publishOptimization={publishOptimization}
+                onApplyRecommendation={onApplyRecommendation}
+                onCopyText={copyPlainText}
+              />
+
+              <StepActions currentStep={publishStep} setPublishStep={setPublishStep} />
+            </div>
+          )}
+
+          {publishStep === "publish" && (
+            <div className="space-y-4">
+              <section className="rounded-xl border border-(--neo-line) bg-(--neo-surface) p-3 space-y-3">
+                <button
+                  type="button"
+                  onClick={onCopy}
+                  disabled={!inputText.trim()}
+                  className="neo-button neo-button-primary w-full py-3 flex items-center justify-center gap-2"
+                >
+                  <Clipboard className="w-4 h-4" />
+                  复制到公众号后台
+                </button>
+                <p className="px-1 text-[11px] font-bold leading-relaxed neo-text-muted">
+                  正文样式会复制为公众号可粘贴的 HTML。
+                </p>
+              </section>
+
+              <PublishMaterials
+                publishOptimization={publishOptimization}
+                onApplyRecommendation={onApplyRecommendation}
+                onCopyText={copyPlainText}
+                compact
+              />
+
+              {!publishOptimization && (
+                <button
+                  type="button"
+                  onClick={() => setPublishStep("check")}
+                  className="neo-button neo-button-secondary w-full py-2 text-xs"
+                >
+                  先生成发布物料
+                </button>
+              )}
+
+              <StepActions currentStep={publishStep} setPublishStep={setPublishStep} />
             </div>
           )}
         </div>

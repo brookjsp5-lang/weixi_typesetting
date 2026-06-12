@@ -16,8 +16,11 @@ export function extractJsonObject(text: string): unknown;
 
 export function createPublishWorkflowSteps(params: {
   hasContent: boolean;
+  hasRewriteDraft: boolean;
+  hasAppliedRewrite: boolean;
   hasFormatDraft: boolean;
   hasAppliedFormat: boolean;
+  hasImageAssist: boolean;
   hasCheckWarnings: boolean;
   hasPublishOptimization: boolean;
   hasCopied: boolean;

@@ -124,8 +124,11 @@ export function extractJsonObject(text) {
 
 export function createPublishWorkflowSteps({
   hasContent,
+  hasRewriteDraft,
+  hasAppliedRewrite,
   hasFormatDraft,
   hasAppliedFormat,
+  hasImageAssist,
   hasCheckWarnings,
   hasPublishOptimization,
   hasCopied,
@@ -138,25 +141,71 @@ export function createPublishWorkflowSteps({
       description: hasContent ? "已输入正文" : "等待输入正文",
     },
     {
+      id: "rewrite",
+      label: "AI 改写",
+      status: !hasContent
+        ? "pending"
+        : hasRewriteDraft
+          ? "active"
+          : hasAppliedRewrite
+            ? "done"
+            : "pending",
+      description: !hasContent
+        ? "等待初稿"
+        : hasRewriteDraft
+          ? "改写稿待确认"
+          : hasAppliedRewrite
+            ? "已应用改写"
+            : "可选提示词改写",
+    },
+    {
       id: "format",
       label: "AI 排版",
-      status: hasFormatDraft ? "active" : hasAppliedFormat ? "done" : "pending",
-      description: hasFormatDraft ? "排版稿待确认" : hasAppliedFormat ? "已应用排版" : "可选 AI 整理结构",
+      status: !hasContent
+        ? "pending"
+        : hasFormatDraft
+          ? "active"
+          : hasAppliedFormat
+            ? "done"
+            : "pending",
+      description: !hasContent
+        ? "等待初稿"
+        : hasFormatDraft
+          ? "排版稿待确认"
+          : hasAppliedFormat
+            ? "已应用排版"
+            : "可选 AI 整理结构",
     },
     {
-      id: "checks",
-      label: "检查",
-      status: !hasContent ? "pending" : hasCheckWarnings ? "warning" : "done",
-      description: !hasContent ? "等待正文" : hasCheckWarnings ? "有项目需确认" : "检查通过",
+      id: "image",
+      label: "AI 生图",
+      status: !hasContent ? "pending" : hasImageAssist ? "done" : "pending",
+      description: !hasContent
+        ? "等待初稿"
+        : hasImageAssist
+          ? "已生成配图建议"
+          : "可生成配图提示词",
     },
     {
-      id: "materials",
-      label: "发布物料",
-      status: hasPublishOptimization ? "done" : "pending",
-      description: hasPublishOptimization ? "已生成标题摘要" : "等待生成优化",
+      id: "check",
+      label: "物料检查",
+      status: !hasContent
+        ? "pending"
+        : hasCheckWarnings
+          ? "warning"
+          : hasPublishOptimization
+            ? "done"
+            : "pending",
+      description: !hasContent
+        ? "等待正文"
+        : hasCheckWarnings
+          ? "有项目需确认"
+          : hasPublishOptimization
+            ? "发布物料已生成"
+            : "等待生成发布物料",
     },
     {
-      id: "copy",
+      id: "publish",
       label: "复制发布",
       status: hasCopied ? "done" : "pending",
       description: hasCopied ? "已复制到剪贴板" : "等待复制发布",
@@ -187,7 +236,10 @@ export function runPublishChecks(markdown) {
       id: "headings",
       label: "标题层级",
       status: headings > 0 ? "success" : "warning",
-      message: headings > 0 ? `检测到 ${headings} 个标题。` : "建议至少保留一个主标题，便于读者快速判断主题。",
+      message:
+        headings > 0
+          ? `检测到 ${headings} 个标题。`
+          : "建议至少保留一个主标题，便于读者快速判断主题。",
     },
     {
       id: "paragraph-length",
@@ -224,16 +276,15 @@ export function runPublishChecks(markdown) {
       id: "code",
       label: "代码块",
       status: codeBlocks > 0 ? "success" : "neutral",
-      message: codeBlocks > 0 ? `检测到 ${codeBlocks} 个代码块，已按模板样式渲染。` : "未检测到代码块。",
+      message:
+        codeBlocks > 0 ? `检测到 ${codeBlocks} 个代码块，已按模板样式渲染。` : "未检测到代码块。",
     },
     {
       id: "tables",
       label: "表格",
       status: tables > 0 ? "warning" : "neutral",
       message:
-        tables > 0
-          ? "检测到表格，公众号移动端可能较挤，建议预览后再发布。"
-          : "未检测到表格。",
+        tables > 0 ? "检测到表格，公众号移动端可能较挤，建议预览后再发布。" : "未检测到表格。",
     },
   ];
 }

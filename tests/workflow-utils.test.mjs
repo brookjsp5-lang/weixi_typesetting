@@ -11,10 +11,7 @@ import {
 
 test("provider presets include domestic OpenAI-compatible services", () => {
   assert.equal(getProviderPreset("deepseek").baseUrl, "https://api.deepseek.com");
-  assert.equal(
-    getProviderPreset("volcengine").baseUrl,
-    "https://ark.cn-beijing.volces.com/api/v3",
-  );
+  assert.equal(getProviderPreset("volcengine").baseUrl, "https://ark.cn-beijing.volces.com/api/v3");
   assert.equal(
     getProviderPreset("dashscope").baseUrl,
     "https://dashscope.aliyuncs.com/compatible-mode/v1",
@@ -33,7 +30,9 @@ test("default prompt templates are reusable and user-editable", () => {
 });
 
 test("extractJsonObject accepts model responses wrapped in prose or fences", () => {
-  const json = extractJsonObject(`这里是结果：\n\`\`\`json\n{"titles":["A"],"keywords":["B"]}\n\`\`\``);
+  const json = extractJsonObject(
+    `这里是结果：\n\`\`\`json\n{"titles":["A"],"keywords":["B"]}\n\`\`\``,
+  );
 
   assert.deepEqual(json, {
     titles: ["A"],
@@ -58,11 +57,14 @@ test("publish checks flag long paragraphs, missing images, links, and headings",
   assert.equal(checks.find((item) => item.id === "code")?.status, "success");
 });
 
-test("publish workflow steps reflect draft, format, check, material, and copy progress", () => {
+test("publish workflow steps reflect draft, rewrite, format, image, check, and publish progress", () => {
   const pending = createPublishWorkflowSteps({
     hasContent: false,
+    hasRewriteDraft: false,
+    hasAppliedRewrite: false,
     hasFormatDraft: false,
     hasAppliedFormat: false,
+    hasImageAssist: false,
     hasCheckWarnings: false,
     hasPublishOptimization: false,
     hasCopied: false,
@@ -70,13 +72,16 @@ test("publish workflow steps reflect draft, format, check, material, and copy pr
 
   assert.deepEqual(
     pending.map((step) => step.status),
-    ["pending", "pending", "pending", "pending", "pending"],
+    ["pending", "pending", "pending", "pending", "pending", "pending"],
   );
 
   const withFormatDraft = createPublishWorkflowSteps({
     hasContent: true,
+    hasRewriteDraft: true,
+    hasAppliedRewrite: false,
     hasFormatDraft: true,
     hasAppliedFormat: false,
+    hasImageAssist: true,
     hasCheckWarnings: true,
     hasPublishOptimization: true,
     hasCopied: false,
@@ -84,13 +89,16 @@ test("publish workflow steps reflect draft, format, check, material, and copy pr
 
   assert.deepEqual(
     withFormatDraft.map((step) => step.status),
-    ["done", "active", "warning", "done", "pending"],
+    ["done", "active", "active", "done", "warning", "pending"],
   );
 
   const complete = createPublishWorkflowSteps({
     hasContent: true,
+    hasRewriteDraft: false,
+    hasAppliedRewrite: true,
     hasFormatDraft: false,
     hasAppliedFormat: true,
+    hasImageAssist: true,
     hasCheckWarnings: false,
     hasPublishOptimization: true,
     hasCopied: true,
@@ -98,6 +106,11 @@ test("publish workflow steps reflect draft, format, check, material, and copy pr
 
   assert.deepEqual(
     complete.map((step) => step.status),
-    ["done", "done", "done", "done", "done"],
+    ["done", "done", "done", "done", "done", "done"],
+  );
+
+  assert.deepEqual(
+    complete.map((step) => step.id),
+    ["draft", "rewrite", "format", "image", "check", "publish"],
   );
 });

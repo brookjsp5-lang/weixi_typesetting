@@ -1,6 +1,8 @@
 export type ActiveTab = "input" | "preview" | "workflow";
 
-export type WorkflowTab = "ai" | "templates" | "checks" | "publish";
+export type PublishStepId = "draft" | "rewrite" | "format" | "image" | "check" | "publish";
+
+export type WorkflowTab = PublishStepId;
 
 export type AiProviderType =
   | "openrouter"
@@ -13,7 +15,7 @@ export type AiProviderType =
   | "anthropic"
   | "custom";
 
-export type AiTaskType = "format" | "rewrite" | "publishOptimize";
+export type AiTaskType = "format" | "rewrite" | "publishOptimize" | "imageAssist";
 
 export type ProviderPreset = {
   id: AiProviderType;
@@ -81,11 +83,18 @@ export type PublishCheckItem = {
 };
 
 export type PublishWorkflowStep = {
-  id: "draft" | "format" | "checks" | "materials" | "copy";
+  id: PublishStepId;
   label: string;
   status: "pending" | "active" | "warning" | "done";
   description: string;
 };
+
+export type ImageAssistResult = {
+  coverPrompt: string;
+  articleImagePrompts: string[];
+  imageDescriptions: string[];
+  insertSuggestions: string[];
+} | null;
 
 export type PublishOptimizationResult = {
   titles: string[];
