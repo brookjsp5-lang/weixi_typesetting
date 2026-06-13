@@ -61,6 +61,8 @@ type ProviderDraft = {
   baseUrl: string;
   apiKey: string;
   model: string;
+  imageBaseUrl: string;
+  imageApiKey: string;
   imageModel: string;
 };
 
@@ -73,6 +75,8 @@ const emptyDraft: ProviderDraft = {
   baseUrl: "",
   apiKey: "",
   model: "",
+  imageBaseUrl: "",
+  imageApiKey: "",
   imageModel: "",
 };
 
@@ -101,6 +105,10 @@ type AiConfigModalProps = {
   setAiApiKey: React.Dispatch<React.SetStateAction<string>>;
   aiModel: string;
   setAiModel: React.Dispatch<React.SetStateAction<string>>;
+  aiImageBaseUrl: string;
+  setAiImageBaseUrl: React.Dispatch<React.SetStateAction<string>>;
+  aiImageApiKey: string;
+  setAiImageApiKey: React.Dispatch<React.SetStateAction<string>>;
   aiImageModel: string;
   setAiImageModel: React.Dispatch<React.SetStateAction<string>>;
   onClose: () => void;
@@ -118,6 +126,10 @@ export function AiConfigModal({
   setAiApiKey,
   aiModel,
   setAiModel,
+  aiImageBaseUrl,
+  setAiImageBaseUrl,
+  aiImageApiKey,
+  setAiImageApiKey,
   aiImageModel,
   setAiImageModel,
   onClose,
@@ -129,6 +141,10 @@ export function AiConfigModal({
   const [isLoadingModels, setIsLoadingModels] = useState(false);
   const [modelsError, setModelsError] = useState("");
   const [modelTest, setModelTest] = useState<ModelTestState>({
+    status: "idle",
+    message: "",
+  });
+  const [imageModelTest, setImageModelTest] = useState<ModelTestState>({
     status: "idle",
     message: "",
   });
@@ -147,10 +163,21 @@ export function AiConfigModal({
         baseUrl: aiBaseUrl,
         apiKey: aiApiKey,
         model: aiModel,
+        imageBaseUrl: aiImageBaseUrl,
+        imageApiKey: aiImageApiKey,
         imageModel: aiImageModel,
       },
     }));
-  }, [open, aiProviderType, aiBaseUrl, aiApiKey, aiModel, aiImageModel]);
+  }, [
+    open,
+    aiProviderType,
+    aiBaseUrl,
+    aiApiKey,
+    aiModel,
+    aiImageBaseUrl,
+    aiImageApiKey,
+    aiImageModel,
+  ]);
 
   useEffect(() => {
     if (!open || !isOpenRouter || cachedModels) return;
@@ -191,6 +218,7 @@ export function AiConfigModal({
   const handleClear = () => {
     setModelQuery("");
     setModelTest({ status: "idle", message: "" });
+    setImageModelTest({ status: "idle", message: "" });
     setProviderDrafts(createEmptyProviderDrafts());
     onClear();
   };
@@ -224,8 +252,21 @@ export function AiConfigModal({
   };
 
   const handleImageModelChange = (value: string) => {
+    setImageModelTest({ status: "idle", message: "" });
     setAiImageModel(value);
     syncCurrentDraft({ imageModel: value });
+  };
+
+  const handleImageBaseUrlChange = (value: string) => {
+    setImageModelTest({ status: "idle", message: "" });
+    setAiImageBaseUrl(value);
+    syncCurrentDraft({ imageBaseUrl: value });
+  };
+
+  const handleImageApiKeyChange = (value: string) => {
+    setImageModelTest({ status: "idle", message: "" });
+    setAiImageApiKey(value);
+    syncCurrentDraft({ imageApiKey: value });
   };
 
   const handleProviderChange = (provider: AiProviderType) => {
@@ -237,6 +278,8 @@ export function AiConfigModal({
         baseUrl: aiBaseUrl,
         apiKey: aiApiKey,
         model: aiModel,
+        imageBaseUrl: aiImageBaseUrl,
+        imageApiKey: aiImageApiKey,
         imageModel: aiImageModel,
       },
     };
@@ -247,10 +290,13 @@ export function AiConfigModal({
 
     setProviderDrafts(nextDrafts);
     setModelTest({ status: "idle", message: "" });
+    setImageModelTest({ status: "idle", message: "" });
     setAiProviderType(provider);
     setAiBaseUrl(targetBaseUrl);
     setAiApiKey(targetDraft.apiKey);
     setAiModel(targetModel);
+    setAiImageBaseUrl(targetDraft.imageBaseUrl);
+    setAiImageApiKey(targetDraft.imageApiKey);
     setAiImageModel(targetDraft.imageModel);
   };
 
@@ -295,6 +341,46 @@ export function AiConfigModal({
     }
   };
 
+  const handleTestImageModel = async () => {
+    if (imageModelTest.status === "testing") return;
+
+    setImageModelTest({ status: "testing", message: "正在测试生图配置..." });
+
+    try {
+      const res = await fetch("/api/ai-cover-test", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          baseUrl: aiImageBaseUrl.trim() || aiBaseUrl,
+          apiKey: aiImageApiKey.trim() || aiApiKey,
+          model: aiImageModel,
+        }),
+      });
+      const data = (await res.json().catch(() => null)) as {
+        message?: string;
+        error?: string;
+      } | null;
+
+      if (!res.ok) {
+        setImageModelTest({
+          status: "error",
+          message: data?.error || "当前配置不支持真实生图，将使用备用封面草图",
+        });
+        return;
+      }
+
+      setImageModelTest({
+        status: "success",
+        message: data?.message || "生图配置可用",
+      });
+    } catch {
+      setImageModelTest({
+        status: "error",
+        message: "生图测试失败，将使用备用封面草图",
+      });
+    }
+  };
+
   if (!open) return null;
 
   return (
@@ -332,137 +418,223 @@ export function AiConfigModal({
             </div>
           </div>
 
-          <div>
-            <div className="flex items-center justify-between gap-3 mb-1">
-              <label className="block text-sm font-black text-(--neo-ink)">API 地址</label>
-              {isOpenRouter && (
+          <section className="rounded-xl border-[3px] border-(--neo-ink) bg-white p-4 space-y-3">
+            <div>
+              <h4 className="text-sm font-black text-(--neo-ink)">文本模型</h4>
+              <p className="text-xs neo-text-muted font-bold">
+                用于 AI 改写、AI 排版、标题摘要关键词。
+              </p>
+            </div>
+
+            <div>
+              <div className="flex items-center justify-between gap-3 mb-1">
+                <label className="block text-sm font-black text-(--neo-ink)">API 地址</label>
+                {isOpenRouter && (
+                  <button
+                    type="button"
+                    onClick={() => handleBaseUrlChange(openRouterConfig.baseUrl)}
+                    className="text-xs font-black underline text-(--neo-ink)"
+                  >
+                    恢复默认
+                  </button>
+                )}
+                {!isOpenRouter && currentPreset.baseUrl && aiBaseUrl !== currentPreset.baseUrl && (
+                  <button
+                    type="button"
+                    onClick={() => handleBaseUrlChange(currentPreset.baseUrl)}
+                    className="text-xs font-black underline text-(--neo-ink)"
+                  >
+                    使用预设
+                  </button>
+                )}
+              </div>
+              <input
+                type="text"
+                value={aiBaseUrl}
+                readOnly={isOpenRouter}
+                onChange={(e) => handleBaseUrlChange(e.target.value)}
+                className={`neo-input w-full px-3 py-2 ${isOpenRouter ? "bg-(--neo-surface)" : ""}`}
+                placeholder={currentPreset.baseUrl || "https://example.com/v1"}
+                autoComplete="off"
+              />
+            </div>
+
+            <div>
+              <div className="flex items-center justify-between gap-3 mb-1">
+                <label className="block text-sm font-black text-(--neo-ink)">API Key</label>
+                {currentPreset.apiKeyUrl && (
+                  <a
+                    href={currentPreset.apiKeyUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-xs font-black underline text-(--neo-ink) inline-flex items-center gap-1"
+                  >
+                    获取 API Key
+                    <ExternalLink className="w-3 h-3" />
+                  </a>
+                )}
+              </div>
+              <input
+                type="password"
+                value={aiApiKey}
+                onChange={(e) => handleApiKeyChange(e.target.value)}
+                className="neo-input w-full px-3 py-2"
+                placeholder="粘贴你的 API Key"
+                autoComplete="off"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-black text-(--neo-ink) mb-1">
+                {isOpenRouter ? "已选文本模型" : "文本模型名称"}
+              </label>
+              <input
+                type="text"
+                value={aiModel}
+                onChange={(e) => handleModelChange(e.target.value)}
+                className="neo-input w-full px-3 py-2"
+                placeholder={
+                  isOpenRouter
+                    ? "选择下方模型，或手动输入 OpenRouter 模型 ID"
+                    : currentPreset.modelHelp
+                }
+                autoComplete="off"
+              />
+            </div>
+
+            <div className="rounded-xl border border-(--neo-line) bg-(--neo-surface) p-3 space-y-2">
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <h4 className="text-sm font-black text-(--neo-ink)">文本模型测试</h4>
+                  <p className="text-xs neo-text-muted font-bold">
+                    发送一次极短请求，检查 API Key、地址和模型名是否可用。
+                  </p>
+                </div>
                 <button
                   type="button"
-                  onClick={() => handleBaseUrlChange(openRouterConfig.baseUrl)}
-                  className="text-xs font-black underline text-(--neo-ink)"
+                  onClick={handleTestModel}
+                  disabled={modelTest.status === "testing"}
+                  className="neo-button neo-button-secondary shrink-0 px-4 py-2 text-xs disabled:cursor-not-allowed disabled:opacity-60"
                 >
-                  恢复默认
+                  {modelTest.status === "testing" ? (
+                    <span className="inline-flex items-center gap-2">
+                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                      测试中
+                    </span>
+                  ) : (
+                    "测试文本模型"
+                  )}
                 </button>
-              )}
-              {!isOpenRouter && currentPreset.baseUrl && aiBaseUrl !== currentPreset.baseUrl && (
-                <button
-                  type="button"
-                  onClick={() => handleBaseUrlChange(currentPreset.baseUrl)}
-                  className="text-xs font-black underline text-(--neo-ink)"
+              </div>
+              {modelTest.status !== "idle" && (
+                <div
+                  className={`rounded-lg border px-3 py-2 text-xs font-bold ${
+                    modelTest.status === "success"
+                      ? "border-emerald-300 bg-emerald-50 text-emerald-700"
+                      : modelTest.status === "error"
+                        ? "border-red-300 bg-red-50 text-red-700"
+                        : "border-(--neo-line) bg-white text-(--neo-ink)"
+                  }`}
                 >
-                  使用预设
-                </button>
+                  {modelTest.message}
+                </div>
               )}
             </div>
-            <input
-              type="text"
-              value={aiBaseUrl}
-              readOnly={isOpenRouter}
-              onChange={(e) => handleBaseUrlChange(e.target.value)}
-              className={`neo-input w-full px-3 py-2 ${isOpenRouter ? "bg-(--neo-surface)" : ""}`}
-              placeholder={currentPreset.baseUrl || "https://example.com/v1"}
-              autoComplete="off"
-            />
-          </div>
+          </section>
 
-          <div>
-            <div className="flex items-center justify-between gap-3 mb-1">
-              <label className="block text-sm font-black text-(--neo-ink)">API Key</label>
-              {currentPreset.apiKeyUrl && (
-                <a
-                  href={currentPreset.apiKeyUrl}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="text-xs font-black underline text-(--neo-ink) inline-flex items-center gap-1"
-                >
-                  获取 API Key
-                  <ExternalLink className="w-3 h-3" />
-                </a>
-              )}
-            </div>
-            <input
-              type="password"
-              value={aiApiKey}
-              onChange={(e) => handleApiKeyChange(e.target.value)}
-              className="neo-input w-full px-3 py-2"
-              placeholder="粘贴你的 API Key"
-              autoComplete="off"
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-black text-(--neo-ink) mb-1">
-              {isOpenRouter ? "已选模型" : "模型名称"}
-            </label>
-            <input
-              type="text"
-              value={aiModel}
-              onChange={(e) => handleModelChange(e.target.value)}
-              className="neo-input w-full px-3 py-2"
-              placeholder={
-                isOpenRouter
-                  ? "选择下方模型，或手动输入 OpenRouter 模型 ID"
-                  : currentPreset.modelHelp
-              }
-              autoComplete="off"
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-black text-(--neo-ink) mb-1">
-              生图模型（可选）
-            </label>
-            <input
-              type="text"
-              value={aiImageModel}
-              onChange={(e) => handleImageModelChange(e.target.value)}
-              className="neo-input w-full px-3 py-2"
-              placeholder="留空则复用上方模型，例如 gpt-image-1"
-              autoComplete="off"
-            />
-            <p className="mt-1 text-xs neo-text-muted font-bold leading-relaxed">
-              仅在“AI 生成”封面图时使用；当前接口需兼容 /images/generations。
-            </p>
-          </div>
-
-          <div className="rounded-xl border-[3px] border-(--neo-ink) bg-(--neo-surface) p-3 space-y-2">
-            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+          <section className="rounded-xl border border-(--neo-line) bg-(--neo-surface) p-4 space-y-3">
+            <div className="flex items-start justify-between gap-3">
               <div>
-                <h4 className="text-sm font-black text-(--neo-ink)">模型可用性测试</h4>
-                <p className="text-xs neo-text-muted font-bold">
-                  发送一次极短请求，检查 API Key、地址和模型名是否可用。
+                <h4 className="text-sm font-black text-(--neo-ink)">封面生图</h4>
+                <p className="text-xs neo-text-muted font-bold leading-relaxed">
+                  高级可选。留空生图模型时，AI 生成会直接使用备用封面草图。
                 </p>
               </div>
-              <button
-                type="button"
-                onClick={handleTestModel}
-                disabled={modelTest.status === "testing"}
-                className="neo-button neo-button-secondary shrink-0 px-4 py-2 text-xs disabled:cursor-not-allowed disabled:opacity-60"
-              >
-                {modelTest.status === "testing" ? (
-                  <span className="inline-flex items-center gap-2">
-                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                    测试中
-                  </span>
-                ) : (
-                  "测试模型"
-                )}
-              </button>
+              <span className="shrink-0 rounded-full border border-(--neo-line) bg-white px-2 py-1 text-[10px] font-black neo-text-muted">
+                可选
+              </span>
             </div>
-            {modelTest.status !== "idle" && (
-              <div
-                className={`rounded-lg border px-3 py-2 text-xs font-bold ${
-                  modelTest.status === "success"
-                    ? "border-emerald-300 bg-emerald-50 text-emerald-700"
-                    : modelTest.status === "error"
-                      ? "border-red-300 bg-red-50 text-red-700"
-                      : "border-(--neo-line) bg-white text-(--neo-ink)"
-                }`}
-              >
-                {modelTest.message}
+
+            <div>
+              <label className="block text-sm font-black text-(--neo-ink) mb-1">
+                生图 API 地址
+              </label>
+              <input
+                type="text"
+                value={aiImageBaseUrl}
+                onChange={(e) => handleImageBaseUrlChange(e.target.value)}
+                className="neo-input w-full px-3 py-2"
+                placeholder="留空则复用文本 API 地址，例如 https://api.openai.com/v1"
+                autoComplete="off"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-black text-(--neo-ink) mb-1">生图 API Key</label>
+              <input
+                type="password"
+                value={aiImageApiKey}
+                onChange={(e) => handleImageApiKeyChange(e.target.value)}
+                className="neo-input w-full px-3 py-2"
+                placeholder="留空则复用文本 API Key"
+                autoComplete="off"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-black text-(--neo-ink) mb-1">生图模型</label>
+              <input
+                type="text"
+                value={aiImageModel}
+                onChange={(e) => handleImageModelChange(e.target.value)}
+                className="neo-input w-full px-3 py-2"
+                placeholder="例如 gpt-image-1；留空则生成备用封面草图"
+                autoComplete="off"
+              />
+              <p className="mt-1 text-xs neo-text-muted font-bold leading-relaxed">
+                真实生图接口需兼容 /images/generations；失败时不会阻塞发布流程。
+              </p>
+            </div>
+
+            <div className="rounded-xl border border-(--neo-line) bg-white p-3 space-y-2">
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <h4 className="text-sm font-black text-(--neo-ink)">生图配置测试</h4>
+                  <p className="text-xs neo-text-muted font-bold">
+                    测试真实生图是否可用；失败时会使用备用封面草图。
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={handleTestImageModel}
+                  disabled={imageModelTest.status === "testing"}
+                  className="neo-button neo-button-secondary shrink-0 px-4 py-2 text-xs disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  {imageModelTest.status === "testing" ? (
+                    <span className="inline-flex items-center gap-2">
+                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                      测试中
+                    </span>
+                  ) : (
+                    "测试生图"
+                  )}
+                </button>
               </div>
-            )}
-          </div>
+              {imageModelTest.status !== "idle" && (
+                <div
+                  className={`rounded-lg border px-3 py-2 text-xs font-bold ${
+                    imageModelTest.status === "success"
+                      ? "border-emerald-300 bg-emerald-50 text-emerald-700"
+                      : imageModelTest.status === "error"
+                        ? "border-amber-300 bg-amber-50 text-amber-800"
+                        : "border-(--neo-line) bg-white text-(--neo-ink)"
+                  }`}
+                >
+                  {imageModelTest.message}
+                </div>
+              )}
+            </div>
+          </section>
 
           {isOpenRouter && (
             <div className="space-y-2">

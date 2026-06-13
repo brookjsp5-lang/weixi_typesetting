@@ -26,7 +26,7 @@ export const sampleText = `# 用 WX 把公众号文章整理到可发布状态
 
 ## 第 4 步：生成封面和发布建议
 
-在 **AI 生成** 中，你可以直接生成公众号封面图，同时准备标题、摘要和关键词建议。封面图需要当前 AI 配置支持 OpenAI 兼容的图片生成接口。
+在 **AI 生成** 中，你可以准备标题、摘要和关键词建议。若已配置支持 /images/generations 的封面生图模型，会尝试真实生成封面；未配置或失败时，会自动生成备用封面草图。
 
 示例封面方向：
 
@@ -65,6 +65,8 @@ export const aiStorageKeys = {
   baseUrl: "wechat-formatter-ai-base-url",
   apiKey: "wechat-formatter-ai-api-key",
   model: "wechat-formatter-ai-model",
+  imageBaseUrl: "wechat-formatter-ai-image-base-url",
+  imageApiKey: "wechat-formatter-ai-image-api-key",
   imageModel: "wechat-formatter-ai-image-model",
   prompts: "wechat-formatter-ai-prompts",
   workflowTab: "wechat-formatter-workflow-tab",

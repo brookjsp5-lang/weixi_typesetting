@@ -119,6 +119,8 @@ export default function Home() {
     aiBaseUrl: aiSettings.aiBaseUrl,
     aiApiKey: aiSettings.aiApiKey,
     aiModel: aiSettings.aiModel,
+    aiImageBaseUrl: aiSettings.aiImageBaseUrl,
+    aiImageApiKey: aiSettings.aiImageApiKey,
     aiImageModel: aiSettings.aiImageModel,
     setShowAiConfigModal: aiSettings.setShowAiConfigModal,
     showToast,
@@ -223,6 +225,10 @@ export default function Home() {
         setAiApiKey={aiSettings.setAiApiKey}
         aiModel={aiSettings.aiModel}
         setAiModel={aiSettings.setAiModel}
+        aiImageBaseUrl={aiSettings.aiImageBaseUrl}
+        setAiImageBaseUrl={aiSettings.setAiImageBaseUrl}
+        aiImageApiKey={aiSettings.aiImageApiKey}
+        setAiImageApiKey={aiSettings.setAiImageApiKey}
         aiImageModel={aiSettings.aiImageModel}
         setAiImageModel={aiSettings.setAiImageModel}
         onClose={() => aiSettings.setShowAiConfigModal(false)}

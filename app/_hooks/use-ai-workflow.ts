@@ -1,5 +1,9 @@
 import { useCallback, useState } from "react";
-import { createAppliedAiChange, extractJsonObject } from "../_lib/workflow-utils";
+import {
+  createAppliedAiChange,
+  extractJsonObject,
+  resolveCoverGenerationConfig,
+} from "../_lib/workflow-utils";
 import type {
   AiProviderType,
   AiTaskType,
@@ -20,6 +24,8 @@ type UseAiWorkflowParams = {
   aiBaseUrl: string;
   aiApiKey: string;
   aiModel: string;
+  aiImageBaseUrl: string;
+  aiImageApiKey: string;
   aiImageModel: string;
   setShowAiConfigModal: (value: boolean) => void;
   showToast: ShowToast;
@@ -74,6 +80,8 @@ export function useAiWorkflow({
   aiBaseUrl,
   aiApiKey,
   aiModel,
+  aiImageBaseUrl,
+  aiImageApiKey,
   aiImageModel,
   setShowAiConfigModal,
   showToast,
@@ -259,15 +267,13 @@ export function useAiWorkflow({
 
   const requestCoverGeneration = useCallback(
     async (optimization: NonNullable<PublishOptimizationResult>) => {
-      const trimmedBaseUrl = aiBaseUrl.trim();
-      const trimmedApiKey = aiApiKey.trim();
-      const imageModel = aiImageModel.trim() || aiModel.trim();
-
-      if (!trimmedBaseUrl || !trimmedApiKey || !imageModel) {
-        setShowAiConfigModal(true);
-        showToast("请先配置 AI 服务地址、API Key 和生图模型", "error");
-        return null;
-      }
+      const imageConfig = resolveCoverGenerationConfig({
+        textBaseUrl: aiBaseUrl,
+        textApiKey: aiApiKey,
+        imageBaseUrl: aiImageBaseUrl,
+        imageApiKey: aiImageApiKey,
+        imageModel: aiImageModel,
+      });
 
       setRunningTask("cover");
       try {
@@ -277,9 +283,9 @@ export function useAiWorkflow({
           body: JSON.stringify({
             markdown: inputText,
             providerType: aiProviderType,
-            baseUrl: trimmedBaseUrl,
-            apiKey: trimmedApiKey,
-            model: imageModel,
+            baseUrl: imageConfig.baseUrl,
+            apiKey: imageConfig.apiKey,
+            model: imageConfig.model,
             title: optimization.titles[0] || "",
             summary: optimization.summary,
             keywords: optimization.keywords,
@@ -313,9 +319,9 @@ export function useAiWorkflow({
     [
       aiBaseUrl,
       aiApiKey,
+      aiImageBaseUrl,
+      aiImageApiKey,
       aiImageModel,
-      aiModel,
-      setShowAiConfigModal,
       showToast,
       inputText,
       aiProviderType,

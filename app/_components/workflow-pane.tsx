@@ -926,7 +926,7 @@ export function WorkflowPane({
                       : "生成封面图"}
                 </button>
                 <p className="px-1 text-[11px] font-bold leading-relaxed neo-text-muted">
-                  会先生成标题、摘要和关键词建议，再调用支持生图的模型生成封面图。
+                  会先生成标题、摘要和关键词建议；已配置生图模型时尝试真实生图，否则生成备用封面草图。
                 </p>
               </section>
 

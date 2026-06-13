@@ -188,6 +188,22 @@ export function createFallbackCoverImage({ title, summary = "", keywords = [] })
   return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
 }
 
+export function resolveCoverGenerationConfig({
+  textBaseUrl,
+  textApiKey,
+  imageBaseUrl,
+  imageApiKey,
+  imageModel,
+}) {
+  const model = String(imageModel || "").trim();
+  return {
+    baseUrl: String(imageBaseUrl || textBaseUrl || "").trim(),
+    apiKey: String(imageApiKey || textApiKey || "").trim(),
+    model,
+    hasImageModel: Boolean(model),
+  };
+}
+
 export function createPublishWorkflowSteps({
   hasContent,
   hasRewriteDraft,

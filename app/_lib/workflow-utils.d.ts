@@ -28,6 +28,19 @@ export function createFallbackCoverImage(params: {
   keywords?: string[];
 }): string;
 
+export function resolveCoverGenerationConfig(params: {
+  textBaseUrl: string;
+  textApiKey: string;
+  imageBaseUrl: string;
+  imageApiKey: string;
+  imageModel: string;
+}): {
+  baseUrl: string;
+  apiKey: string;
+  model: string;
+  hasImageModel: boolean;
+};
+
 export function createPublishWorkflowSteps(params: {
   hasContent: boolean;
   hasRewriteDraft: boolean;

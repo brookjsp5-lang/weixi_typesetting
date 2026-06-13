@@ -8,6 +8,7 @@ import {
   createPublishWorkflowSteps,
   extractJsonObject,
   getProviderPreset,
+  resolveCoverGenerationConfig,
   runPublishChecks,
 } from "../app/_lib/workflow-utils.js";
 
@@ -69,6 +70,34 @@ test("createFallbackCoverImage returns a usable svg data url with title and keyw
   assert.match(decoded, /用 WX 整理公众号文章/);
   assert.match(decoded, /公众号/);
   assert.match(decoded, /排版/);
+});
+
+test("resolveCoverGenerationConfig separates image model from text model", () => {
+  const config = resolveCoverGenerationConfig({
+    textBaseUrl: "https://text.example/v1",
+    textApiKey: "text-key",
+    imageBaseUrl: "",
+    imageApiKey: "",
+    imageModel: "",
+  });
+
+  assert.equal(config.baseUrl, "https://text.example/v1");
+  assert.equal(config.apiKey, "text-key");
+  assert.equal(config.model, "");
+  assert.equal(config.hasImageModel, false);
+
+  const imageConfig = resolveCoverGenerationConfig({
+    textBaseUrl: "https://text.example/v1",
+    textApiKey: "text-key",
+    imageBaseUrl: "https://image.example/v1",
+    imageApiKey: "image-key",
+    imageModel: "gpt-image-1",
+  });
+
+  assert.equal(imageConfig.baseUrl, "https://image.example/v1");
+  assert.equal(imageConfig.apiKey, "image-key");
+  assert.equal(imageConfig.model, "gpt-image-1");
+  assert.equal(imageConfig.hasImageModel, true);
 });
 
 test("publish checks flag long paragraphs, missing images, links, and headings", () => {

@@ -21,6 +21,8 @@ export function useAiSettings(showToast: ShowToast) {
   const [aiBaseUrl, setAiBaseUrl] = useState<string>(openRouterConfig.baseUrl);
   const [aiApiKey, setAiApiKey] = useState("");
   const [aiModel, setAiModel] = useState("");
+  const [aiImageBaseUrl, setAiImageBaseUrl] = useState("");
+  const [aiImageApiKey, setAiImageApiKey] = useState("");
   const [aiImageModel, setAiImageModel] = useState("");
 
   useEffect(() => {
@@ -36,6 +38,8 @@ export function useAiSettings(showToast: ShowToast) {
     );
     setAiApiKey(localStorage.getItem(aiStorageKeys.apiKey) || "");
     setAiModel(localStorage.getItem(aiStorageKeys.model) || preset.defaultModel || "");
+    setAiImageBaseUrl(localStorage.getItem(aiStorageKeys.imageBaseUrl) || "");
+    setAiImageApiKey(localStorage.getItem(aiStorageKeys.imageApiKey) || "");
     setAiImageModel(localStorage.getItem(aiStorageKeys.imageModel) || "");
   }, []);
 
@@ -53,10 +57,14 @@ export function useAiSettings(showToast: ShowToast) {
     localStorage.setItem(aiStorageKeys.baseUrl, trimmedBaseUrl);
     localStorage.setItem(aiStorageKeys.apiKey, trimmedApiKey);
     localStorage.setItem(aiStorageKeys.model, trimmedModel);
+    localStorage.setItem(aiStorageKeys.imageBaseUrl, aiImageBaseUrl.trim());
+    localStorage.setItem(aiStorageKeys.imageApiKey, aiImageApiKey.trim());
     localStorage.setItem(aiStorageKeys.imageModel, aiImageModel.trim());
     setAiBaseUrl(trimmedBaseUrl);
     setAiApiKey(trimmedApiKey);
     setAiModel(trimmedModel);
+    setAiImageBaseUrl(aiImageBaseUrl.trim());
+    setAiImageApiKey(aiImageApiKey.trim());
     setAiImageModel(aiImageModel.trim());
     setShowAiConfigModal(false);
     showToast("AI 配置已保存");
@@ -67,11 +75,15 @@ export function useAiSettings(showToast: ShowToast) {
     localStorage.removeItem(aiStorageKeys.baseUrl);
     localStorage.removeItem(aiStorageKeys.apiKey);
     localStorage.removeItem(aiStorageKeys.model);
+    localStorage.removeItem(aiStorageKeys.imageBaseUrl);
+    localStorage.removeItem(aiStorageKeys.imageApiKey);
     localStorage.removeItem(aiStorageKeys.imageModel);
     setAiProviderType("openrouter");
     setAiBaseUrl(openRouterConfig.baseUrl);
     setAiApiKey("");
     setAiModel("");
+    setAiImageBaseUrl("");
+    setAiImageApiKey("");
     setAiImageModel("");
     showToast("AI 配置已清空");
   };
@@ -87,6 +99,10 @@ export function useAiSettings(showToast: ShowToast) {
     setAiApiKey,
     aiModel,
     setAiModel,
+    aiImageBaseUrl,
+    setAiImageBaseUrl,
+    aiImageApiKey,
+    setAiImageApiKey,
     aiImageModel,
     setAiImageModel,
     saveAiSettings,

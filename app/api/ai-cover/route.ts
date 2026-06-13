@@ -108,28 +108,11 @@ export async function POST(req: Request) {
       );
     }
 
-    const trimmedApiKey = apiKey?.trim();
-    if (!trimmedApiKey) {
-      return Response.json({ error: "请先填写 API Key" }, { status: 400 });
-    }
-
     const selectedProvider = isKnownProvider(providerType) ? providerType : "openrouter";
-    if (selectedProvider === "anthropic") {
-      return createImageError("Anthropic 当前配置不支持图片生成，请更换支持生图的接口或模型。");
-    }
-
     const rawBaseUrl = baseUrl?.trim();
     const trimmedBaseUrl =
       rawBaseUrl || (selectedProvider === "openrouter" ? openRouterConfig.baseUrl : "");
-    if (!trimmedBaseUrl) {
-      return Response.json({ error: "请先填写 API 地址" }, { status: 400 });
-    }
-
     const trimmedModel = model?.trim();
-    if (!trimmedModel) {
-      return Response.json({ error: "请先填写生图模型名称" }, { status: 400 });
-    }
-
     const prompt = createCoverPrompt({
       markdown,
       title: title.trim(),
@@ -142,6 +125,49 @@ export async function POST(req: Request) {
     fallbackKeywords = Array.isArray(keywords)
       ? keywords.filter((item) => typeof item === "string")
       : [];
+
+    if (!trimmedModel) {
+      return createFallbackCoverResult({
+        prompt,
+        title: fallbackTitle,
+        summary: fallbackSummary,
+        keywords: fallbackKeywords,
+        warning:
+          "未配置生图模型，已生成备用封面草图。需要真实生图时，请在 AI 配置中填写封面生图模型。",
+      });
+    }
+
+    const trimmedApiKey = apiKey?.trim();
+    if (!trimmedApiKey) {
+      return createFallbackCoverResult({
+        prompt,
+        title: fallbackTitle,
+        summary: fallbackSummary,
+        keywords: fallbackKeywords,
+        warning: "未配置生图 API Key，已生成备用封面草图。",
+      });
+    }
+
+    if (!trimmedBaseUrl) {
+      return createFallbackCoverResult({
+        prompt,
+        title: fallbackTitle,
+        summary: fallbackSummary,
+        keywords: fallbackKeywords,
+        warning: "未配置生图 API 地址，已生成备用封面草图。",
+      });
+    }
+
+    if (selectedProvider === "anthropic") {
+      return createFallbackCoverResult({
+        prompt,
+        title: fallbackTitle,
+        summary: fallbackSummary,
+        keywords: fallbackKeywords,
+        warning: "Anthropic 当前配置不支持真实图片生成，已生成备用封面草图。",
+      });
+    }
+
     const endpoint = `${normalizeBaseUrl(trimmedBaseUrl)}/images/generations`;
     const requestBody = {
       model: trimmedModel,
