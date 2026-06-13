@@ -3,10 +3,12 @@ import test from "node:test";
 
 import {
   createAppliedAiChange,
+  createCoverPrompt,
+  createDefaultCoverPromptTemplates,
   createDefaultPromptTemplates,
-  createFallbackCoverImage,
   createPublishWorkflowSteps,
   extractJsonObject,
+  getCoverGenerationConfigStatus,
   getProviderPreset,
   resolveCoverGenerationConfig,
   runPublishChecks,
@@ -30,6 +32,34 @@ test("default prompt templates are reusable and user-editable", () => {
   assert.ok(templates.every((template) => template.id));
   assert.ok(templates.every((template) => template.name));
   assert.ok(templates.every((template) => template.prompt.includes("保留")));
+});
+
+test("default cover prompt templates are separate from rewrite prompts", () => {
+  const templates = createDefaultCoverPromptTemplates();
+  const rewriteTemplates = createDefaultPromptTemplates();
+
+  assert.deepEqual(
+    templates.map((template) => template.name),
+    ["公众号封面通用", "极简商务风", "活泼醒目风"],
+  );
+  assert.ok(templates.every((template) => template.id.startsWith("cover-")));
+  assert.ok(templates.every((template) => template.prompt.includes("封面")));
+  assert.ok(!rewriteTemplates.some((template) => template.id.startsWith("cover-")));
+});
+
+test("createCoverPrompt combines article context with selected cover prompt", () => {
+  const prompt = createCoverPrompt({
+    markdown: "# 用 WX 整理公众号文章\n\n正文内容",
+    title: "用 WX 整理公众号文章",
+    summary: "把初稿、排版、封面和发布物料整理到可发布状态。",
+    keywords: ["公众号", "排版"],
+    coverPrompt: "极简商务风，浅色背景，清晰标题区，不使用真实人物。",
+  });
+
+  assert.match(prompt, /文章标题方向：用 WX 整理公众号文章/);
+  assert.match(prompt, /文章摘要：把初稿、排版、封面和发布物料整理到可发布状态。/);
+  assert.match(prompt, /关键词：公众号、排版/);
+  assert.match(prompt, /封面风格要求：极简商务风，浅色背景，清晰标题区，不使用真实人物。/);
 });
 
 test("extractJsonObject accepts model responses wrapped in prose or fences", () => {
@@ -58,20 +88,6 @@ test("createAppliedAiChange records enough information to restore the draft", ()
   assert.ok(change.appliedAt);
 });
 
-test("createFallbackCoverImage returns a usable svg data url with title and keywords", () => {
-  const imageUrl = createFallbackCoverImage({
-    title: "用 WX 整理公众号文章",
-    summary: "把初稿、排版、封面和发布物料整理到可发布状态。",
-    keywords: ["公众号", "排版"],
-  });
-
-  assert.ok(imageUrl.startsWith("data:image/svg+xml;charset=utf-8,"));
-  const decoded = decodeURIComponent(imageUrl.split(",")[1]);
-  assert.match(decoded, /用 WX 整理公众号文章/);
-  assert.match(decoded, /公众号/);
-  assert.match(decoded, /排版/);
-});
-
 test("resolveCoverGenerationConfig separates image model from text model", () => {
   const config = resolveCoverGenerationConfig({
     textBaseUrl: "https://text.example/v1",
@@ -98,6 +114,50 @@ test("resolveCoverGenerationConfig separates image model from text model", () =>
   assert.equal(imageConfig.apiKey, "image-key");
   assert.equal(imageConfig.model, "gpt-image-1");
   assert.equal(imageConfig.hasImageModel, true);
+});
+
+test("getCoverGenerationConfigStatus explains missing cover image configuration", () => {
+  assert.deepEqual(
+    getCoverGenerationConfigStatus({
+      textBaseUrl: "",
+      textApiKey: "",
+      imageBaseUrl: "",
+      imageApiKey: "",
+      imageModel: "",
+    }),
+    {
+      isConfigured: false,
+      message: "请先在 AI 服务配置中填写封面生图模型、API Key 和 API 地址。",
+    },
+  );
+
+  assert.deepEqual(
+    getCoverGenerationConfigStatus({
+      textBaseUrl: "https://api.example.com/v1",
+      textApiKey: "text-key",
+      imageBaseUrl: "",
+      imageApiKey: "",
+      imageModel: "",
+    }),
+    {
+      isConfigured: false,
+      message: "请先在 AI 服务配置中填写封面生图模型。",
+    },
+  );
+
+  assert.deepEqual(
+    getCoverGenerationConfigStatus({
+      textBaseUrl: "https://api.example.com/v1",
+      textApiKey: "text-key",
+      imageBaseUrl: "",
+      imageApiKey: "",
+      imageModel: "gpt-image-1",
+    }),
+    {
+      isConfigured: true,
+      message: "封面生图配置已就绪。",
+    },
+  );
 });
 
 test("publish checks flag long paragraphs, missing images, links, and headings", () => {

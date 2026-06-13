@@ -1,6 +1,7 @@
 import type {
   AiProviderType,
   AppliedAiChange,
+  CoverPromptTemplate,
   PromptTemplate,
   ProviderPreset,
   PublishCheckItem,
@@ -13,6 +14,16 @@ export function getProviderPreset(providerId: AiProviderType): ProviderPreset;
 
 export function createDefaultPromptTemplates(): PromptTemplate[];
 
+export function createDefaultCoverPromptTemplates(): CoverPromptTemplate[];
+
+export function createCoverPrompt(params: {
+  markdown: string;
+  title: string;
+  summary: string;
+  keywords?: string[];
+  coverPrompt?: string;
+}): string;
+
 export function extractJsonObject(text: string): unknown;
 
 export function createAppliedAiChange(params: {
@@ -21,12 +32,6 @@ export function createAppliedAiChange(params: {
   applied: string;
   label: string;
 }): NonNullable<AppliedAiChange>;
-
-export function createFallbackCoverImage(params: {
-  title: string;
-  summary?: string;
-  keywords?: string[];
-}): string;
 
 export function resolveCoverGenerationConfig(params: {
   textBaseUrl: string;
@@ -39,6 +44,17 @@ export function resolveCoverGenerationConfig(params: {
   apiKey: string;
   model: string;
   hasImageModel: boolean;
+};
+
+export function getCoverGenerationConfigStatus(params: {
+  textBaseUrl: string;
+  textApiKey: string;
+  imageBaseUrl: string;
+  imageApiKey: string;
+  imageModel: string;
+}): {
+  isConfigured: boolean;
+  message: string;
 };
 
 export function createPublishWorkflowSteps(params: {

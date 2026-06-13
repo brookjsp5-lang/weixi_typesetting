@@ -13,6 +13,7 @@ import { WorkflowPane } from "./_components/workflow-pane";
 import { useAiSettings } from "./_hooks/use-ai-settings";
 import { useAiWorkflow } from "./_hooks/use-ai-workflow";
 import { useClipboardCopy } from "./_hooks/use-clipboard-copy";
+import { useCoverPromptTemplates } from "./_hooks/use-cover-prompt-templates";
 import { useMarkdownTools } from "./_hooks/use-markdown-tools";
 import { usePromptTemplates } from "./_hooks/use-prompt-templates";
 import { useScrollSync } from "./_hooks/use-scroll-sync";
@@ -20,7 +21,11 @@ import { useTheme } from "./_hooks/use-theme";
 import { useToast } from "./_hooks/use-toast";
 import { useWordCount } from "./_hooks/use-word-count";
 import { aiStorageKeys, sampleText } from "./_lib/formatter-constants";
-import { createPublishWorkflowSteps, runPublishChecks } from "./_lib/workflow-utils";
+import {
+  createPublishWorkflowSteps,
+  getCoverGenerationConfigStatus,
+  runPublishChecks,
+} from "./_lib/workflow-utils";
 import type { ActiveTab, FormatTweaks, PublishStepId } from "./_types/formatter";
 import { allTemplates, groupedTemplates, renderArticle } from "./template-engine";
 
@@ -77,6 +82,7 @@ export default function Home() {
   const { isDarkMode, toggleDarkMode } = useTheme();
   const aiSettings = useAiSettings(showToast);
   const promptSettings = usePromptTemplates(showToast);
+  const coverPromptSettings = useCoverPromptTemplates(showToast);
   const wordCount = useWordCount(inputText);
   const copyToClipboard = useClipboardCopy(showToast);
   const { syncScroll, setSyncScroll, previewRef, handleInputScroll, handlePreviewScroll } =
@@ -122,6 +128,7 @@ export default function Home() {
     aiImageBaseUrl: aiSettings.aiImageBaseUrl,
     aiImageApiKey: aiSettings.aiImageApiKey,
     aiImageModel: aiSettings.aiImageModel,
+    coverPrompt: coverPromptSettings.selectedCoverPrompt?.prompt || "",
     setShowAiConfigModal: aiSettings.setShowAiConfigModal,
     showToast,
   });
@@ -141,6 +148,23 @@ export default function Home() {
   }, [inputText, currentTemplate, formatTweaks, imageMap]);
 
   const publishChecks = useMemo(() => runPublishChecks(inputText), [inputText]);
+  const coverGenerationConfigStatus = useMemo(
+    () =>
+      getCoverGenerationConfigStatus({
+        textBaseUrl: aiSettings.aiBaseUrl,
+        textApiKey: aiSettings.aiApiKey,
+        imageBaseUrl: aiSettings.aiImageBaseUrl,
+        imageApiKey: aiSettings.aiImageApiKey,
+        imageModel: aiSettings.aiImageModel,
+      }),
+    [
+      aiSettings.aiBaseUrl,
+      aiSettings.aiApiKey,
+      aiSettings.aiImageBaseUrl,
+      aiSettings.aiImageApiKey,
+      aiSettings.aiImageModel,
+    ],
+  );
 
   useEffect(() => {
     setHasCopiedForPublish(false);
@@ -175,29 +199,6 @@ export default function Home() {
   const handleCopy = async () => {
     const copied = await copyToClipboard(outputHtml);
     if (copied) setHasCopiedForPublish(true);
-  };
-
-  const applyTemplateRecommendation = () => {
-    const optimization = aiWorkflow.publishOptimization;
-    if (!optimization) return;
-
-    const recommendedGroup = groupedTemplates.find(
-      (group) => group.id === optimization.recommendedCategory,
-    );
-    const recommendedTemplate = optimization.recommendedTemplateId
-      ? allTemplates.find((template) => template.id === optimization.recommendedTemplateId)
-      : recommendedGroup?.templates[0];
-
-    if (recommendedGroup) setCurrentCategory(recommendedGroup.id);
-    if (recommendedTemplate) setCurrentTemplateId(recommendedTemplate.id);
-    setFormatTweaks((current) => ({
-      ...current,
-      themeColor:
-        optimization.recommendedThemeColor || recommendedTemplate?.themeColor || current.themeColor,
-      h2Layout: recommendedTemplate?.defaultH2Layout || current.h2Layout,
-    }));
-    setPublishStep("format");
-    showToast("已应用模板建议");
   };
 
   return (
@@ -299,6 +300,7 @@ export default function Home() {
               onPublishOptimize={aiWorkflow.runPublishOptimize}
               onGenerateCover={aiWorkflow.runCoverGeneration}
               coverGenerationResult={aiWorkflow.coverGenerationResult}
+              coverGenerationConfigStatus={coverGenerationConfigStatus}
               onOpenAiConfig={() => aiSettings.setShowAiConfigModal(true)}
               promptTemplates={promptSettings.promptTemplates}
               selectedPrompt={promptSettings.selectedPrompt}
@@ -306,9 +308,14 @@ export default function Home() {
               setSelectedPromptId={promptSettings.setSelectedPromptId}
               onSavePrompt={promptSettings.savePromptTemplate}
               onDeletePrompt={promptSettings.deletePromptTemplate}
+              coverPromptTemplates={coverPromptSettings.coverPromptTemplates}
+              selectedCoverPrompt={coverPromptSettings.selectedCoverPrompt}
+              selectedCoverPromptId={coverPromptSettings.selectedCoverPromptId}
+              setSelectedCoverPromptId={coverPromptSettings.setSelectedCoverPromptId}
+              onSaveCoverPrompt={coverPromptSettings.saveCoverPromptTemplate}
+              onDeleteCoverPrompt={coverPromptSettings.deleteCoverPromptTemplate}
               publishChecks={publishChecks}
               publishOptimization={aiWorkflow.publishOptimization}
-              onApplyRecommendation={applyTemplateRecommendation}
               onCopy={handleCopy}
               allTemplatesCount={allTemplates.length}
               groupedTemplates={groupedTemplates}

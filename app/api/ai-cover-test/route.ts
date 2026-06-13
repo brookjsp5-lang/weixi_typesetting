@@ -8,7 +8,10 @@ const createImageTestError = (err: unknown) => {
   }
 
   if (/model|not found|404|unsupported|image/i.test(message)) {
-    return Response.json({ error: "当前配置不支持真实生图，将使用备用封面草图" }, { status: 400 });
+    return Response.json(
+      { error: "当前配置不支持真实生图，请更换生图模型或接口" },
+      { status: 400 },
+    );
   }
 
   if (/quota|credit|billing|insufficient|payment|429/i.test(message)) {
@@ -16,10 +19,10 @@ const createImageTestError = (err: unknown) => {
   }
 
   if (/network|fetch|timeout|ECONN|ENOTFOUND|ETIMEDOUT/i.test(message)) {
-    return Response.json({ error: "无法连接到生图接口，将使用备用封面草图" }, { status: 502 });
+    return Response.json({ error: "无法连接到生图接口，请检查生图 API 地址" }, { status: 502 });
   }
 
-  return Response.json({ error: "当前配置不支持真实生图，将使用备用封面草图" }, { status: 500 });
+  return Response.json({ error: "当前配置不支持真实生图，请更换生图模型或接口" }, { status: 500 });
 };
 
 export async function POST(req: Request) {
@@ -99,7 +102,7 @@ export async function POST(req: Request) {
 
     const image = data?.data?.[0];
     if (!image?.b64_json && !image?.url) {
-      return Response.json({ error: "生图接口未返回图片，将使用备用封面草图" }, { status: 502 });
+      return Response.json({ error: "生图接口未返回图片，请更换生图模型后重试" }, { status: 502 });
     }
 
     return Response.json({ ok: true, message: "生图配置可用" });

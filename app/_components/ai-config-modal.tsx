@@ -364,7 +364,7 @@ export function AiConfigModal({
       if (!res.ok) {
         setImageModelTest({
           status: "error",
-          message: data?.error || "当前配置不支持真实生图，将使用备用封面草图",
+          message: data?.error || "当前配置不支持真实生图，请更换生图模型或接口",
         });
         return;
       }
@@ -376,7 +376,7 @@ export function AiConfigModal({
     } catch {
       setImageModelTest({
         status: "error",
-        message: "生图测试失败，将使用备用封面草图",
+        message: "生图测试失败，请检查接口、模型和额度",
       });
     }
   };
@@ -547,7 +547,7 @@ export function AiConfigModal({
               <div>
                 <h4 className="text-sm font-black text-(--neo-ink)">封面生图</h4>
                 <p className="text-xs neo-text-muted font-bold leading-relaxed">
-                  高级可选。留空生图模型时，AI 生成会直接使用备用封面草图。
+                  高级可选。只有填写支持生图的模型后，AI 生成才会生成封面图。
                 </p>
               </div>
               <span className="shrink-0 rounded-full border border-(--neo-line) bg-white px-2 py-1 text-[10px] font-black neo-text-muted">
@@ -588,11 +588,11 @@ export function AiConfigModal({
                 value={aiImageModel}
                 onChange={(e) => handleImageModelChange(e.target.value)}
                 className="neo-input w-full px-3 py-2"
-                placeholder="例如 gpt-image-1；留空则生成备用封面草图"
+                placeholder="例如 gpt-image-1；留空则不生成封面图"
                 autoComplete="off"
               />
               <p className="mt-1 text-xs neo-text-muted font-bold leading-relaxed">
-                真实生图接口需兼容 /images/generations；失败时不会阻塞发布流程。
+                真实生图接口需兼容 /images/generations；未配置或失败时不会生成封面图。
               </p>
             </div>
 
@@ -601,7 +601,7 @@ export function AiConfigModal({
                 <div>
                   <h4 className="text-sm font-black text-(--neo-ink)">生图配置测试</h4>
                   <p className="text-xs neo-text-muted font-bold">
-                    测试真实生图是否可用；失败时会使用备用封面草图。
+                    测试真实生图是否可用；失败时请更换模型或接口。
                   </p>
                 </div>
                 <button

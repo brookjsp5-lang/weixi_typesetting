@@ -27,23 +27,21 @@ ${rewritePrompt}
 2. 不编造事实，不补充未经原文支持的数据、案例或结论。
 3. 输出完整 Markdown 正文，不要解释，不要用代码块包裹整体输出。`;
 
-const PUBLISH_OPTIMIZE_PROMPT = `你是微信公众号发布编辑。请分析用户提供的 Markdown 文章，生成发布前优化素材和模板建议。
+const PUBLISH_OPTIMIZE_PROMPT = `你是微信公众号发布编辑。请分析用户提供的 Markdown 文章，生成发布前优化素材。
 
 只输出一个 JSON 对象，不要解释，不要使用 Markdown 代码块。JSON 结构必须是：
 {
   "titles": ["标题候选1", "标题候选2", "标题候选3"],
   "summary": "80字以内公众号摘要",
   "keywords": ["关键词1", "关键词2", "关键词3", "关键词4", "关键词5"],
-  "recommendedCategory": "neo-brutalism|minimalist|business|literary|tech|festive",
-  "recommendedThemeColor": "#十六进制颜色",
   "suggestions": ["发布建议1", "发布建议2", "发布建议3"]
 }
 
 要求：
 1. 不改写正文，不输出正文。
 2. 标题候选要准确、克制、适合公众号。
-3. 模板分类必须从给定枚举中选择。
-4. 摘要和关键词不得编造原文没有的信息。`;
+3. 摘要和关键词不得编造原文没有的信息。
+4. 发布建议只给发布前需要确认的事项，不推荐模板。`;
 
 const isKnownProvider = (providerType: unknown): providerType is AiProviderType =>
   providerType === "openrouter" ||

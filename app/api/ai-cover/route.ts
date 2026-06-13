@@ -1,5 +1,5 @@
 import { openRouterConfig } from "../../_lib/formatter-constants";
-import { createFallbackCoverImage } from "../../_lib/workflow-utils";
+import { createCoverPrompt } from "../../_lib/workflow-utils";
 import type { AiProviderType } from "../../_types/formatter";
 
 const MAX_INPUT_LENGTH = 15000;
@@ -15,26 +15,6 @@ const isKnownProvider = (providerType: unknown): providerType is AiProviderType 
   providerType === "anthropic" ||
   providerType === "custom";
 
-const createCoverPrompt = ({
-  markdown,
-  title,
-  summary,
-  keywords,
-}: {
-  markdown: string;
-  title: string;
-  summary: string;
-  keywords: string[];
-}) => {
-  const excerpt = markdown.replace(/\s+/g, " ").slice(0, 1000);
-  return `为微信公众号文章生成一张专业封面图。画面需要适合中文公众号首图，横版构图，留出安全的标题空间，视觉清晰、有编辑感，不要包含二维码、品牌水印或真实人物肖像。
-
-文章标题方向：${title || "根据正文提炼一个克制清晰的主题"}
-文章摘要：${summary || "根据正文主题生成封面氛围"}
-关键词：${keywords.join("、") || "公众号、内容创作、排版"}
-正文参考：${excerpt}`;
-};
-
 const normalizeBaseUrl = (baseUrl: string) => baseUrl.replace(/\/+$/, "");
 
 const createImageError = (message: string, status = 400) =>
@@ -45,36 +25,7 @@ const createImageError = (message: string, status = 400) =>
     { status },
   );
 
-const createFallbackCoverResult = ({
-  prompt,
-  title,
-  summary,
-  keywords,
-  warning,
-}: {
-  prompt: string;
-  title: string;
-  summary: string;
-  keywords: string[];
-  warning: string;
-}) =>
-  Response.json({
-    result: {
-      imageUrl: createFallbackCoverImage({ title, summary, keywords }),
-      prompt,
-      titleHint: title,
-      createdAt: new Date().toISOString(),
-      source: "fallback",
-      warning,
-    },
-  });
-
 export async function POST(req: Request) {
-  let fallbackPrompt = "";
-  let fallbackTitle = "";
-  let fallbackSummary = "";
-  let fallbackKeywords: string[] = [];
-
   try {
     const body = await req.json();
     const {
@@ -86,6 +37,7 @@ export async function POST(req: Request) {
       title = "",
       summary = "",
       keywords = [],
+      coverPrompt = "",
     } = body as {
       markdown?: string;
       providerType?: AiProviderType;
@@ -95,6 +47,7 @@ export async function POST(req: Request) {
       title?: string;
       summary?: string;
       keywords?: string[];
+      coverPrompt?: string;
     };
 
     if (!markdown || typeof markdown !== "string" || !markdown.trim()) {
@@ -118,54 +71,24 @@ export async function POST(req: Request) {
       title: title.trim(),
       summary: summary.trim(),
       keywords: Array.isArray(keywords) ? keywords.filter((item) => typeof item === "string") : [],
+      coverPrompt,
     });
-    fallbackPrompt = prompt;
-    fallbackTitle = title.trim();
-    fallbackSummary = summary.trim();
-    fallbackKeywords = Array.isArray(keywords)
-      ? keywords.filter((item) => typeof item === "string")
-      : [];
 
     if (!trimmedModel) {
-      return createFallbackCoverResult({
-        prompt,
-        title: fallbackTitle,
-        summary: fallbackSummary,
-        keywords: fallbackKeywords,
-        warning:
-          "未配置生图模型，已生成备用封面草图。需要真实生图时，请在 AI 配置中填写封面生图模型。",
-      });
+      return createImageError("未配置生图模型，请在 AI 配置中填写支持生图的模型。");
     }
 
     const trimmedApiKey = apiKey?.trim();
     if (!trimmedApiKey) {
-      return createFallbackCoverResult({
-        prompt,
-        title: fallbackTitle,
-        summary: fallbackSummary,
-        keywords: fallbackKeywords,
-        warning: "未配置生图 API Key，已生成备用封面草图。",
-      });
+      return createImageError("未配置生图 API Key，请填写后重试。");
     }
 
     if (!trimmedBaseUrl) {
-      return createFallbackCoverResult({
-        prompt,
-        title: fallbackTitle,
-        summary: fallbackSummary,
-        keywords: fallbackKeywords,
-        warning: "未配置生图 API 地址，已生成备用封面草图。",
-      });
+      return createImageError("未配置生图 API 地址，请填写后重试。");
     }
 
     if (selectedProvider === "anthropic") {
-      return createFallbackCoverResult({
-        prompt,
-        title: fallbackTitle,
-        summary: fallbackSummary,
-        keywords: fallbackKeywords,
-        warning: "Anthropic 当前配置不支持真实图片生成，已生成备用封面草图。",
-      });
+      return createImageError("Anthropic 当前配置不支持真实图片生成，请更换生图接口。");
     }
 
     const endpoint = `${normalizeBaseUrl(trimmedBaseUrl)}/images/generations`;
@@ -209,35 +132,19 @@ export async function POST(req: Request) {
 
     if (!imageResponse.ok) {
       const rawMessage = typeof data?.error === "string" ? data.error : data?.error?.message || "";
-      const warning = /not found|unsupported|model|image|404|400/i.test(rawMessage)
-        ? "当前模型或接口不支持真实图片生成，已先生成备用封面草图。"
+      const message = /not found|unsupported|model|image|404|400/i.test(rawMessage)
+        ? "当前模型或接口不支持真实图片生成，请更换支持生图的模型或接口。"
         : rawMessage
-          ? `真实图片生成失败：${rawMessage}。已先生成备用封面草图。`
-          : "真实图片生成失败，请检查接口、模型和额度。已先生成备用封面草图。";
-      return createFallbackCoverResult({
-        prompt,
-        title: title.trim(),
-        summary: summary.trim(),
-        keywords: Array.isArray(keywords)
-          ? keywords.filter((item) => typeof item === "string")
-          : [],
-        warning,
-      });
+          ? `真实图片生成失败：${rawMessage}`
+          : "真实图片生成失败，请检查接口、模型和额度。";
+      return createImageError(message, imageResponse.status || 502);
     }
 
     const image = data?.data?.[0];
     const imageUrl = image?.b64_json ? `data:image/png;base64,${image.b64_json}` : image?.url || "";
 
     if (!imageUrl) {
-      return createFallbackCoverResult({
-        prompt,
-        title: title.trim(),
-        summary: summary.trim(),
-        keywords: Array.isArray(keywords)
-          ? keywords.filter((item) => typeof item === "string")
-          : [],
-        warning: "图片接口未返回可用图片，已先生成备用封面草图。",
-      });
+      return createImageError("图片接口未返回可用图片，请更换生图模型后重试。", 502);
     }
 
     return Response.json({
@@ -251,15 +158,6 @@ export async function POST(req: Request) {
     });
   } catch (err: unknown) {
     console.error("AI cover error:", err instanceof Error ? err.message : err);
-    if (fallbackPrompt) {
-      return createFallbackCoverResult({
-        prompt: fallbackPrompt,
-        title: fallbackTitle,
-        summary: fallbackSummary,
-        keywords: fallbackKeywords,
-        warning: "真实图片生成接口请求失败，已先生成备用封面草图。",
-      });
-    }
     return createImageError("封面图生成失败，请检查模型接口后重试。", 500);
   }
 }

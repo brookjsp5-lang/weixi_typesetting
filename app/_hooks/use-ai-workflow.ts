@@ -27,6 +27,7 @@ type UseAiWorkflowParams = {
   aiImageBaseUrl: string;
   aiImageApiKey: string;
   aiImageModel: string;
+  coverPrompt: string;
   setShowAiConfigModal: (value: boolean) => void;
   showToast: ShowToast;
 };
@@ -63,12 +64,6 @@ const normalizePublishOptimization = (value: unknown): NonNullable<PublishOptimi
     titles: Array.isArray(parsed.titles) ? parsed.titles.slice(0, 5) : [],
     summary: typeof parsed.summary === "string" ? parsed.summary : "",
     keywords: Array.isArray(parsed.keywords) ? parsed.keywords.slice(0, 10) : [],
-    recommendedCategory:
-      typeof parsed.recommendedCategory === "string" ? parsed.recommendedCategory : undefined,
-    recommendedTemplateId:
-      typeof parsed.recommendedTemplateId === "string" ? parsed.recommendedTemplateId : undefined,
-    recommendedThemeColor:
-      typeof parsed.recommendedThemeColor === "string" ? parsed.recommendedThemeColor : undefined,
     suggestions: normalizeStringArray(parsed.suggestions, 6),
   };
 };
@@ -83,6 +78,7 @@ export function useAiWorkflow({
   aiImageBaseUrl,
   aiImageApiKey,
   aiImageModel,
+  coverPrompt,
   setShowAiConfigModal,
   showToast,
 }: UseAiWorkflowParams) {
@@ -276,6 +272,7 @@ export function useAiWorkflow({
       });
 
       setRunningTask("cover");
+      setCoverGenerationResult(null);
       try {
         const res = await fetch("/api/ai-cover", {
           method: "POST",
@@ -289,6 +286,7 @@ export function useAiWorkflow({
             title: optimization.titles[0] || "",
             summary: optimization.summary,
             keywords: optimization.keywords,
+            coverPrompt,
           }),
         });
         const data = (await res.json().catch(() => null)) as {
@@ -305,9 +303,7 @@ export function useAiWorkflow({
         }
 
         setCoverGenerationResult(data.result);
-        showToast(
-          data.result.source === "fallback" ? "真实生图失败，已生成备用封面草图" : "封面图已生成",
-        );
+        showToast("封面图已生成");
         return data.result;
       } catch {
         showToast("封面图生成失败，请检查模型接口后重试", "error");
@@ -322,6 +318,7 @@ export function useAiWorkflow({
       aiImageBaseUrl,
       aiImageApiKey,
       aiImageModel,
+      coverPrompt,
       showToast,
       inputText,
       aiProviderType,

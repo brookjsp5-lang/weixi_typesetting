@@ -24,9 +24,9 @@ export const sampleText = `# 用 WX 把公众号文章整理到可发布状态
 
 同时，你还可以在这一步选择模板、主题色和细节参数。WX 当前提供 **72 套公众号模板**，适合观点文、教程、商业分析、活动通知等不同内容。
 
-## 第 4 步：生成封面和发布建议
+## 第 4 步：生成封面图
 
-在 **AI 生成** 中，你可以准备标题、摘要和关键词建议。若已配置支持 /images/generations 的封面生图模型，会尝试真实生成封面；未配置或失败时，会自动生成备用封面草图。
+在 **AI 生成** 中，你可以选择封面风格提示词，再生成公众号封面图。封面图需要先配置支持 /images/generations 的生图模型；未配置时不会生成封面图。
 
 示例封面方向：
 
@@ -36,7 +36,7 @@ export const sampleText = `# 用 WX 把公众号文章整理到可发布状态
 
 ![配图1](https://picsum.photos/seed/wx-1/400/400) ![配图2](https://picsum.photos/seed/wx-2/400/400) ![配图3](https://picsum.photos/seed/wx-3/400/400)
 
-## 第 5 步：整理发布物料
+## 第 5 步：生成发布物料
 
 发布前建议确认这些内容：
 
@@ -69,6 +69,8 @@ export const aiStorageKeys = {
   imageApiKey: "wechat-formatter-ai-image-api-key",
   imageModel: "wechat-formatter-ai-image-model",
   prompts: "wechat-formatter-ai-prompts",
+  coverPrompts: "wechat-formatter-ai-cover-prompts",
+  selectedCoverPromptId: "wechat-formatter-ai-selected-cover-prompt",
   workflowTab: "wechat-formatter-workflow-tab",
 } as const;
 

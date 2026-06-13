@@ -107,6 +107,54 @@ export function createDefaultPromptTemplates() {
   ];
 }
 
+export function createDefaultCoverPromptTemplates() {
+  const now = new Date().toISOString();
+  return [
+    {
+      id: "cover-general",
+      name: "公众号封面通用",
+      prompt:
+        "适合微信公众号首图，横版构图，标题区域清晰，画面简洁有编辑感，不包含二维码、品牌水印或真实人物肖像。",
+      createdAt: now,
+      updatedAt: now,
+    },
+    {
+      id: "cover-minimal-business",
+      name: "极简商务风",
+      prompt:
+        "极简商务风格，浅色背景，留白充足，使用克制的几何元素和清晰层次，适合知识、效率、职场和商业分析类文章封面。",
+      createdAt: now,
+      updatedAt: now,
+    },
+    {
+      id: "cover-bright-editorial",
+      name: "活泼醒目风",
+      prompt:
+        "活泼醒目的编辑风格，高对比色块，视觉中心明确，适合观点表达、运营干货和新媒体内容封面，但不要杂乱或过度卡通。",
+      createdAt: now,
+      updatedAt: now,
+    },
+  ];
+}
+
+export function createCoverPrompt({ markdown, title, summary, keywords = [], coverPrompt = "" }) {
+  const excerpt = String(markdown || "")
+    .replace(/\s+/g, " ")
+    .slice(0, 1000);
+  const cleanKeywords = Array.isArray(keywords) ? keywords.filter(Boolean) : [];
+  const cleanCoverPrompt = String(coverPrompt || "").trim();
+  const styleSection = cleanCoverPrompt
+    ? `\n封面风格要求：${cleanCoverPrompt}`
+    : "\n封面风格要求：适合微信公众号首图，横版构图，留出安全的标题空间，视觉清晰、有编辑感。";
+
+  return `为微信公众号文章生成一张专业封面图。画面需要适合中文公众号首图，横版构图，留出安全的标题空间，视觉清晰、有编辑感，不要包含二维码、品牌水印或真实人物肖像。
+
+文章标题方向：${title || "根据正文提炼一个克制清晰的主题"}
+文章摘要：${summary || "根据正文主题生成封面氛围"}
+关键词：${cleanKeywords.join("、") || "公众号、内容创作、排版"}${styleSection}
+正文参考：${excerpt}`;
+}
+
 export function extractJsonObject(text) {
   const withoutFence = text
     .replace(/```json/gi, "```")
@@ -132,62 +180,6 @@ export function createAppliedAiChange({ taskType, original, applied, label }) {
   };
 }
 
-const escapeSvgText = (value) =>
-  String(value || "")
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;");
-
-const splitCoverTitle = (value) => {
-  const title = String(value || "公众号封面")
-    .replace(/\s+/g, " ")
-    .trim();
-  if (title.length <= 14) return [title];
-  return [title.slice(0, 14), title.slice(14, 28)];
-};
-
-export function createFallbackCoverImage({ title, summary = "", keywords = [] }) {
-  const titleLines = splitCoverTitle(title || "公众号封面");
-  const subtitle = String(summary || "AI 生成封面草图")
-    .replace(/\s+/g, " ")
-    .slice(0, 42);
-  const tags = keywords.filter(Boolean).slice(0, 3);
-  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="900" height="383" viewBox="0 0 900 383">
-  <defs>
-    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0%" stop-color="#f7fbff"/>
-      <stop offset="48%" stop-color="#e8fff3"/>
-      <stop offset="100%" stop-color="#fff2f7"/>
-    </linearGradient>
-    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
-      <feDropShadow dx="10" dy="10" stdDeviation="0" flood-color="#111827" flood-opacity="0.18"/>
-    </filter>
-  </defs>
-  <rect width="900" height="383" fill="url(#bg)"/>
-  <rect x="44" y="42" width="812" height="299" rx="24" fill="#ffffff" stroke="#111827" stroke-width="4" filter="url(#shadow)"/>
-  <rect x="78" y="74" width="90" height="32" rx="16" fill="#10b981"/>
-  <text x="123" y="96" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" font-weight="700" fill="#ffffff">WX 封面</text>
-  <circle cx="782" cy="91" r="26" fill="#ff6f9f" stroke="#111827" stroke-width="4"/>
-  <circle cx="812" cy="91" r="12" fill="#facc15" stroke="#111827" stroke-width="3"/>
-  <text x="84" y="174" font-family="Arial, sans-serif" font-size="54" font-weight="900" fill="#111827">${escapeSvgText(titleLines[0])}</text>
-  ${
-    titleLines[1]
-      ? `<text x="84" y="238" font-family="Arial, sans-serif" font-size="54" font-weight="900" fill="#111827">${escapeSvgText(titleLines[1])}</text>`
-      : ""
-  }
-  <text x="86" y="286" font-family="Arial, sans-serif" font-size="22" font-weight="700" fill="#4b5563">${escapeSvgText(subtitle)}</text>
-  ${tags
-    .map(
-      (tag, index) =>
-        `<text x="${86 + index * 128}" y="325" font-family="Arial, sans-serif" font-size="18" font-weight="800" fill="#047857"># ${escapeSvgText(tag)}</text>`,
-    )
-    .join("")}
-</svg>`;
-
-  return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
-}
-
 export function resolveCoverGenerationConfig({
   textBaseUrl,
   textApiKey,
@@ -201,6 +193,31 @@ export function resolveCoverGenerationConfig({
     apiKey: String(imageApiKey || textApiKey || "").trim(),
     model,
     hasImageModel: Boolean(model),
+  };
+}
+
+export function getCoverGenerationConfigStatus(config) {
+  const resolved = resolveCoverGenerationConfig(config);
+  const missingItems = [];
+  if (!resolved.model) missingItems.push("封面生图模型");
+  if (!resolved.apiKey) missingItems.push("API Key");
+  if (!resolved.baseUrl) missingItems.push("API 地址");
+
+  if (missingItems.length === 0) {
+    return {
+      isConfigured: true,
+      message: "封面生图配置已就绪。",
+    };
+  }
+
+  const missingText =
+    missingItems.length === 1
+      ? missingItems[0]
+      : `${missingItems.slice(0, -1).join("、")} 和 ${missingItems[missingItems.length - 1]}`;
+
+  return {
+    isConfigured: false,
+    message: `请先在 AI 服务配置中填写${missingText}。`,
   };
 }
 
@@ -220,7 +237,7 @@ export function createPublishWorkflowSteps({
       id: "draft",
       label: "初稿",
       status: hasContent ? "done" : "pending",
-      description: hasContent ? "已输入正文" : "等待输入正文",
+      description: hasContent ? "已有正文" : "等待正文",
     },
     {
       id: "rewrite",
@@ -238,7 +255,7 @@ export function createPublishWorkflowSteps({
           ? "改写稿待确认"
           : hasAppliedRewrite
             ? "已应用改写"
-            : "可选提示词改写",
+            : "可选改写",
     },
     {
       id: "format",
@@ -256,29 +273,29 @@ export function createPublishWorkflowSteps({
           ? "排版稿待确认"
           : hasAppliedFormat
             ? "已应用排版"
-            : "可选 AI 整理结构",
+            : "可 AI 排版",
     },
     {
       id: "image",
       label: "AI 生成",
       status: !hasContent ? "pending" : hasCoverGenerated ? "done" : "pending",
-      description: !hasContent ? "等待初稿" : hasCoverGenerated ? "已生成封面图" : "可生成封面图",
+      description: !hasContent ? "等待初稿" : hasCoverGenerated ? "已生成封面" : "等待生成封面",
     },
     {
       id: "check",
       label: "发布物料",
       status: !hasContent ? "pending" : hasPublishOptimization ? "done" : "pending",
       description: !hasContent
-        ? "等待正文"
+        ? "等待初稿"
         : hasPublishOptimization
-          ? "发布物料已生成"
-          : "等待生成发布物料",
+          ? "物料已生成"
+          : "等待生成物料",
     },
     {
       id: "publish",
       label: "复制发布",
       status: hasCopied ? "done" : "pending",
-      description: hasCopied ? "已复制到剪贴板" : "等待复制发布",
+      description: hasCopied ? "已复制正文" : "等待复制正文",
     },
   ];
 }

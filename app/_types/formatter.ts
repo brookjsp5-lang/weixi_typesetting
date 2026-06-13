@@ -64,6 +64,14 @@ export type PromptTemplate = {
   updatedAt: string;
 };
 
+export type CoverPromptTemplate = {
+  id: string;
+  name: string;
+  prompt: string;
+  createdAt: string;
+  updatedAt: string;
+};
+
 export type RewriteDraft = {
   original: string;
   rewritten: string;
@@ -104,7 +112,7 @@ export type CoverGenerationResult = {
   prompt: string;
   titleHint: string;
   createdAt: string;
-  source?: "ai" | "fallback";
+  source?: "ai";
   warning?: string;
 } | null;
 
@@ -112,9 +120,6 @@ export type PublishOptimizationResult = {
   titles: string[];
   summary: string;
   keywords: string[];
-  recommendedTemplateId?: string;
-  recommendedCategory?: string;
-  recommendedThemeColor?: string;
   suggestions: string[];
 } | null;
 
