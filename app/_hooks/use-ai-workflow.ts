@@ -59,6 +59,8 @@ export function useAiWorkflow({
   const [hasAppliedRewrite, setHasAppliedRewrite] = useState(false);
   const [publishOptimization, setPublishOptimization] = useState<PublishOptimizationResult>(null);
   const [imageAssistResult, setImageAssistResult] = useState<ImageAssistResult>(null);
+  const [isPreparingPublish, setIsPreparingPublish] = useState(false);
+  const [publishPreparationMessage, setPublishPreparationMessage] = useState("");
 
   const requestAiTask = useCallback(
     async (taskType: AiTaskType, rewritePrompt = "") => {
@@ -176,51 +178,147 @@ export function useAiWorkflow({
     showToast("已应用改写稿");
   }, [rewriteDraft, setInputText, showToast]);
 
+  const applyPublishOptimizationResult = useCallback(
+    (result: string) => {
+      try {
+        const parsed = extractJsonObject(result) as NonNullable<PublishOptimizationResult>;
+        setPublishOptimization({
+          titles: Array.isArray(parsed.titles) ? parsed.titles.slice(0, 5) : [],
+          summary: typeof parsed.summary === "string" ? parsed.summary : "",
+          keywords: Array.isArray(parsed.keywords) ? parsed.keywords.slice(0, 10) : [],
+          recommendedCategory:
+            typeof parsed.recommendedCategory === "string" ? parsed.recommendedCategory : undefined,
+          recommendedTemplateId:
+            typeof parsed.recommendedTemplateId === "string"
+              ? parsed.recommendedTemplateId
+              : undefined,
+          recommendedThemeColor:
+            typeof parsed.recommendedThemeColor === "string"
+              ? parsed.recommendedThemeColor
+              : undefined,
+          suggestions: normalizeStringArray(parsed.suggestions, 6),
+        });
+        showToast("发布优化建议已生成");
+        return true;
+      } catch {
+        showToast("AI 发布优化结果解析失败，请重试", "error");
+        return false;
+      }
+    },
+    [showToast],
+  );
+
   const runPublishOptimize = useCallback(async () => {
     const result = await requestAiTask("publishOptimize");
     if (!result) return;
+    applyPublishOptimizationResult(result);
+  }, [applyPublishOptimizationResult, requestAiTask]);
 
-    try {
-      const parsed = extractJsonObject(result) as NonNullable<PublishOptimizationResult>;
-      setPublishOptimization({
-        titles: Array.isArray(parsed.titles) ? parsed.titles.slice(0, 5) : [],
-        summary: typeof parsed.summary === "string" ? parsed.summary : "",
-        keywords: Array.isArray(parsed.keywords) ? parsed.keywords.slice(0, 10) : [],
-        recommendedCategory:
-          typeof parsed.recommendedCategory === "string" ? parsed.recommendedCategory : undefined,
-        recommendedTemplateId:
-          typeof parsed.recommendedTemplateId === "string"
-            ? parsed.recommendedTemplateId
-            : undefined,
-        recommendedThemeColor:
-          typeof parsed.recommendedThemeColor === "string"
-            ? parsed.recommendedThemeColor
-            : undefined,
-        suggestions: normalizeStringArray(parsed.suggestions, 6),
-      });
-      showToast("发布优化建议已生成");
-    } catch {
-      showToast("AI 发布优化结果解析失败，请重试", "error");
-    }
-  }, [requestAiTask, showToast]);
+  const applyImageAssistResult = useCallback(
+    (result: string) => {
+      try {
+        const parsed = extractJsonObject(result) as NonNullable<ImageAssistResult>;
+        setImageAssistResult({
+          coverPrompt: typeof parsed.coverPrompt === "string" ? parsed.coverPrompt : "",
+          articleImagePrompts: normalizeStringArray(parsed.articleImagePrompts, 4),
+          imageDescriptions: normalizeStringArray(parsed.imageDescriptions, 4),
+          insertSuggestions: normalizeStringArray(parsed.insertSuggestions, 4),
+        });
+        showToast("配图建议已生成");
+        return true;
+      } catch {
+        showToast("AI 配图建议解析失败，请重试", "error");
+        return false;
+      }
+    },
+    [showToast],
+  );
 
   const runImageAssist = useCallback(async () => {
     const result = await requestAiTask("imageAssist");
     if (!result) return;
+    applyImageAssistResult(result);
+  }, [applyImageAssistResult, requestAiTask]);
+
+  const runPublishPreparation = useCallback(async () => {
+    if (!inputText.trim()) {
+      showToast("请先填写初稿内容", "error");
+      return;
+    }
+
+    if (isPreparingPublish || runningTask) return;
+
+    setIsPreparingPublish(true);
+    setPublishPreparationMessage("正在准备发布材料...");
 
     try {
-      const parsed = extractJsonObject(result) as NonNullable<ImageAssistResult>;
-      setImageAssistResult({
-        coverPrompt: typeof parsed.coverPrompt === "string" ? parsed.coverPrompt : "",
-        articleImagePrompts: normalizeStringArray(parsed.articleImagePrompts, 4),
-        imageDescriptions: normalizeStringArray(parsed.imageDescriptions, 4),
-        insertSuggestions: normalizeStringArray(parsed.insertSuggestions, 4),
-      });
-      showToast("配图建议已生成");
-    } catch {
-      showToast("AI 配图建议解析失败，请重试", "error");
+      let hasGenerated = false;
+
+      if (!formatDraft && !hasAppliedFormat) {
+        setPublishPreparationMessage("正在生成排版稿...");
+        const formatResult = await requestAiTask("format");
+        if (!formatResult) {
+          setPublishPreparationMessage("发布准备未完成，请检查 AI 配置后重试。");
+          return;
+        }
+        setFormatDraft({
+          original: inputText,
+          formatted: formatResult,
+        });
+        setHasAppliedFormat(false);
+        hasGenerated = true;
+      }
+
+      if (!imageAssistResult) {
+        setPublishPreparationMessage("正在生成配图建议...");
+        const imageResult = await requestAiTask("imageAssist");
+        if (!imageResult) {
+          setPublishPreparationMessage("发布准备未完成，请检查 AI 配置后重试。");
+          return;
+        }
+        if (!applyImageAssistResult(imageResult)) {
+          setPublishPreparationMessage("配图建议解析失败，请单独重试。");
+          return;
+        }
+        hasGenerated = true;
+      }
+
+      if (!publishOptimization) {
+        setPublishPreparationMessage("正在生成发布物料...");
+        const publishResult = await requestAiTask("publishOptimize");
+        if (!publishResult) {
+          setPublishPreparationMessage("发布准备未完成，请检查 AI 配置后重试。");
+          return;
+        }
+        if (!applyPublishOptimizationResult(publishResult)) {
+          setPublishPreparationMessage("发布物料解析失败，请单独重试。");
+          return;
+        }
+        hasGenerated = true;
+      }
+
+      setPublishPreparationMessage(
+        hasGenerated
+          ? "发布准备已生成，请逐项确认后复制发布。"
+          : "已有发布准备内容，无需重复生成。",
+      );
+      showToast(hasGenerated ? "发布准备已生成" : "发布准备内容已存在");
+    } finally {
+      setIsPreparingPublish(false);
     }
-  }, [requestAiTask, showToast]);
+  }, [
+    inputText,
+    isPreparingPublish,
+    runningTask,
+    formatDraft,
+    hasAppliedFormat,
+    imageAssistResult,
+    publishOptimization,
+    requestAiTask,
+    applyImageAssistResult,
+    applyPublishOptimizationResult,
+    showToast,
+  ]);
 
   return {
     runningTask,
@@ -236,6 +334,8 @@ export function useAiWorkflow({
     imageAssistResult,
     setImageAssistResult,
     hasGeneratedImageAssist: Boolean(imageAssistResult),
+    isPreparingPublish,
+    publishPreparationMessage,
     runFormat,
     applyFormatDraft,
     discardFormatDraft,
@@ -243,5 +343,6 @@ export function useAiWorkflow({
     applyRewriteDraft,
     runPublishOptimize,
     runImageAssist,
+    runPublishPreparation,
   };
 }

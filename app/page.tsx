@@ -282,6 +282,9 @@ export default function Home() {
               wordCount={wordCount}
               runningTask={aiWorkflow.runningTask}
               publishWorkflowSteps={publishWorkflowSteps}
+              onPublishPreparation={aiWorkflow.runPublishPreparation}
+              isPreparingPublish={aiWorkflow.isPreparingPublish}
+              publishPreparationMessage={aiWorkflow.publishPreparationMessage}
               onAiFormat={aiWorkflow.runFormat}
               formatDraft={aiWorkflow.formatDraft}
               onApplyFormatDraft={aiWorkflow.applyFormatDraft}
