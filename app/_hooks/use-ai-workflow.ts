@@ -3,11 +3,12 @@ import { extractJsonObject } from "../_lib/workflow-utils";
 import type {
   AiProviderType,
   AiTaskType,
+  CoverGenerationResult,
   FormatDraft,
-  ImageAssistResult,
   PromptTemplate,
   PublishOptimizationResult,
   RewriteDraft,
+  RunningAiTaskType,
 } from "../_types/formatter";
 import type { ShowToast } from "./use-toast";
 
@@ -18,6 +19,7 @@ type UseAiWorkflowParams = {
   aiBaseUrl: string;
   aiApiKey: string;
   aiModel: string;
+  aiImageModel: string;
   setShowAiConfigModal: (value: boolean) => void;
   showToast: ShowToast;
 };
@@ -48,6 +50,22 @@ const normalizeStringArray = (value: unknown, limit: number) =>
     ? value.filter((item): item is string => typeof item === "string").slice(0, limit)
     : [];
 
+const normalizePublishOptimization = (value: unknown): NonNullable<PublishOptimizationResult> => {
+  const parsed = value as NonNullable<PublishOptimizationResult>;
+  return {
+    titles: Array.isArray(parsed.titles) ? parsed.titles.slice(0, 5) : [],
+    summary: typeof parsed.summary === "string" ? parsed.summary : "",
+    keywords: Array.isArray(parsed.keywords) ? parsed.keywords.slice(0, 10) : [],
+    recommendedCategory:
+      typeof parsed.recommendedCategory === "string" ? parsed.recommendedCategory : undefined,
+    recommendedTemplateId:
+      typeof parsed.recommendedTemplateId === "string" ? parsed.recommendedTemplateId : undefined,
+    recommendedThemeColor:
+      typeof parsed.recommendedThemeColor === "string" ? parsed.recommendedThemeColor : undefined,
+    suggestions: normalizeStringArray(parsed.suggestions, 6),
+  };
+};
+
 export function useAiWorkflow({
   inputText,
   setInputText,
@@ -55,18 +73,17 @@ export function useAiWorkflow({
   aiBaseUrl,
   aiApiKey,
   aiModel,
+  aiImageModel,
   setShowAiConfigModal,
   showToast,
 }: UseAiWorkflowParams) {
-  const [runningTask, setRunningTask] = useState<AiTaskType | null>(null);
+  const [runningTask, setRunningTask] = useState<RunningAiTaskType | null>(null);
   const [formatDraft, setFormatDraft] = useState<FormatDraft>(null);
   const [hasAppliedFormat, setHasAppliedFormat] = useState(false);
   const [rewriteDraft, setRewriteDraft] = useState<RewriteDraft>(null);
   const [hasAppliedRewrite, setHasAppliedRewrite] = useState(false);
   const [publishOptimization, setPublishOptimization] = useState<PublishOptimizationResult>(null);
-  const [imageAssistResult, setImageAssistResult] = useState<ImageAssistResult>(null);
-  const [isPreparingPublish, setIsPreparingPublish] = useState(false);
-  const [publishPreparationMessage, setPublishPreparationMessage] = useState("");
+  const [coverGenerationResult, setCoverGenerationResult] = useState<CoverGenerationResult>(null);
 
   const requestAiTask = useCallback(
     async (taskType: AiTaskType, rewritePrompt = "", options: RequestAiTaskOptions = {}) => {
@@ -198,28 +215,13 @@ export function useAiWorkflow({
   const applyPublishOptimizationResult = useCallback(
     (result: string) => {
       try {
-        const parsed = extractJsonObject(result) as NonNullable<PublishOptimizationResult>;
-        setPublishOptimization({
-          titles: Array.isArray(parsed.titles) ? parsed.titles.slice(0, 5) : [],
-          summary: typeof parsed.summary === "string" ? parsed.summary : "",
-          keywords: Array.isArray(parsed.keywords) ? parsed.keywords.slice(0, 10) : [],
-          recommendedCategory:
-            typeof parsed.recommendedCategory === "string" ? parsed.recommendedCategory : undefined,
-          recommendedTemplateId:
-            typeof parsed.recommendedTemplateId === "string"
-              ? parsed.recommendedTemplateId
-              : undefined,
-          recommendedThemeColor:
-            typeof parsed.recommendedThemeColor === "string"
-              ? parsed.recommendedThemeColor
-              : undefined,
-          suggestions: normalizeStringArray(parsed.suggestions, 6),
-        });
+        const optimization = normalizePublishOptimization(extractJsonObject(result));
+        setPublishOptimization(optimization);
         showToast("发布优化建议已生成");
-        return true;
+        return optimization;
       } catch {
         showToast("AI 发布优化结果解析失败，请重试", "error");
-        return false;
+        return null;
       }
     },
     [showToast],
@@ -231,112 +233,93 @@ export function useAiWorkflow({
     applyPublishOptimizationResult(result);
   }, [applyPublishOptimizationResult, requestAiTask]);
 
-  const applyImageAssistResult = useCallback(
-    (result: string) => {
+  const requestCoverGeneration = useCallback(
+    async (optimization: NonNullable<PublishOptimizationResult>) => {
+      const trimmedBaseUrl = aiBaseUrl.trim();
+      const trimmedApiKey = aiApiKey.trim();
+      const imageModel = aiImageModel.trim() || aiModel.trim();
+
+      if (!trimmedBaseUrl || !trimmedApiKey || !imageModel) {
+        setShowAiConfigModal(true);
+        showToast("请先配置 AI 服务地址、API Key 和生图模型", "error");
+        return null;
+      }
+
+      setRunningTask("cover");
       try {
-        const parsed = extractJsonObject(result) as NonNullable<ImageAssistResult>;
-        setImageAssistResult({
-          coverPrompt: typeof parsed.coverPrompt === "string" ? parsed.coverPrompt : "",
-          articleImagePrompts: normalizeStringArray(parsed.articleImagePrompts, 4),
-          imageDescriptions: normalizeStringArray(parsed.imageDescriptions, 4),
-          insertSuggestions: normalizeStringArray(parsed.insertSuggestions, 4),
+        const res = await fetch("/api/ai-cover", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            markdown: inputText,
+            providerType: aiProviderType,
+            baseUrl: trimmedBaseUrl,
+            apiKey: trimmedApiKey,
+            model: imageModel,
+            title: optimization.titles[0] || "",
+            summary: optimization.summary,
+            keywords: optimization.keywords,
+          }),
         });
-        showToast("配图建议已生成");
-        return true;
+        const data = (await res.json().catch(() => null)) as {
+          result?: NonNullable<CoverGenerationResult>;
+          error?: string;
+        } | null;
+
+        if (!res.ok || !data?.result) {
+          showToast(
+            data?.error || "当前模型不支持图片生成，请更换支持图片生成的模型或接口",
+            "error",
+          );
+          return null;
+        }
+
+        setCoverGenerationResult(data.result);
+        showToast("封面图已生成");
+        return data.result;
       } catch {
-        showToast("AI 配图建议解析失败，请重试", "error");
-        return false;
+        showToast("封面图生成失败，请检查模型接口后重试", "error");
+        return null;
+      } finally {
+        setRunningTask(null);
       }
     },
-    [showToast],
+    [
+      aiBaseUrl,
+      aiApiKey,
+      aiImageModel,
+      aiModel,
+      setShowAiConfigModal,
+      showToast,
+      inputText,
+      aiProviderType,
+    ],
   );
 
-  const runImageAssist = useCallback(async () => {
-    const result = await requestAiTask("imageAssist");
-    if (!result) return;
-    applyImageAssistResult(result);
-  }, [applyImageAssistResult, requestAiTask]);
-
-  const runPublishPreparation = useCallback(async () => {
+  const runCoverGeneration = useCallback(async () => {
     if (!inputText.trim()) {
       showToast("请先填写初稿内容", "error");
       return;
     }
 
-    if (isPreparingPublish || runningTask) return;
+    if (runningTask) return;
 
-    setIsPreparingPublish(true);
-    setPublishPreparationMessage("正在准备发布材料...");
-
-    try {
-      let hasGenerated = false;
-
-      if (!formatDraft && !hasAppliedFormat) {
-        setPublishPreparationMessage("正在生成排版稿...");
-        const formatResult = await requestAiTask("format", "", {
-          emptyFallback: inputText,
-          emptyMessage: "AI 排版返回为空，已保留原文作为待确认排版稿。",
-        });
-        if (!formatResult) {
-          setPublishPreparationMessage("发布准备未完成，请检查 AI 配置后重试。");
-          return;
-        }
-        setFormatDraft({
-          original: inputText,
-          formatted: formatResult,
-        });
-        setHasAppliedFormat(false);
-        hasGenerated = true;
-      }
-
-      if (!imageAssistResult) {
-        setPublishPreparationMessage("正在生成配图建议...");
-        const imageResult = await requestAiTask("imageAssist");
-        if (!imageResult) {
-          setPublishPreparationMessage("发布准备未完成，请检查 AI 配置后重试。");
-          return;
-        }
-        if (!applyImageAssistResult(imageResult)) {
-          setPublishPreparationMessage("配图建议解析失败，请单独重试。");
-          return;
-        }
-        hasGenerated = true;
-      }
-
-      if (!publishOptimization) {
-        setPublishPreparationMessage("正在生成发布物料...");
-        const publishResult = await requestAiTask("publishOptimize");
-        if (!publishResult) {
-          setPublishPreparationMessage("发布准备未完成，请检查 AI 配置后重试。");
-          return;
-        }
-        if (!applyPublishOptimizationResult(publishResult)) {
-          setPublishPreparationMessage("发布物料解析失败，请单独重试。");
-          return;
-        }
-        hasGenerated = true;
-      }
-
-      setPublishPreparationMessage(
-        hasGenerated
-          ? "发布准备已生成，请逐项确认后复制发布。"
-          : "已有发布准备内容，无需重复生成。",
-      );
-      showToast(hasGenerated ? "发布准备已生成" : "发布准备内容已存在");
-    } finally {
-      setIsPreparingPublish(false);
+    let optimization = publishOptimization;
+    if (!optimization) {
+      const result = await requestAiTask("publishOptimize");
+      if (!result) return;
+      optimization = applyPublishOptimizationResult(result);
+      if (!optimization) return;
     }
+
+    await requestCoverGeneration(optimization);
   }, [
     inputText,
-    isPreparingPublish,
     runningTask,
-    formatDraft,
-    hasAppliedFormat,
-    imageAssistResult,
     publishOptimization,
     requestAiTask,
-    applyImageAssistResult,
     applyPublishOptimizationResult,
+    requestCoverGeneration,
     showToast,
   ]);
 
@@ -351,18 +334,15 @@ export function useAiWorkflow({
     hasAppliedRewrite,
     publishOptimization,
     setPublishOptimization,
-    imageAssistResult,
-    setImageAssistResult,
-    hasGeneratedImageAssist: Boolean(imageAssistResult),
-    isPreparingPublish,
-    publishPreparationMessage,
+    coverGenerationResult,
+    setCoverGenerationResult,
+    hasGeneratedCover: Boolean(coverGenerationResult),
     runFormat,
     applyFormatDraft,
     discardFormatDraft,
     runRewrite,
     applyRewriteDraft,
     runPublishOptimize,
-    runImageAssist,
-    runPublishPreparation,
+    runCoverGeneration,
   };
 }

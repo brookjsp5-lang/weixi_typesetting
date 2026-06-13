@@ -4,6 +4,7 @@ import {
   CheckCircle2,
   ChevronDown,
   Clipboard,
+  Download,
   FileCheck2,
   Image as ImageIcon,
   Loader2,
@@ -19,16 +20,16 @@ import type React from "react";
 import { useState } from "react";
 import type {
   ActiveTab,
-  AiTaskType,
+  CoverGenerationResult,
   FormatDraft,
   FormatTweaks,
-  ImageAssistResult,
   PromptTemplate,
   PublishCheckItem,
   PublishOptimizationResult,
   PublishStepId,
   PublishWorkflowStep,
   RewriteDraft,
+  RunningAiTaskType,
   WordCount,
 } from "../_types/formatter";
 import type { TemplateConfig } from "../template-engine";
@@ -46,11 +47,8 @@ type WorkflowPaneProps = {
   setPublishStep: React.Dispatch<React.SetStateAction<PublishStepId>>;
   inputText: string;
   wordCount: WordCount;
-  runningTask: AiTaskType | null;
+  runningTask: RunningAiTaskType | null;
   publishWorkflowSteps: PublishWorkflowStep[];
-  onPublishPreparation: () => Promise<void>;
-  isPreparingPublish: boolean;
-  publishPreparationMessage: string;
   onAiFormat: () => void;
   formatDraft: FormatDraft;
   onApplyFormatDraft: () => void;
@@ -58,9 +56,8 @@ type WorkflowPaneProps = {
   onRewrite: (promptTemplate?: PromptTemplate) => void;
   hasAppliedRewrite: boolean;
   onPublishOptimize: () => void;
-  onImageAssist: () => void;
-  imageAssistResult: ImageAssistResult;
-  onInsertImage: () => void;
+  onGenerateCover: () => void;
+  coverGenerationResult: CoverGenerationResult;
   onOpenAiConfig: () => void;
   promptTemplates: PromptTemplate[];
   selectedPrompt?: PromptTemplate;
@@ -121,8 +118,8 @@ const stepDescriptions: Record<PublishStepId, string> = {
   draft: "先把文章内容放进左侧初稿。",
   rewrite: "按提示词生成改写稿，确认后再替换初稿。",
   format: "整理 Markdown 结构，并选择模板和主题细节。",
-  image: "生成封面和正文配图方向，再插入本地或在线图片。",
-  check: "生成标题、摘要、关键词，并检查发布风险。",
+  image: "生成公众号封面图，并同步准备标题、摘要和关键词建议。",
+  check: "集中查看标题、摘要、关键词和封面图。",
   publish: "复制正文和发布物料到公众号后台。",
 };
 
@@ -200,87 +197,64 @@ function CompletionCard({ done, text }: { done: boolean; text: string }) {
   );
 }
 
-function PublishPreparationCard({
-  disabled,
-  isPreparingPublish,
-  publishPreparationMessage,
-  preparationItems,
-  onPublishPreparation,
-}: {
-  disabled: boolean;
-  isPreparingPublish: boolean;
-  publishPreparationMessage: string;
-  preparationItems: Array<{ label: string; done: boolean }>;
-  onPublishPreparation: () => Promise<void>;
-}) {
-  return (
-    <section className="mb-3 rounded-xl border border-(--neo-line) bg-(--neo-cyan) p-3 space-y-3">
-      <div>
-        <h3 className="text-sm font-black text-(--neo-ink)">一键发布准备</h3>
-        <p className="mt-1 text-xs font-bold leading-relaxed neo-text-muted">
-          生成排版稿、配图建议、标题摘要关键词，不自动替换正文。
-        </p>
-      </div>
-      <div className="grid grid-cols-3 gap-1.5">
-        {preparationItems.map((item) => (
-          <div
-            key={item.label}
-            className={`rounded-lg border p-2 text-center text-[10px] font-black ${
-              item.done
-                ? "border-emerald-300 bg-emerald-50 text-emerald-700"
-                : "border-(--neo-line) bg-white text-(--neo-muted)"
-            }`}
-          >
-            <div>{item.label}</div>
-            <div className="mt-0.5 opacity-75">{item.done ? "已准备" : "待生成"}</div>
-          </div>
-        ))}
-      </div>
-      <button
-        type="button"
-        onClick={() => void onPublishPreparation()}
-        disabled={disabled || isPreparingPublish}
-        className="neo-button neo-button-primary flex w-full items-center justify-center gap-2 py-2.5 text-sm disabled:cursor-not-allowed disabled:opacity-60"
-      >
-        {isPreparingPublish ? (
-          <Loader2 className="h-4 w-4 animate-spin" />
-        ) : (
-          <Sparkles className="h-4 w-4" />
-        )}
-        {isPreparingPublish ? "准备中..." : "一键生成发布准备"}
-      </button>
-      {publishPreparationMessage && (
-        <p className="text-[11px] font-bold leading-relaxed neo-text-muted">
-          {publishPreparationMessage}
-        </p>
-      )}
-    </section>
-  );
-}
-
 function PublishMaterials({
   publishOptimization,
+  coverGenerationResult,
   onApplyRecommendation,
   onCopyText,
   copiedMaterialIds,
   compact = false,
 }: {
   publishOptimization: PublishOptimizationResult;
+  coverGenerationResult: CoverGenerationResult;
   onApplyRecommendation: () => void;
   onCopyText: (text: string, id: string) => void;
   copiedMaterialIds: string[];
   compact?: boolean;
 }) {
+  const coverSection = coverGenerationResult ? (
+    <section className="rounded-xl border border-(--neo-line) bg-(--neo-surface) p-3 space-y-2">
+      <h3 className="text-xs font-black">封面图</h3>
+      <img
+        src={coverGenerationResult.imageUrl}
+        alt="公众号封面图"
+        className="aspect-video w-full rounded-lg border border-(--neo-line) object-cover bg-white"
+      />
+      <div className="flex gap-2">
+        <a
+          href={coverGenerationResult.imageUrl}
+          download="wx-cover.png"
+          className="neo-button neo-button-secondary flex-1 py-1.5 text-center text-xs inline-flex items-center justify-center gap-1.5"
+        >
+          <Download className="h-3.5 w-3.5" />
+          下载封面
+        </a>
+        <button
+          type="button"
+          onClick={() => onCopyText(coverGenerationResult.prompt, "cover-prompt")}
+          className="neo-button neo-button-ghost flex-1 py-1.5 text-xs"
+        >
+          {copiedMaterialIds.includes("cover-prompt") ? "提示词已复制" : "复制提示词"}
+        </button>
+      </div>
+    </section>
+  ) : null;
+
   if (!publishOptimization) {
     return (
-      <div className="rounded-xl border border-(--neo-line) bg-(--neo-surface) p-4 text-sm font-bold neo-text-muted">
-        生成后会显示标题候选、摘要、关键词和模板建议。
+      <div className="space-y-3">
+        {coverSection}
+        <div className="rounded-xl border border-(--neo-line) bg-(--neo-surface) p-4 text-sm font-bold neo-text-muted">
+          生成后会显示标题候选、摘要、关键词和模板建议。
+        </div>
       </div>
     );
   }
 
   return (
     <div className="space-y-3">
+      {coverSection}
+
       <section className="rounded-xl border border-(--neo-line) bg-(--neo-surface) p-3 space-y-2">
         <h3 className="text-xs font-black">标题候选</h3>
         {publishOptimization.titles.map((title) => (
@@ -368,14 +342,17 @@ function PublishMaterials({
 function PublishChecklist({
   hasCopiedBody,
   publishOptimization,
+  coverGenerationResult,
   copiedMaterialIds,
 }: {
   hasCopiedBody: boolean;
   publishOptimization: PublishOptimizationResult;
+  coverGenerationResult: CoverGenerationResult;
   copiedMaterialIds: string[];
 }) {
   const checklist = [
     { label: "正文 HTML", done: hasCopiedBody },
+    { label: "封面图", done: Boolean(coverGenerationResult) },
     {
       label: "标题",
       done: copiedMaterialIds.some((id) => id.startsWith("title:")),
@@ -421,9 +398,6 @@ export function WorkflowPane({
   wordCount,
   runningTask,
   publishWorkflowSteps,
-  onPublishPreparation,
-  isPreparingPublish,
-  publishPreparationMessage,
   onAiFormat,
   formatDraft,
   onApplyFormatDraft,
@@ -431,9 +405,8 @@ export function WorkflowPane({
   onRewrite,
   hasAppliedRewrite,
   onPublishOptimize,
-  onImageAssist,
-  imageAssistResult,
-  onInsertImage,
+  onGenerateCover,
+  coverGenerationResult,
   onOpenAiConfig,
   promptTemplates,
   selectedPrompt,
@@ -464,7 +437,7 @@ export function WorkflowPane({
   const [promptName, setPromptName] = useState("");
   const [promptBody, setPromptBody] = useState("");
   const [isPromptManagerOpen, setIsPromptManagerOpen] = useState(false);
-  const [isFormatSettingsOpen, setIsFormatSettingsOpen] = useState(false);
+  const [isFormatSettingsOpen, setIsFormatSettingsOpen] = useState(true);
   const [copiedMaterialIds, setCopiedMaterialIds] = useState<string[]>([]);
 
   const headingCount = (inputText.match(/^#{1,6}\s+.+$/gm) || []).length;
@@ -475,7 +448,7 @@ export function WorkflowPane({
   const getStepStatus = (stepId: PublishStepId) =>
     publishWorkflowSteps.find((step) => step.id === stepId)?.status || "pending";
   const formatReady = Boolean(formatDraft) || getStepStatus("format") === "done";
-  const imageReady = Boolean(imageAssistResult);
+  const imageReady = Boolean(coverGenerationResult);
   const materialsReady = Boolean(publishOptimization);
   const hasCopiedBody = getStepStatus("publish") === "done";
 
@@ -569,18 +542,6 @@ export function WorkflowPane({
             </p>
           </div>
 
-          <PublishPreparationCard
-            disabled={!inputText.trim() || Boolean(runningTask) || isPreparingPublish}
-            isPreparingPublish={isPreparingPublish}
-            publishPreparationMessage={publishPreparationMessage}
-            onPublishPreparation={onPublishPreparation}
-            preparationItems={[
-              { label: "排版稿", done: formatReady },
-              { label: "配图建议", done: imageReady },
-              { label: "发布物料", done: materialsReady },
-            ]}
-          />
-
           {publishStep === "draft" && (
             <div className="space-y-3">
               <CompletionCard
@@ -651,10 +612,18 @@ export function WorkflowPane({
                   >
                     编辑提示词
                   </button>
+                  <button
+                    type="button"
+                    disabled={!selectedPrompt}
+                    onClick={() => selectedPrompt && onDeletePrompt(selectedPrompt.id)}
+                    className="neo-button neo-button-ghost shrink-0 px-3 py-2 text-xs disabled:opacity-40"
+                  >
+                    删除
+                  </button>
                 </div>
                 <button
                   type="button"
-                  disabled={!selectedPrompt || Boolean(runningTask) || isPreparingPublish}
+                  disabled={!selectedPrompt || Boolean(runningTask)}
                   onClick={() => onRewrite(selectedPrompt)}
                   className="neo-button neo-button-primary flex w-full items-center justify-center gap-2 py-2.5 text-sm shadow-sm disabled:cursor-not-allowed disabled:opacity-60"
                 >
@@ -785,7 +754,7 @@ export function WorkflowPane({
                   <button
                     type="button"
                     onClick={onAiFormat}
-                    disabled={!inputText.trim() || Boolean(runningTask) || isPreparingPublish}
+                    disabled={!inputText.trim() || Boolean(runningTask)}
                     className="neo-button neo-button-pink w-full px-4 py-3 flex items-center justify-center gap-2"
                   >
                     {runningTask === "format" ? (
@@ -875,97 +844,42 @@ export function WorkflowPane({
 
           {publishStep === "image" && (
             <div className="space-y-4">
-              <CompletionCard done={imageReady} text="已生成封面和正文配图建议。" />
+              <CompletionCard done={imageReady} text="已生成公众号封面图。" />
               <section className="rounded-xl border border-(--neo-line) bg-(--neo-surface) p-3 space-y-3">
                 <button
                   type="button"
-                  onClick={onImageAssist}
-                  disabled={!inputText.trim() || Boolean(runningTask) || isPreparingPublish}
+                  onClick={onGenerateCover}
+                  disabled={!inputText.trim() || Boolean(runningTask)}
                   className="neo-button neo-button-primary w-full px-4 py-3 flex items-center justify-center gap-2"
                 >
-                  {runningTask === "imageAssist" ? (
+                  {runningTask === "cover" || runningTask === "publishOptimize" ? (
                     <Loader2 className="w-4 h-4 animate-spin" />
                   ) : (
                     <ImageIcon className="w-4 h-4" />
                   )}
-                  生成配图建议
+                  {runningTask === "cover"
+                    ? "正在生成封面..."
+                    : runningTask === "publishOptimize"
+                      ? "正在准备物料..."
+                      : "生成封面图"}
                 </button>
                 <p className="px-1 text-[11px] font-bold leading-relaxed neo-text-muted">
-                  生成封面和正文配图提示词，不直接创建图片。
+                  会先生成标题、摘要和关键词建议，再调用支持生图的模型生成封面图。
                 </p>
-                <button
-                  type="button"
-                  onClick={onInsertImage}
-                  className="neo-button neo-button-secondary w-full py-2 text-xs flex items-center justify-center gap-2"
-                >
-                  <ImageIcon className="w-4 h-4" />
-                  插入本地/在线图片
-                </button>
               </section>
 
-              {imageAssistResult ? (
-                <div className="space-y-3">
-                  <section className="rounded-xl border border-(--neo-line) bg-(--neo-cyan) p-3 space-y-2">
-                    <h3 className="text-xs font-black">封面提示词</h3>
-                    <p className="text-xs font-bold leading-relaxed">
-                      {imageAssistResult.coverPrompt}
-                    </p>
-                    <button
-                      type="button"
-                      onClick={() => copyPlainText(imageAssistResult.coverPrompt)}
-                      className="neo-button neo-button-ghost px-3 py-1.5 text-xs"
-                    >
-                      复制封面提示词
-                    </button>
-                  </section>
-
-                  <section className="rounded-xl border border-(--neo-line) bg-(--neo-surface) p-3 space-y-2">
-                    <h3 className="text-xs font-black">正文配图提示词</h3>
-                    {imageAssistResult.articleImagePrompts.map((prompt) => (
-                      <button
-                        key={prompt}
-                        type="button"
-                        onClick={() => copyPlainText(prompt)}
-                        className="w-full rounded-lg border border-(--neo-line) p-2 text-left text-xs font-bold hover:bg-(--neo-cyan)"
-                      >
-                        {prompt}
-                      </button>
-                    ))}
-                  </section>
-
-                  <section className="rounded-xl border border-(--neo-line) bg-(--neo-surface) p-3 space-y-2">
-                    <h3 className="text-xs font-black">图片描述</h3>
-                    <div className="flex flex-wrap gap-2">
-                      {imageAssistResult.imageDescriptions.map((description) => (
-                        <button
-                          key={description}
-                          type="button"
-                          onClick={() => copyPlainText(description)}
-                          className="rounded-full border border-(--neo-line) bg-white px-2 py-1 text-xs font-bold"
-                        >
-                          {description}
-                        </button>
-                      ))}
-                    </div>
-                  </section>
-
-                  {imageAssistResult.insertSuggestions.length > 0 && (
-                    <section className="rounded-xl border border-(--neo-line) bg-(--neo-surface) p-3 space-y-2">
-                      <h3 className="text-xs font-black">插入建议</h3>
-                      {imageAssistResult.insertSuggestions.map((suggestion) => (
-                        <p
-                          key={suggestion}
-                          className="text-xs neo-text-muted font-bold leading-relaxed"
-                        >
-                          {suggestion}
-                        </p>
-                      ))}
-                    </section>
-                  )}
-                </div>
+              {coverGenerationResult || publishOptimization ? (
+                <PublishMaterials
+                  publishOptimization={publishOptimization}
+                  coverGenerationResult={coverGenerationResult}
+                  onApplyRecommendation={onApplyRecommendation}
+                  onCopyText={copyPlainText}
+                  copiedMaterialIds={copiedMaterialIds}
+                  compact
+                />
               ) : (
                 <div className="rounded-xl border border-(--neo-line) bg-(--neo-surface) p-4 text-sm font-bold neo-text-muted">
-                  生成后会出现封面提示词、正文配图方向和图片描述。
+                  生成后会在这里显示封面图，并同步准备标题、摘要和关键词建议。
                 </div>
               )}
 
@@ -975,15 +889,12 @@ export function WorkflowPane({
 
           {publishStep === "check" && (
             <div className="space-y-4">
-              <CompletionCard
-                done={materialsReady}
-                text="已生成标题候选、摘要、关键词，并查看发布检查项。"
-              />
+              <CompletionCard done={materialsReady} text="已生成标题候选、摘要和关键词。" />
               <section className="rounded-xl border border-(--neo-line) bg-(--neo-surface) p-3 space-y-3">
                 <button
                   type="button"
                   onClick={onPublishOptimize}
-                  disabled={!inputText.trim() || Boolean(runningTask) || isPreparingPublish}
+                  disabled={!inputText.trim() || Boolean(runningTask)}
                   className="neo-button neo-button-primary w-full px-4 py-3 flex items-center justify-center gap-2"
                 >
                   {runningTask === "publishOptimize" ? (
@@ -998,29 +909,9 @@ export function WorkflowPane({
                 </p>
               </section>
 
-              <div className="space-y-3">
-                {publishChecks.map((item) => (
-                  <div
-                    key={item.id}
-                    className="rounded-xl border border-(--neo-line) bg-(--neo-surface) p-3"
-                  >
-                    <div className="flex items-center gap-2 mb-1">
-                      <span
-                        className={`w-3 h-3 rounded-full border border-(--neo-line) ${
-                          statusClassNames[item.status]
-                        }`}
-                      />
-                      <h3 className="text-sm font-black">{item.label}</h3>
-                    </div>
-                    <p className="text-xs neo-text-muted font-bold leading-relaxed">
-                      {item.message}
-                    </p>
-                  </div>
-                ))}
-              </div>
-
               <PublishMaterials
                 publishOptimization={publishOptimization}
+                coverGenerationResult={coverGenerationResult}
                 onApplyRecommendation={onApplyRecommendation}
                 onCopyText={copyPlainText}
                 copiedMaterialIds={copiedMaterialIds}
@@ -1053,6 +944,7 @@ export function WorkflowPane({
 
               <PublishMaterials
                 publishOptimization={publishOptimization}
+                coverGenerationResult={coverGenerationResult}
                 onApplyRecommendation={onApplyRecommendation}
                 onCopyText={copyPlainText}
                 copiedMaterialIds={copiedMaterialIds}
@@ -1062,8 +954,28 @@ export function WorkflowPane({
               <PublishChecklist
                 hasCopiedBody={hasCopiedBody}
                 publishOptimization={publishOptimization}
+                coverGenerationResult={coverGenerationResult}
                 copiedMaterialIds={copiedMaterialIds}
               />
+
+              <section className="rounded-xl border border-(--neo-line) bg-(--neo-surface) p-3 space-y-2">
+                <h3 className="text-xs font-black">发布前快速检查</h3>
+                {publishChecks.map((item) => (
+                  <div key={item.id} className="rounded-lg border border-(--neo-line) bg-white p-2">
+                    <div className="flex items-center gap-2 mb-1">
+                      <span
+                        className={`w-3 h-3 rounded-full border border-(--neo-line) ${
+                          statusClassNames[item.status]
+                        }`}
+                      />
+                      <h4 className="text-xs font-black">{item.label}</h4>
+                    </div>
+                    <p className="text-[11px] neo-text-muted font-bold leading-relaxed">
+                      {item.message}
+                    </p>
+                  </div>
+                ))}
+              </section>
 
               {!publishOptimization && (
                 <button

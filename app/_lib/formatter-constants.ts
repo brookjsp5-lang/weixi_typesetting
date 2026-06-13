@@ -1,6 +1,6 @@
 export const sampleText = `# 用 WX 把公众号文章整理到可发布状态
 
-写公众号最耗时间的地方，往往不是表达观点，而是反复调整标题、段落、图片、摘要和发布素材。**WX · 公众号排版助手**把这些动作整理成一条新手也能照着走的发布向导：先写初稿，再做 AI 改写、AI 排版、AI 生图建议、物料检查，最后一键复制发布。
+写公众号最耗时间的地方，往往不是表达观点，而是反复调整标题、段落、封面、摘要和发布素材。**WX · 公众号排版助手**把这些动作整理成一条新手也能照着走的发布向导：先写初稿，再做 AI 改写、AI 排版、AI 生成、发布物料，最后复制发布。
 
 ## 第 1 步：先放入初稿
 
@@ -24,19 +24,19 @@ export const sampleText = `# 用 WX 把公众号文章整理到可发布状态
 
 同时，你还可以在这一步选择模板、主题色和细节参数。WX 当前提供 **72 套公众号模板**，适合观点文、教程、商业分析、活动通知等不同内容。
 
-## 第 4 步：补齐封面和配图思路
+## 第 4 步：生成封面和发布建议
 
-在 **AI 生图** 中，你可以生成封面提示词、正文配图建议和图片描述文案。第一版不会直接调用生图模型，但能帮你快速想清楚“这篇文章该配什么图”。
+在 **AI 生成** 中，你可以直接生成公众号封面图，同时准备标题、摘要和关键词建议。封面图需要当前 AI 配置支持 OpenAI 兼容的图片生成接口。
 
 示例封面方向：
 
 ![公众号封面示例](https://picsum.photos/seed/wx-cover/800/400)
 
-正文中也可以并排展示多张图片：
+如果文章正文还需要配图，也可以继续使用左侧工具栏插入本地或在线图片：
 
 ![配图1](https://picsum.photos/seed/wx-1/400/400) ![配图2](https://picsum.photos/seed/wx-2/400/400) ![配图3](https://picsum.photos/seed/wx-3/400/400)
 
-## 第 5 步：检查发布物料
+## 第 5 步：整理发布物料
 
 发布前建议确认这些内容：
 
@@ -65,6 +65,7 @@ export const aiStorageKeys = {
   baseUrl: "wechat-formatter-ai-base-url",
   apiKey: "wechat-formatter-ai-api-key",
   model: "wechat-formatter-ai-model",
+  imageModel: "wechat-formatter-ai-image-model",
   prompts: "wechat-formatter-ai-prompts",
   workflowTab: "wechat-formatter-workflow-tab",
 } as const;

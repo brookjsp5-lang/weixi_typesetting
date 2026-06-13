@@ -119,6 +119,7 @@ export default function Home() {
     aiBaseUrl: aiSettings.aiBaseUrl,
     aiApiKey: aiSettings.aiApiKey,
     aiModel: aiSettings.aiModel,
+    aiImageModel: aiSettings.aiImageModel,
     setShowAiConfigModal: aiSettings.setShowAiConfigModal,
     showToast,
   });
@@ -151,7 +152,7 @@ export default function Home() {
         hasAppliedRewrite: aiWorkflow.hasAppliedRewrite,
         hasFormatDraft: Boolean(aiWorkflow.formatDraft),
         hasAppliedFormat: aiWorkflow.hasAppliedFormat,
-        hasImageAssist: aiWorkflow.hasGeneratedImageAssist,
+        hasCoverGenerated: aiWorkflow.hasGeneratedCover,
         hasCheckWarnings: publishChecks.some((item) => item.status === "warning"),
         hasPublishOptimization: Boolean(aiWorkflow.publishOptimization),
         hasCopied: hasCopiedForPublish,
@@ -162,7 +163,7 @@ export default function Home() {
       aiWorkflow.hasAppliedRewrite,
       aiWorkflow.formatDraft,
       aiWorkflow.hasAppliedFormat,
-      aiWorkflow.hasGeneratedImageAssist,
+      aiWorkflow.hasGeneratedCover,
       publishChecks,
       aiWorkflow.publishOptimization,
       hasCopiedForPublish,
@@ -222,6 +223,8 @@ export default function Home() {
         setAiApiKey={aiSettings.setAiApiKey}
         aiModel={aiSettings.aiModel}
         setAiModel={aiSettings.setAiModel}
+        aiImageModel={aiSettings.aiImageModel}
+        setAiImageModel={aiSettings.setAiImageModel}
         onClose={() => aiSettings.setShowAiConfigModal(false)}
         onSave={aiSettings.saveAiSettings}
         onClear={aiSettings.clearAiSettings}
@@ -282,9 +285,6 @@ export default function Home() {
               wordCount={wordCount}
               runningTask={aiWorkflow.runningTask}
               publishWorkflowSteps={publishWorkflowSteps}
-              onPublishPreparation={aiWorkflow.runPublishPreparation}
-              isPreparingPublish={aiWorkflow.isPreparingPublish}
-              publishPreparationMessage={aiWorkflow.publishPreparationMessage}
               onAiFormat={aiWorkflow.runFormat}
               formatDraft={aiWorkflow.formatDraft}
               onApplyFormatDraft={aiWorkflow.applyFormatDraft}
@@ -292,9 +292,8 @@ export default function Home() {
               onRewrite={aiWorkflow.runRewrite}
               hasAppliedRewrite={aiWorkflow.hasAppliedRewrite}
               onPublishOptimize={aiWorkflow.runPublishOptimize}
-              onImageAssist={aiWorkflow.runImageAssist}
-              imageAssistResult={aiWorkflow.imageAssistResult}
-              onInsertImage={markdownTools.insertImage}
+              onGenerateCover={aiWorkflow.runCoverGeneration}
+              coverGenerationResult={aiWorkflow.coverGenerationResult}
               onOpenAiConfig={() => aiSettings.setShowAiConfigModal(true)}
               promptTemplates={promptSettings.promptTemplates}
               selectedPrompt={promptSettings.selectedPrompt}

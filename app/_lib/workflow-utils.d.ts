@@ -20,7 +20,7 @@ export function createPublishWorkflowSteps(params: {
   hasAppliedRewrite: boolean;
   hasFormatDraft: boolean;
   hasAppliedFormat: boolean;
-  hasImageAssist: boolean;
+  hasCoverGenerated: boolean;
   hasCheckWarnings: boolean;
   hasPublishOptimization: boolean;
   hasCopied: boolean;

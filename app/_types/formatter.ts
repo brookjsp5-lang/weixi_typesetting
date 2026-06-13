@@ -15,7 +15,9 @@ export type AiProviderType =
   | "anthropic"
   | "custom";
 
-export type AiTaskType = "format" | "rewrite" | "publishOptimize" | "imageAssist";
+export type AiTaskType = "format" | "rewrite" | "publishOptimize";
+
+export type RunningAiTaskType = AiTaskType | "cover";
 
 export type ProviderPreset = {
   id: AiProviderType;
@@ -89,11 +91,11 @@ export type PublishWorkflowStep = {
   description: string;
 };
 
-export type ImageAssistResult = {
-  coverPrompt: string;
-  articleImagePrompts: string[];
-  imageDescriptions: string[];
-  insertSuggestions: string[];
+export type CoverGenerationResult = {
+  imageUrl: string;
+  prompt: string;
+  titleHint: string;
+  createdAt: string;
 } | null;
 
 export type PublishOptimizationResult = {

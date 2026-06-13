@@ -64,7 +64,7 @@ test("publish workflow steps reflect draft, rewrite, format, image, check, and p
     hasAppliedRewrite: false,
     hasFormatDraft: false,
     hasAppliedFormat: false,
-    hasImageAssist: false,
+    hasCoverGenerated: false,
     hasCheckWarnings: false,
     hasPublishOptimization: false,
     hasCopied: false,
@@ -81,7 +81,7 @@ test("publish workflow steps reflect draft, rewrite, format, image, check, and p
     hasAppliedRewrite: false,
     hasFormatDraft: true,
     hasAppliedFormat: false,
-    hasImageAssist: true,
+    hasCoverGenerated: true,
     hasCheckWarnings: true,
     hasPublishOptimization: true,
     hasCopied: false,
@@ -89,7 +89,7 @@ test("publish workflow steps reflect draft, rewrite, format, image, check, and p
 
   assert.deepEqual(
     withFormatDraft.map((step) => step.status),
-    ["done", "active", "active", "done", "warning", "pending"],
+    ["done", "active", "active", "done", "done", "pending"],
   );
 
   const complete = createPublishWorkflowSteps({
@@ -98,7 +98,7 @@ test("publish workflow steps reflect draft, rewrite, format, image, check, and p
     hasAppliedRewrite: true,
     hasFormatDraft: false,
     hasAppliedFormat: true,
-    hasImageAssist: true,
+    hasCoverGenerated: true,
     hasCheckWarnings: false,
     hasPublishOptimization: true,
     hasCopied: true,

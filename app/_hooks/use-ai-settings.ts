@@ -21,16 +21,22 @@ export function useAiSettings(showToast: ShowToast) {
   const [aiBaseUrl, setAiBaseUrl] = useState<string>(openRouterConfig.baseUrl);
   const [aiApiKey, setAiApiKey] = useState("");
   const [aiModel, setAiModel] = useState("");
+  const [aiImageModel, setAiImageModel] = useState("");
 
   useEffect(() => {
     const savedProvider = localStorage.getItem(aiStorageKeys.provider);
     if (isAiProviderType(savedProvider)) {
       setAiProviderType(savedProvider);
     }
-    const preset = getProviderPreset(isAiProviderType(savedProvider) ? savedProvider : "openrouter");
-    setAiBaseUrl(localStorage.getItem(aiStorageKeys.baseUrl) || preset.baseUrl || openRouterConfig.baseUrl);
+    const preset = getProviderPreset(
+      isAiProviderType(savedProvider) ? savedProvider : "openrouter",
+    );
+    setAiBaseUrl(
+      localStorage.getItem(aiStorageKeys.baseUrl) || preset.baseUrl || openRouterConfig.baseUrl,
+    );
     setAiApiKey(localStorage.getItem(aiStorageKeys.apiKey) || "");
     setAiModel(localStorage.getItem(aiStorageKeys.model) || preset.defaultModel || "");
+    setAiImageModel(localStorage.getItem(aiStorageKeys.imageModel) || "");
   }, []);
 
   const saveAiSettings = () => {
@@ -47,9 +53,11 @@ export function useAiSettings(showToast: ShowToast) {
     localStorage.setItem(aiStorageKeys.baseUrl, trimmedBaseUrl);
     localStorage.setItem(aiStorageKeys.apiKey, trimmedApiKey);
     localStorage.setItem(aiStorageKeys.model, trimmedModel);
+    localStorage.setItem(aiStorageKeys.imageModel, aiImageModel.trim());
     setAiBaseUrl(trimmedBaseUrl);
     setAiApiKey(trimmedApiKey);
     setAiModel(trimmedModel);
+    setAiImageModel(aiImageModel.trim());
     setShowAiConfigModal(false);
     showToast("AI 配置已保存");
   };
@@ -59,10 +67,12 @@ export function useAiSettings(showToast: ShowToast) {
     localStorage.removeItem(aiStorageKeys.baseUrl);
     localStorage.removeItem(aiStorageKeys.apiKey);
     localStorage.removeItem(aiStorageKeys.model);
+    localStorage.removeItem(aiStorageKeys.imageModel);
     setAiProviderType("openrouter");
     setAiBaseUrl(openRouterConfig.baseUrl);
     setAiApiKey("");
     setAiModel("");
+    setAiImageModel("");
     showToast("AI 配置已清空");
   };
 
@@ -77,6 +87,8 @@ export function useAiSettings(showToast: ShowToast) {
     setAiApiKey,
     aiModel,
     setAiModel,
+    aiImageModel,
+    setAiImageModel,
     saveAiSettings,
     clearAiSettings,
   };

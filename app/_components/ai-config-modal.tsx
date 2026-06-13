@@ -61,6 +61,7 @@ type ProviderDraft = {
   baseUrl: string;
   apiKey: string;
   model: string;
+  imageModel: string;
 };
 
 type ModelTestState = {
@@ -72,6 +73,7 @@ const emptyDraft: ProviderDraft = {
   baseUrl: "",
   apiKey: "",
   model: "",
+  imageModel: "",
 };
 
 const createEmptyProviderDrafts = (): Record<AiProviderType, ProviderDraft> => ({
@@ -99,6 +101,8 @@ type AiConfigModalProps = {
   setAiApiKey: React.Dispatch<React.SetStateAction<string>>;
   aiModel: string;
   setAiModel: React.Dispatch<React.SetStateAction<string>>;
+  aiImageModel: string;
+  setAiImageModel: React.Dispatch<React.SetStateAction<string>>;
   onClose: () => void;
   onSave: () => void;
   onClear: () => void;
@@ -114,6 +118,8 @@ export function AiConfigModal({
   setAiApiKey,
   aiModel,
   setAiModel,
+  aiImageModel,
+  setAiImageModel,
   onClose,
   onSave,
   onClear,
@@ -141,9 +147,10 @@ export function AiConfigModal({
         baseUrl: aiBaseUrl,
         apiKey: aiApiKey,
         model: aiModel,
+        imageModel: aiImageModel,
       },
     }));
-  }, [open, aiProviderType, aiBaseUrl, aiApiKey, aiModel]);
+  }, [open, aiProviderType, aiBaseUrl, aiApiKey, aiModel, aiImageModel]);
 
   useEffect(() => {
     if (!open || !isOpenRouter || cachedModels) return;
@@ -216,6 +223,11 @@ export function AiConfigModal({
     syncCurrentDraft({ model: value });
   };
 
+  const handleImageModelChange = (value: string) => {
+    setAiImageModel(value);
+    syncCurrentDraft({ imageModel: value });
+  };
+
   const handleProviderChange = (provider: AiProviderType) => {
     if (provider === aiProviderType) return;
 
@@ -225,6 +237,7 @@ export function AiConfigModal({
         baseUrl: aiBaseUrl,
         apiKey: aiApiKey,
         model: aiModel,
+        imageModel: aiImageModel,
       },
     };
     const targetDraft = nextDrafts[provider];
@@ -238,6 +251,7 @@ export function AiConfigModal({
     setAiBaseUrl(targetBaseUrl);
     setAiApiKey(targetDraft.apiKey);
     setAiModel(targetModel);
+    setAiImageModel(targetDraft.imageModel);
   };
 
   const handleTestModel = async () => {
@@ -392,6 +406,23 @@ export function AiConfigModal({
               }
               autoComplete="off"
             />
+          </div>
+
+          <div>
+            <label className="block text-sm font-black text-(--neo-ink) mb-1">
+              生图模型（可选）
+            </label>
+            <input
+              type="text"
+              value={aiImageModel}
+              onChange={(e) => handleImageModelChange(e.target.value)}
+              className="neo-input w-full px-3 py-2"
+              placeholder="留空则复用上方模型，例如 gpt-image-1"
+              autoComplete="off"
+            />
+            <p className="mt-1 text-xs neo-text-muted font-bold leading-relaxed">
+              仅在“AI 生成”封面图时使用；当前接口需兼容 /images/generations。
+            </p>
           </div>
 
           <div className="rounded-xl border-[3px] border-(--neo-ink) bg-(--neo-surface) p-3 space-y-2">

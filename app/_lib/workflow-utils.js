@@ -128,7 +128,7 @@ export function createPublishWorkflowSteps({
   hasAppliedRewrite,
   hasFormatDraft,
   hasAppliedFormat,
-  hasImageAssist,
+  hasCoverGenerated,
   hasCheckWarnings,
   hasPublishOptimization,
   hasCopied,
@@ -178,31 +178,19 @@ export function createPublishWorkflowSteps({
     },
     {
       id: "image",
-      label: "AI 生图",
-      status: !hasContent ? "pending" : hasImageAssist ? "done" : "pending",
-      description: !hasContent
-        ? "等待初稿"
-        : hasImageAssist
-          ? "已生成配图建议"
-          : "可生成配图提示词",
+      label: "AI 生成",
+      status: !hasContent ? "pending" : hasCoverGenerated ? "done" : "pending",
+      description: !hasContent ? "等待初稿" : hasCoverGenerated ? "已生成封面图" : "可生成封面图",
     },
     {
       id: "check",
-      label: "物料检查",
-      status: !hasContent
-        ? "pending"
-        : hasCheckWarnings
-          ? "warning"
-          : hasPublishOptimization
-            ? "done"
-            : "pending",
+      label: "发布物料",
+      status: !hasContent ? "pending" : hasPublishOptimization ? "done" : "pending",
       description: !hasContent
         ? "等待正文"
-        : hasCheckWarnings
-          ? "有项目需确认"
-          : hasPublishOptimization
-            ? "发布物料已生成"
-            : "等待生成发布物料",
+        : hasPublishOptimization
+          ? "发布物料已生成"
+          : "等待生成发布物料",
     },
     {
       id: "publish",
