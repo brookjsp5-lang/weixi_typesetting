@@ -1,8 +1,9 @@
 import { useCallback, useState } from "react";
-import { extractJsonObject } from "../_lib/workflow-utils";
+import { createAppliedAiChange, extractJsonObject } from "../_lib/workflow-utils";
 import type {
   AiProviderType,
   AiTaskType,
+  AppliedAiChange,
   CoverGenerationResult,
   FormatDraft,
   PromptTemplate,
@@ -82,6 +83,7 @@ export function useAiWorkflow({
   const [hasAppliedFormat, setHasAppliedFormat] = useState(false);
   const [rewriteDraft, setRewriteDraft] = useState<RewriteDraft>(null);
   const [hasAppliedRewrite, setHasAppliedRewrite] = useState(false);
+  const [appliedAiChange, setAppliedAiChange] = useState<AppliedAiChange>(null);
   const [publishOptimization, setPublishOptimization] = useState<PublishOptimizationResult>(null);
   const [coverGenerationResult, setCoverGenerationResult] = useState<CoverGenerationResult>(null);
 
@@ -164,13 +166,18 @@ export function useAiWorkflow({
   const runFormat = useCallback(async () => {
     const result = await requestAiTask("format");
     if (!result) return;
-    setFormatDraft({
+    const change = createAppliedAiChange({
+      taskType: "format",
       original: inputText,
-      formatted: result,
+      applied: result,
+      label: "AI 一键排版",
     });
-    setHasAppliedFormat(false);
-    showToast("排版稿已生成，请确认后应用");
-  }, [inputText, requestAiTask, showToast]);
+    setInputText(result);
+    setAppliedAiChange(change);
+    setFormatDraft(null);
+    setHasAppliedFormat(true);
+    showToast("AI 排版已应用，可一键还原");
+  }, [inputText, requestAiTask, setInputText, showToast]);
 
   const applyFormatDraft = useCallback(() => {
     if (!formatDraft) return;
@@ -193,15 +200,19 @@ export function useAiWorkflow({
       }
       const result = await requestAiTask("rewrite", promptTemplate.prompt);
       if (!result) return;
-      setRewriteDraft({
+      const change = createAppliedAiChange({
+        taskType: "rewrite",
         original: inputText,
-        rewritten: result,
-        promptName: promptTemplate.name,
+        applied: result,
+        label: promptTemplate.name,
       });
-      setHasAppliedRewrite(false);
-      showToast("改写稿已生成，请确认后应用");
+      setInputText(result);
+      setAppliedAiChange(change);
+      setRewriteDraft(null);
+      setHasAppliedRewrite(true);
+      showToast("改写已应用到初稿，可一键还原");
     },
-    [inputText, requestAiTask, showToast],
+    [inputText, requestAiTask, setInputText, showToast],
   );
 
   const applyRewriteDraft = useCallback(() => {
@@ -211,6 +222,19 @@ export function useAiWorkflow({
     setHasAppliedRewrite(true);
     showToast("已应用改写稿");
   }, [rewriteDraft, setInputText, showToast]);
+
+  const restoreAppliedAiChange = useCallback(() => {
+    if (!appliedAiChange) return;
+    setInputText(appliedAiChange.original);
+    if (appliedAiChange.taskType === "format") {
+      setHasAppliedFormat(false);
+    }
+    if (appliedAiChange.taskType === "rewrite") {
+      setHasAppliedRewrite(false);
+    }
+    setAppliedAiChange(null);
+    showToast("已还原到 AI 处理前的初稿");
+  }, [appliedAiChange, setInputText, showToast]);
 
   const applyPublishOptimizationResult = useCallback(
     (result: string) => {
@@ -332,6 +356,7 @@ export function useAiWorkflow({
     rewriteDraft,
     setRewriteDraft,
     hasAppliedRewrite,
+    appliedAiChange,
     publishOptimization,
     setPublishOptimization,
     coverGenerationResult,
@@ -342,6 +367,7 @@ export function useAiWorkflow({
     discardFormatDraft,
     runRewrite,
     applyRewriteDraft,
+    restoreAppliedAiChange,
     runPublishOptimize,
     runCoverGeneration,
   };

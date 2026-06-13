@@ -286,11 +286,10 @@ export default function Home() {
               runningTask={aiWorkflow.runningTask}
               publishWorkflowSteps={publishWorkflowSteps}
               onAiFormat={aiWorkflow.runFormat}
-              formatDraft={aiWorkflow.formatDraft}
-              onApplyFormatDraft={aiWorkflow.applyFormatDraft}
-              onDiscardFormatDraft={aiWorkflow.discardFormatDraft}
               onRewrite={aiWorkflow.runRewrite}
               hasAppliedRewrite={aiWorkflow.hasAppliedRewrite}
+              appliedAiChange={aiWorkflow.appliedAiChange}
+              onRestoreAiChange={aiWorkflow.restoreAppliedAiChange}
               onPublishOptimize={aiWorkflow.runPublishOptimize}
               onGenerateCover={aiWorkflow.runCoverGeneration}
               coverGenerationResult={aiWorkflow.coverGenerationResult}
@@ -301,9 +300,6 @@ export default function Home() {
               setSelectedPromptId={promptSettings.setSelectedPromptId}
               onSavePrompt={promptSettings.savePromptTemplate}
               onDeletePrompt={promptSettings.deletePromptTemplate}
-              rewriteDraft={aiWorkflow.rewriteDraft}
-              onApplyRewrite={aiWorkflow.applyRewriteDraft}
-              onDiscardRewrite={() => aiWorkflow.setRewriteDraft(null)}
               publishChecks={publishChecks}
               publishOptimization={aiWorkflow.publishOptimization}
               onApplyRecommendation={applyTemplateRecommendation}

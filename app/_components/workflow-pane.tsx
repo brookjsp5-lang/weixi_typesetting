@@ -13,22 +13,21 @@ import {
   Settings,
   Sparkles,
   Tags,
+  Undo2,
   Wand2,
-  X,
 } from "lucide-react";
 import type React from "react";
 import { useState } from "react";
 import type {
   ActiveTab,
+  AppliedAiChange,
   CoverGenerationResult,
-  FormatDraft,
   FormatTweaks,
   PromptTemplate,
   PublishCheckItem,
   PublishOptimizationResult,
   PublishStepId,
   PublishWorkflowStep,
-  RewriteDraft,
   RunningAiTaskType,
   WordCount,
 } from "../_types/formatter";
@@ -50,11 +49,10 @@ type WorkflowPaneProps = {
   runningTask: RunningAiTaskType | null;
   publishWorkflowSteps: PublishWorkflowStep[];
   onAiFormat: () => void;
-  formatDraft: FormatDraft;
-  onApplyFormatDraft: () => void;
-  onDiscardFormatDraft: () => void;
   onRewrite: (promptTemplate?: PromptTemplate) => void;
   hasAppliedRewrite: boolean;
+  appliedAiChange: AppliedAiChange;
+  onRestoreAiChange: () => void;
   onPublishOptimize: () => void;
   onGenerateCover: () => void;
   coverGenerationResult: CoverGenerationResult;
@@ -65,9 +63,6 @@ type WorkflowPaneProps = {
   setSelectedPromptId: React.Dispatch<React.SetStateAction<string>>;
   onSavePrompt: (draft: Pick<PromptTemplate, "id" | "name" | "prompt">) => void;
   onDeletePrompt: (id: string) => void;
-  rewriteDraft: RewriteDraft;
-  onApplyRewrite: () => void;
-  onDiscardRewrite: () => void;
   publishChecks: PublishCheckItem[];
   publishOptimization: PublishOptimizationResult;
   onApplyRecommendation: () => void;
@@ -116,33 +111,12 @@ const statusClassNames = {
 
 const stepDescriptions: Record<PublishStepId, string> = {
   draft: "先把文章内容放进左侧初稿。",
-  rewrite: "按提示词生成改写稿，确认后再替换初稿。",
+  rewrite: "按提示词直接优化初稿，不满意可以还原。",
   format: "整理 Markdown 结构，并选择模板和主题细节。",
   image: "生成公众号封面图，并同步准备标题、摘要和关键词建议。",
   check: "集中查看标题、摘要、关键词和封面图。",
   publish: "复制正文和发布物料到公众号后台。",
 };
-
-function TextBox({
-  label,
-  text,
-  maxHeight = "max-h-40",
-}: {
-  label: string;
-  text: string;
-  maxHeight?: string;
-}) {
-  return (
-    <div>
-      <div className="mb-1 text-[10px] font-black neo-text-muted">{label}</div>
-      <div
-        className={`${maxHeight} overflow-y-auto rounded-lg border border-(--neo-line) bg-white p-2 text-xs leading-relaxed whitespace-pre-wrap`}
-      >
-        {text}
-      </div>
-    </div>
-  );
-}
 
 function StepActions({
   currentStep,
@@ -193,6 +167,37 @@ function CompletionCard({ done, text }: { done: boolean; text: string }) {
         {done ? "本步已完成" : "本步完成条件"}
       </div>
       {text}
+    </section>
+  );
+}
+
+function AppliedAiChangeCard({
+  change,
+  onRestore,
+}: {
+  change: NonNullable<AppliedAiChange>;
+  onRestore: () => void;
+}) {
+  return (
+    <section className="rounded-xl border border-emerald-300 bg-emerald-50 p-3 text-xs font-bold text-emerald-800 space-y-2">
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <div className="font-black text-(--neo-ink)">
+            已直接应用：{change.taskType === "format" ? "AI 排版" : "AI 改写"}
+          </div>
+          <p className="mt-1 leading-relaxed">
+            当前左侧初稿已更新。不满意可以还原到这次 AI 处理前的内容。
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={onRestore}
+          className="neo-button neo-button-ghost shrink-0 px-3 py-1.5 text-xs inline-flex items-center gap-1.5"
+        >
+          <Undo2 className="h-3.5 w-3.5" />
+          还原
+        </button>
+      </div>
     </section>
   );
 }
@@ -487,11 +492,10 @@ export function WorkflowPane({
   runningTask,
   publishWorkflowSteps,
   onAiFormat,
-  formatDraft,
-  onApplyFormatDraft,
-  onDiscardFormatDraft,
   onRewrite,
   hasAppliedRewrite,
+  appliedAiChange,
+  onRestoreAiChange,
   onPublishOptimize,
   onGenerateCover,
   coverGenerationResult,
@@ -502,9 +506,6 @@ export function WorkflowPane({
   setSelectedPromptId,
   onSavePrompt,
   onDeletePrompt,
-  rewriteDraft,
-  onApplyRewrite,
-  onDiscardRewrite,
   publishChecks,
   publishOptimization,
   onApplyRecommendation,
@@ -535,7 +536,7 @@ export function WorkflowPane({
     publishWorkflowSteps.find((step) => step.id === publishStep)?.label || "发布工作流";
   const getStepStatus = (stepId: PublishStepId) =>
     publishWorkflowSteps.find((step) => step.id === stepId)?.status || "pending";
-  const formatReady = Boolean(formatDraft) || getStepStatus("format") === "done";
+  const formatReady = getStepStatus("format") === "done";
   const imageReady = Boolean(coverGenerationResult);
   const materialsReady = Boolean(publishOptimization);
   const hasCopiedBody = getStepStatus("publish") === "done";
@@ -671,8 +672,8 @@ export function WorkflowPane({
           {publishStep === "rewrite" && (
             <div className="space-y-4">
               <CompletionCard
-                done={Boolean(rewriteDraft) || hasAppliedRewrite}
-                text="可选步骤：需要改写时，先生成改写稿，再确认应用到初稿。"
+                done={hasAppliedRewrite}
+                text="可选步骤：需要改写时，选择提示词后直接更新左侧初稿，可随时还原。"
               />
               <section className="rounded-xl border border-(--neo-line) bg-(--neo-surface) p-3 space-y-3">
                 <div className="flex items-center justify-between gap-2">
@@ -719,38 +720,12 @@ export function WorkflowPane({
                   {runningTask === "rewrite" ? "改写中..." : "按提示词改写"}
                 </button>
                 <p className="text-xs neo-text-muted font-bold leading-relaxed">
-                  选择提示词后生成改写稿，确认满意后再替换初稿。
+                  选择提示词后会直接改写左侧初稿；不满意可点击下方还原。
                 </p>
-                {hasAppliedRewrite && (
-                  <div className="rounded-lg border border-emerald-300 bg-emerald-50 p-2 text-xs font-bold text-emerald-700">
-                    已应用过改写稿
-                  </div>
-                )}
               </section>
 
-              {rewriteDraft && (
-                <section className="rounded-xl border border-(--neo-line) bg-(--neo-cyan) p-3 text-(--neo-ink) space-y-3">
-                  <div className="flex items-center justify-between gap-2">
-                    <h3 className="text-xs font-black">改写草稿 · {rewriteDraft.promptName}</h3>
-                    <button
-                      type="button"
-                      onClick={onDiscardRewrite}
-                      className="neo-toolbar-button p-1"
-                      title="取消改写稿"
-                    >
-                      <X className="w-3 h-3" />
-                    </button>
-                  </div>
-                  <TextBox label="原文" text={rewriteDraft.original} maxHeight="max-h-28" />
-                  <TextBox label="改写后" text={rewriteDraft.rewritten} />
-                  <button
-                    type="button"
-                    onClick={onApplyRewrite}
-                    className="neo-button neo-button-primary w-full py-2"
-                  >
-                    应用到初稿
-                  </button>
-                </section>
+              {appliedAiChange?.taskType === "rewrite" && (
+                <AppliedAiChangeCard change={appliedAiChange} onRestore={onRestoreAiChange} />
               )}
 
               <section className="rounded-xl border border-(--neo-line) bg-(--neo-surface) overflow-hidden">
@@ -835,7 +810,7 @@ export function WorkflowPane({
             <div className="space-y-4">
               <CompletionCard
                 done={formatReady}
-                text="已生成排版稿并应用，或已有排版稿等待确认。"
+                text="点击 AI 一键排版后会直接整理左侧初稿，不满意可还原。"
               />
               <section className="rounded-xl border border-(--neo-line) bg-(--neo-surface) p-3 space-y-3">
                 <div className="space-y-1">
@@ -853,43 +828,13 @@ export function WorkflowPane({
                     AI 一键排版
                   </button>
                   <p className="px-1 text-[11px] font-bold leading-relaxed neo-text-muted">
-                    整理 Markdown 结构，不改写正文。
+                    整理 Markdown 结构，不改写正文；结果会直接更新初稿。
                   </p>
                 </div>
               </section>
 
-              {formatDraft && (
-                <section className="rounded-xl border border-(--neo-line) bg-(--neo-cyan) p-3 text-(--neo-ink) space-y-3">
-                  <div className="flex items-center justify-between gap-2">
-                    <h3 className="text-xs font-black">排版稿确认</h3>
-                    <button
-                      type="button"
-                      onClick={onDiscardFormatDraft}
-                      className="neo-toolbar-button p-1"
-                      title="取消排版稿"
-                    >
-                      <X className="w-3 h-3" />
-                    </button>
-                  </div>
-                  <TextBox label="原文" text={formatDraft.original} maxHeight="max-h-28" />
-                  <TextBox label="排版后" text={formatDraft.formatted} />
-                  <div className="flex gap-2">
-                    <button
-                      type="button"
-                      onClick={onApplyFormatDraft}
-                      className="neo-button neo-button-primary flex-1 py-2 text-xs"
-                    >
-                      应用排版
-                    </button>
-                    <button
-                      type="button"
-                      onClick={onDiscardFormatDraft}
-                      className="neo-button neo-button-ghost px-3 py-2 text-xs"
-                    >
-                      取消
-                    </button>
-                  </div>
-                </section>
+              {appliedAiChange?.taskType === "format" && (
+                <AppliedAiChangeCard change={appliedAiChange} onRestore={onRestoreAiChange} />
               )}
 
               <section className="rounded-xl border border-(--neo-line) bg-(--neo-surface) overflow-hidden">

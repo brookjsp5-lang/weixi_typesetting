@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import {
+  createAppliedAiChange,
   createDefaultPromptTemplates,
   createPublishWorkflowSteps,
   extractJsonObject,
@@ -38,6 +39,21 @@ test("extractJsonObject accepts model responses wrapped in prose or fences", () 
     titles: ["A"],
     keywords: ["B"],
   });
+});
+
+test("createAppliedAiChange records enough information to restore the draft", () => {
+  const change = createAppliedAiChange({
+    taskType: "rewrite",
+    original: "原来的初稿",
+    applied: "AI 改写后的初稿",
+    label: "公众号温和润色",
+  });
+
+  assert.equal(change.taskType, "rewrite");
+  assert.equal(change.original, "原来的初稿");
+  assert.equal(change.applied, "AI 改写后的初稿");
+  assert.equal(change.label, "公众号温和润色");
+  assert.ok(change.appliedAt);
 });
 
 test("publish checks flag long paragraphs, missing images, links, and headings", () => {

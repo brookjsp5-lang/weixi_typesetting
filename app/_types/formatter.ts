@@ -75,6 +75,14 @@ export type FormatDraft = {
   formatted: string;
 } | null;
 
+export type AppliedAiChange = {
+  taskType: "format" | "rewrite";
+  original: string;
+  applied: string;
+  label: string;
+  appliedAt: string;
+} | null;
+
 export type PublishCheckStatus = "success" | "warning" | "neutral";
 
 export type PublishCheckItem = {

@@ -122,6 +122,16 @@ export function extractJsonObject(text) {
   return JSON.parse(withoutFence.slice(start, end + 1));
 }
 
+export function createAppliedAiChange({ taskType, original, applied, label }) {
+  return {
+    taskType,
+    original,
+    applied,
+    label,
+    appliedAt: new Date().toISOString(),
+  };
+}
+
 export function createPublishWorkflowSteps({
   hasContent,
   hasRewriteDraft,
