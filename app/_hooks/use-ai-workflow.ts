@@ -22,6 +22,12 @@ type UseAiWorkflowParams = {
   showToast: ShowToast;
 };
 
+type RequestAiTaskOptions = {
+  emptyMessage?: string;
+  emptyFallback?: string;
+  maxAttempts?: number;
+};
+
 const readStreamText = async (body: ReadableStream<Uint8Array>) => {
   const reader = body.getReader();
   const decoder = new TextDecoder();
@@ -63,7 +69,7 @@ export function useAiWorkflow({
   const [publishPreparationMessage, setPublishPreparationMessage] = useState("");
 
   const requestAiTask = useCallback(
-    async (taskType: AiTaskType, rewritePrompt = "") => {
+    async (taskType: AiTaskType, rewritePrompt = "", options: RequestAiTaskOptions = {}) => {
       if (!inputText.trim() || runningTask) return null;
 
       const trimmedBaseUrl = aiBaseUrl.trim();
@@ -75,39 +81,50 @@ export function useAiWorkflow({
         return null;
       }
 
+      const maxAttempts = Math.max(1, options.maxAttempts || 2);
       setRunningTask(taskType);
       try {
-        const res = await fetch("/api/ai-task", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            markdown: inputText,
-            providerType: aiProviderType,
-            baseUrl: trimmedBaseUrl,
-            apiKey: trimmedApiKey,
-            model: trimmedModel,
-            taskType,
-            rewritePrompt,
-          }),
-        });
+        for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+          const res = await fetch("/api/ai-task", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              markdown: inputText,
+              providerType: aiProviderType,
+              baseUrl: trimmedBaseUrl,
+              apiKey: trimmedApiKey,
+              model: trimmedModel,
+              taskType,
+              rewritePrompt,
+            }),
+          });
 
-        if (!res.ok) {
-          const data = (await res.json().catch(() => null)) as { error?: string } | null;
-          showToast(data?.error || "AI 任务失败，请重试", "error");
+          if (!res.ok) {
+            const data = (await res.json().catch(() => null)) as { error?: string } | null;
+            showToast(data?.error || "AI 任务失败，请重试", "error");
+            return null;
+          }
+
+          if (!res.body) {
+            showToast("AI 服务未返回内容，请重试", "error");
+            return null;
+          }
+
+          const result = await readStreamText(res.body);
+          if (result) return result;
+
+          if (attempt < maxAttempts) continue;
+
+          if (typeof options.emptyFallback === "string") {
+            showToast(options.emptyMessage || "AI 返回内容为空，已使用当前内容继续处理");
+            return options.emptyFallback;
+          }
+
+          showToast(options.emptyMessage || "AI 返回内容为空，请重试", "error");
           return null;
         }
 
-        if (!res.body) {
-          showToast("AI 服务未返回内容，请重试", "error");
-          return null;
-        }
-
-        const result = await readStreamText(res.body);
-        if (!result) {
-          showToast("AI 返回内容为空，请重试", "error");
-          return null;
-        }
-        return result;
+        return null;
       } catch {
         showToast("网络错误，请稍后重试", "error");
         return null;
@@ -256,7 +273,10 @@ export function useAiWorkflow({
 
       if (!formatDraft && !hasAppliedFormat) {
         setPublishPreparationMessage("正在生成排版稿...");
-        const formatResult = await requestAiTask("format");
+        const formatResult = await requestAiTask("format", "", {
+          emptyFallback: inputText,
+          emptyMessage: "AI 排版返回为空，已保留原文作为待确认排版稿。",
+        });
         if (!formatResult) {
           setPublishPreparationMessage("发布准备未完成，请检查 AI 配置后重试。");
           return;
