@@ -190,39 +190,80 @@ function CompletionCard({ done, text }: { done: boolean; text: string }) {
     >
       <div className="mb-1 flex items-center gap-1.5 text-[11px] font-black text-(--neo-ink)">
         <CheckCircle2 className="h-3.5 w-3.5" />
-        本步完成条件
+        {done ? "本步已完成" : "本步完成条件"}
       </div>
       {text}
     </section>
   );
 }
 
-function PublishMaterials({
-  publishOptimization,
+function CoverResultCard({
   coverGenerationResult,
-  onApplyRecommendation,
+  runningTask,
   onCopyText,
   copiedMaterialIds,
-  compact = false,
 }: {
-  publishOptimization: PublishOptimizationResult;
   coverGenerationResult: CoverGenerationResult;
-  onApplyRecommendation: () => void;
+  runningTask: RunningAiTaskType | null;
   onCopyText: (text: string, id: string) => void;
   copiedMaterialIds: string[];
-  compact?: boolean;
 }) {
-  const coverSection = coverGenerationResult ? (
+  const [hasImageError, setHasImageError] = useState(false);
+  const imageUrl = coverGenerationResult?.imageUrl?.trim() || "";
+
+  if (runningTask === "cover" || runningTask === "publishOptimize") {
+    return (
+      <section className="rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-sm font-bold text-emerald-800">
+        <div className="mb-2 flex items-center gap-2 text-(--neo-ink)">
+          <Loader2 className="h-4 w-4 animate-spin" />
+          封面图结果
+        </div>
+        正在生成，完成后会在这里直接显示封面图。
+      </section>
+    );
+  }
+
+  if (!coverGenerationResult) {
+    return (
+      <section className="rounded-xl border border-(--neo-line) bg-(--neo-surface) p-4 text-sm font-bold neo-text-muted">
+        <div className="mb-2 flex items-center gap-2 text-(--neo-ink)">
+          <ImageIcon className="h-4 w-4" />
+          封面图结果
+        </div>
+        尚未生成封面图。点击上方“生成封面图”后，图片会显示在这里。
+      </section>
+    );
+  }
+
+  if (!imageUrl || hasImageError) {
+    return (
+      <section className="rounded-xl border border-amber-300 bg-amber-50 p-4 text-sm font-bold text-amber-800">
+        <div className="mb-2 flex items-center gap-2 text-(--neo-ink)">
+          <ImageIcon className="h-4 w-4" />
+          封面图结果
+        </div>
+        {hasImageError
+          ? "图片地址已返回，但浏览器加载失败。请重新生成，或检查生图接口返回的图片链接是否可访问。"
+          : "接口返回了生成结果，但没有可显示的图片地址。请更换支持图片生成的模型后重试。"}
+      </section>
+    );
+  }
+
+  return (
     <section className="rounded-xl border border-(--neo-line) bg-(--neo-surface) p-3 space-y-2">
-      <h3 className="text-xs font-black">封面图</h3>
+      <h3 className="text-xs font-black flex items-center gap-1.5">
+        <ImageIcon className="h-3.5 w-3.5" />
+        封面图结果
+      </h3>
       <img
-        src={coverGenerationResult.imageUrl}
+        src={imageUrl}
         alt="公众号封面图"
+        onError={() => setHasImageError(true)}
         className="aspect-video w-full rounded-lg border border-(--neo-line) object-cover bg-white"
       />
       <div className="flex gap-2">
         <a
-          href={coverGenerationResult.imageUrl}
+          href={imageUrl}
           download="wx-cover.png"
           className="neo-button neo-button-secondary flex-1 py-1.5 text-center text-xs inline-flex items-center justify-center gap-1.5"
         >
@@ -238,7 +279,54 @@ function PublishMaterials({
         </button>
       </div>
     </section>
-  ) : null;
+  );
+}
+
+function PublishMaterials({
+  publishOptimization,
+  coverGenerationResult,
+  onApplyRecommendation,
+  onCopyText,
+  copiedMaterialIds,
+  showCover = true,
+  compact = false,
+}: {
+  publishOptimization: PublishOptimizationResult;
+  coverGenerationResult: CoverGenerationResult;
+  onApplyRecommendation: () => void;
+  onCopyText: (text: string, id: string) => void;
+  copiedMaterialIds: string[];
+  showCover?: boolean;
+  compact?: boolean;
+}) {
+  const coverSection =
+    showCover && coverGenerationResult?.imageUrl?.trim() ? (
+      <section className="rounded-xl border border-(--neo-line) bg-(--neo-surface) p-3 space-y-2">
+        <h3 className="text-xs font-black">封面图</h3>
+        <img
+          src={coverGenerationResult.imageUrl}
+          alt="公众号封面图"
+          className="aspect-video w-full rounded-lg border border-(--neo-line) object-cover bg-white"
+        />
+        <div className="flex gap-2">
+          <a
+            href={coverGenerationResult.imageUrl}
+            download="wx-cover.png"
+            className="neo-button neo-button-secondary flex-1 py-1.5 text-center text-xs inline-flex items-center justify-center gap-1.5"
+          >
+            <Download className="h-3.5 w-3.5" />
+            下载封面
+          </a>
+          <button
+            type="button"
+            onClick={() => onCopyText(coverGenerationResult.prompt, "cover-prompt")}
+            className="neo-button neo-button-ghost flex-1 py-1.5 text-xs"
+          >
+            {copiedMaterialIds.includes("cover-prompt") ? "提示词已复制" : "复制提示词"}
+          </button>
+        </div>
+      </section>
+    ) : null;
 
   if (!publishOptimization) {
     return (
@@ -844,7 +932,14 @@ export function WorkflowPane({
 
           {publishStep === "image" && (
             <div className="space-y-4">
-              <CompletionCard done={imageReady} text="已生成公众号封面图。" />
+              <CompletionCard
+                done={imageReady}
+                text={
+                  imageReady
+                    ? "公众号封面图已生成，结果显示在下方。"
+                    : "点击生成封面图，并在下方看到封面预览。"
+                }
+              />
               <section className="rounded-xl border border-(--neo-line) bg-(--neo-surface) p-3 space-y-3">
                 <button
                   type="button"
@@ -868,6 +963,13 @@ export function WorkflowPane({
                 </p>
               </section>
 
+              <CoverResultCard
+                coverGenerationResult={coverGenerationResult}
+                runningTask={runningTask}
+                onCopyText={copyPlainText}
+                copiedMaterialIds={copiedMaterialIds}
+              />
+
               {coverGenerationResult || publishOptimization ? (
                 <PublishMaterials
                   publishOptimization={publishOptimization}
@@ -875,11 +977,12 @@ export function WorkflowPane({
                   onApplyRecommendation={onApplyRecommendation}
                   onCopyText={copyPlainText}
                   copiedMaterialIds={copiedMaterialIds}
+                  showCover={false}
                   compact
                 />
               ) : (
                 <div className="rounded-xl border border-(--neo-line) bg-(--neo-surface) p-4 text-sm font-bold neo-text-muted">
-                  生成后会在这里显示封面图，并同步准备标题、摘要和关键词建议。
+                  生成封面时会同步准备标题、摘要和关键词建议，成功后会继续显示在这里。
                 </div>
               )}
 

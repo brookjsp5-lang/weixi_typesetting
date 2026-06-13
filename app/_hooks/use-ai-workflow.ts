@@ -336,7 +336,7 @@ export function useAiWorkflow({
     setPublishOptimization,
     coverGenerationResult,
     setCoverGenerationResult,
-    hasGeneratedCover: Boolean(coverGenerationResult),
+    hasGeneratedCover: Boolean(coverGenerationResult?.imageUrl?.trim()),
     runFormat,
     applyFormatDraft,
     discardFormatDraft,
