@@ -70,6 +70,11 @@ const createFallbackCoverResult = ({
   });
 
 export async function POST(req: Request) {
+  let fallbackPrompt = "";
+  let fallbackTitle = "";
+  let fallbackSummary = "";
+  let fallbackKeywords: string[] = [];
+
   try {
     const body = await req.json();
     const {
@@ -131,6 +136,12 @@ export async function POST(req: Request) {
       summary: summary.trim(),
       keywords: Array.isArray(keywords) ? keywords.filter((item) => typeof item === "string") : [],
     });
+    fallbackPrompt = prompt;
+    fallbackTitle = title.trim();
+    fallbackSummary = summary.trim();
+    fallbackKeywords = Array.isArray(keywords)
+      ? keywords.filter((item) => typeof item === "string")
+      : [];
     const endpoint = `${normalizeBaseUrl(trimmedBaseUrl)}/images/generations`;
     const requestBody = {
       model: trimmedModel,
@@ -214,6 +225,15 @@ export async function POST(req: Request) {
     });
   } catch (err: unknown) {
     console.error("AI cover error:", err instanceof Error ? err.message : err);
+    if (fallbackPrompt) {
+      return createFallbackCoverResult({
+        prompt: fallbackPrompt,
+        title: fallbackTitle,
+        summary: fallbackSummary,
+        keywords: fallbackKeywords,
+        warning: "真实图片生成接口请求失败，已先生成备用封面草图。",
+      });
+    }
     return createImageError("封面图生成失败，请检查模型接口后重试。", 500);
   }
 }
