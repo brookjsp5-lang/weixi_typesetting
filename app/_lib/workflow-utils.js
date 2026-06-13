@@ -132,6 +132,62 @@ export function createAppliedAiChange({ taskType, original, applied, label }) {
   };
 }
 
+const escapeSvgText = (value) =>
+  String(value || "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+
+const splitCoverTitle = (value) => {
+  const title = String(value || "公众号封面")
+    .replace(/\s+/g, " ")
+    .trim();
+  if (title.length <= 14) return [title];
+  return [title.slice(0, 14), title.slice(14, 28)];
+};
+
+export function createFallbackCoverImage({ title, summary = "", keywords = [] }) {
+  const titleLines = splitCoverTitle(title || "公众号封面");
+  const subtitle = String(summary || "AI 生成封面草图")
+    .replace(/\s+/g, " ")
+    .slice(0, 42);
+  const tags = keywords.filter(Boolean).slice(0, 3);
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="900" height="383" viewBox="0 0 900 383">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#f7fbff"/>
+      <stop offset="48%" stop-color="#e8fff3"/>
+      <stop offset="100%" stop-color="#fff2f7"/>
+    </linearGradient>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="10" dy="10" stdDeviation="0" flood-color="#111827" flood-opacity="0.18"/>
+    </filter>
+  </defs>
+  <rect width="900" height="383" fill="url(#bg)"/>
+  <rect x="44" y="42" width="812" height="299" rx="24" fill="#ffffff" stroke="#111827" stroke-width="4" filter="url(#shadow)"/>
+  <rect x="78" y="74" width="90" height="32" rx="16" fill="#10b981"/>
+  <text x="123" y="96" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" font-weight="700" fill="#ffffff">WX 封面</text>
+  <circle cx="782" cy="91" r="26" fill="#ff6f9f" stroke="#111827" stroke-width="4"/>
+  <circle cx="812" cy="91" r="12" fill="#facc15" stroke="#111827" stroke-width="3"/>
+  <text x="84" y="174" font-family="Arial, sans-serif" font-size="54" font-weight="900" fill="#111827">${escapeSvgText(titleLines[0])}</text>
+  ${
+    titleLines[1]
+      ? `<text x="84" y="238" font-family="Arial, sans-serif" font-size="54" font-weight="900" fill="#111827">${escapeSvgText(titleLines[1])}</text>`
+      : ""
+  }
+  <text x="86" y="286" font-family="Arial, sans-serif" font-size="22" font-weight="700" fill="#4b5563">${escapeSvgText(subtitle)}</text>
+  ${tags
+    .map(
+      (tag, index) =>
+        `<text x="${86 + index * 128}" y="325" font-family="Arial, sans-serif" font-size="18" font-weight="800" fill="#047857"># ${escapeSvgText(tag)}</text>`,
+    )
+    .join("")}
+</svg>`;
+
+  return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
+}
+
 export function createPublishWorkflowSteps({
   hasContent,
   hasRewriteDraft,

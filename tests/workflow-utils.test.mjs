@@ -4,6 +4,7 @@ import test from "node:test";
 import {
   createAppliedAiChange,
   createDefaultPromptTemplates,
+  createFallbackCoverImage,
   createPublishWorkflowSteps,
   extractJsonObject,
   getProviderPreset,
@@ -54,6 +55,20 @@ test("createAppliedAiChange records enough information to restore the draft", ()
   assert.equal(change.applied, "AI 改写后的初稿");
   assert.equal(change.label, "公众号温和润色");
   assert.ok(change.appliedAt);
+});
+
+test("createFallbackCoverImage returns a usable svg data url with title and keywords", () => {
+  const imageUrl = createFallbackCoverImage({
+    title: "用 WX 整理公众号文章",
+    summary: "把初稿、排版、封面和发布物料整理到可发布状态。",
+    keywords: ["公众号", "排版"],
+  });
+
+  assert.ok(imageUrl.startsWith("data:image/svg+xml;charset=utf-8,"));
+  const decoded = decodeURIComponent(imageUrl.split(",")[1]);
+  assert.match(decoded, /用 WX 整理公众号文章/);
+  assert.match(decoded, /公众号/);
+  assert.match(decoded, /排版/);
 });
 
 test("publish checks flag long paragraphs, missing images, links, and headings", () => {

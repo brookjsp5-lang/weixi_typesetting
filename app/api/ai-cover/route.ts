@@ -1,4 +1,5 @@
 import { openRouterConfig } from "../../_lib/formatter-constants";
+import { createFallbackCoverImage } from "../../_lib/workflow-utils";
 import type { AiProviderType } from "../../_types/formatter";
 
 const MAX_INPUT_LENGTH = 15000;
@@ -43,6 +44,30 @@ const createImageError = (message: string, status = 400) =>
     },
     { status },
   );
+
+const createFallbackCoverResult = ({
+  prompt,
+  title,
+  summary,
+  keywords,
+  warning,
+}: {
+  prompt: string;
+  title: string;
+  summary: string;
+  keywords: string[];
+  warning: string;
+}) =>
+  Response.json({
+    result: {
+      imageUrl: createFallbackCoverImage({ title, summary, keywords }),
+      prompt,
+      titleHint: title,
+      createdAt: new Date().toISOString(),
+      source: "fallback",
+      warning,
+    },
+  });
 
 export async function POST(req: Request) {
   try {
@@ -147,19 +172,35 @@ export async function POST(req: Request) {
 
     if (!imageResponse.ok) {
       const rawMessage = typeof data?.error === "string" ? data.error : data?.error?.message || "";
-      return createImageError(
-        /not found|unsupported|model|image|404|400/i.test(rawMessage)
-          ? "当前模型不支持图片生成，请更换支持图片生成的模型或接口。"
-          : rawMessage || "封面图生成失败，请检查接口、模型和额度。",
-        imageResponse.status,
-      );
+      const warning = /not found|unsupported|model|image|404|400/i.test(rawMessage)
+        ? "当前模型或接口不支持真实图片生成，已先生成备用封面草图。"
+        : rawMessage
+          ? `真实图片生成失败：${rawMessage}。已先生成备用封面草图。`
+          : "真实图片生成失败，请检查接口、模型和额度。已先生成备用封面草图。";
+      return createFallbackCoverResult({
+        prompt,
+        title: title.trim(),
+        summary: summary.trim(),
+        keywords: Array.isArray(keywords)
+          ? keywords.filter((item) => typeof item === "string")
+          : [],
+        warning,
+      });
     }
 
     const image = data?.data?.[0];
     const imageUrl = image?.b64_json ? `data:image/png;base64,${image.b64_json}` : image?.url || "";
 
     if (!imageUrl) {
-      return createImageError("图片接口未返回可用图片，请更换模型或稍后重试。", 502);
+      return createFallbackCoverResult({
+        prompt,
+        title: title.trim(),
+        summary: summary.trim(),
+        keywords: Array.isArray(keywords)
+          ? keywords.filter((item) => typeof item === "string")
+          : [],
+        warning: "图片接口未返回可用图片，已先生成备用封面草图。",
+      });
     }
 
     return Response.json({
@@ -168,6 +209,7 @@ export async function POST(req: Request) {
         prompt,
         titleHint: title.trim(),
         createdAt: new Date().toISOString(),
+        source: "ai",
       },
     });
   } catch (err: unknown) {

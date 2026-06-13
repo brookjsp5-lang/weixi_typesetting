@@ -22,6 +22,12 @@ export function createAppliedAiChange(params: {
   label: string;
 }): NonNullable<AppliedAiChange>;
 
+export function createFallbackCoverImage(params: {
+  title: string;
+  summary?: string;
+  keywords?: string[];
+}): string;
+
 export function createPublishWorkflowSteps(params: {
   hasContent: boolean;
   hasRewriteDraft: boolean;

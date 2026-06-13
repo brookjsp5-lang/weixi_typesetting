@@ -259,7 +259,17 @@ function CoverResultCard({
       <h3 className="text-xs font-black flex items-center gap-1.5">
         <ImageIcon className="h-3.5 w-3.5" />
         封面图结果
+        {coverGenerationResult.source === "fallback" && (
+          <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[10px] text-amber-800">
+            备用草图
+          </span>
+        )}
       </h3>
+      {coverGenerationResult.warning && (
+        <div className="rounded-lg border border-amber-300 bg-amber-50 p-2 text-xs font-bold leading-relaxed text-amber-800">
+          {coverGenerationResult.warning}
+        </div>
+      )}
       <img
         src={imageUrl}
         alt="公众号封面图"
@@ -307,7 +317,19 @@ function PublishMaterials({
   const coverSection =
     showCover && coverGenerationResult?.imageUrl?.trim() ? (
       <section className="rounded-xl border border-(--neo-line) bg-(--neo-surface) p-3 space-y-2">
-        <h3 className="text-xs font-black">封面图</h3>
+        <h3 className="text-xs font-black flex items-center gap-1.5">
+          封面图
+          {coverGenerationResult.source === "fallback" && (
+            <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[10px] text-amber-800">
+              备用草图
+            </span>
+          )}
+        </h3>
+        {coverGenerationResult.warning && (
+          <div className="rounded-lg border border-amber-300 bg-amber-50 p-2 text-xs font-bold leading-relaxed text-amber-800">
+            {coverGenerationResult.warning}
+          </div>
+        )}
         <img
           src={coverGenerationResult.imageUrl}
           alt="公众号封面图"

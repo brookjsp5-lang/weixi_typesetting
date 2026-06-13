@@ -104,6 +104,8 @@ export type CoverGenerationResult = {
   prompt: string;
   titleHint: string;
   createdAt: string;
+  source?: "ai" | "fallback";
+  warning?: string;
 } | null;
 
 export type PublishOptimizationResult = {

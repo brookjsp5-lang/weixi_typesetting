@@ -299,7 +299,9 @@ export function useAiWorkflow({
         }
 
         setCoverGenerationResult(data.result);
-        showToast("封面图已生成");
+        showToast(
+          data.result.source === "fallback" ? "真实生图失败，已生成备用封面草图" : "封面图已生成",
+        );
         return data.result;
       } catch {
         showToast("封面图生成失败，请检查模型接口后重试", "error");
