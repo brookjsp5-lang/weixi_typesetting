@@ -1,6 +1,6 @@
 import type React from "react";
 import { useCallback } from "react";
-import { htmlToMarkdownDraft } from "../_lib/draft-utils";
+import { htmlToMarkdownDraft, localizeRemoteMarkdownImages } from "../_lib/draft-utils";
 import type { ShowToast } from "./use-toast";
 
 type UseMarkdownToolsParams = {
@@ -32,6 +32,21 @@ export function useMarkdownTools({
   setShowImageModal,
   showToast,
 }: UseMarkdownToolsParams) {
+  const importRemoteImage = useCallback(async (url: string) => {
+    const response = await fetch("/api/import-image", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ url }),
+    });
+
+    if (!response.ok) return "";
+
+    const result = (await response.json()) as { dataUrl?: string };
+    return result.dataUrl || "";
+  }, []);
+
   const insertMarkdown = useCallback(
     (prefix: string, suffix: string = prefix, placeholder: string = "") => {
       const textarea = inputRef.current;
@@ -254,12 +269,22 @@ export function useMarkdownTools({
           });
 
           if (result.markdown) {
+            const localized = await localizeRemoteMarkdownImages(
+              result.markdown,
+              importRemoteImage,
+              (dataUrl) => {
+                const imageId = `img-${++imageCounterRef.current}`;
+                localImages.set(imageId, dataUrl);
+                return `#${imageId}`;
+              },
+            );
+            const markdownToInsert = localized.markdown;
             e.preventDefault();
             const prefix = inputText.substring(0, start);
             const suffix = inputText.substring(end);
             const spacerBefore = prefix && !prefix.endsWith("\n") ? "\n\n" : "";
             const spacerAfter = suffix && !suffix.startsWith("\n") ? "\n\n" : "";
-            const nextCursor = start + spacerBefore.length + result.markdown.length;
+            const nextCursor = start + spacerBefore.length + markdownToInsert.length;
             if (localImages.size > 0) {
               setImageMap((prev) => {
                 const next = new Map(prev);
@@ -270,18 +295,19 @@ export function useMarkdownTools({
               });
             }
             setInputText((prev) => {
-              return `${prefix}${spacerBefore}${result.markdown}${spacerAfter}${suffix}`;
+              return `${prefix}${spacerBefore}${markdownToInsert}${spacerAfter}${suffix}`;
             });
             setTimeout(() => {
               textarea.focus();
               textarea.scrollTop = scrollTop;
               textarea.setSelectionRange(nextCursor, nextCursor);
             }, 0);
-            if (result.skippedImages > 0) {
-              showToast(
-                `已导入文字，${result.skippedImages} 张图片因权限或地址不可用未导入`,
-                "error",
-              );
+            if (localized.localizedCount > 0) {
+              showToast(`已导入 ${localized.localizedCount} 张图片，可在预览中正常显示`, "success");
+            }
+            const failedImages = result.skippedImages + localized.failedCount;
+            if (failedImages > 0) {
+              showToast(`已导入文字，${failedImages} 张图片因权限或地址不可用未导入`, "error");
             }
             return;
           }
@@ -335,7 +361,7 @@ export function useMarkdownTools({
         }
       }
     },
-    [imageCounterRef, inputRef, inputText, setImageMap, setInputText, showToast],
+    [imageCounterRef, importRemoteImage, inputRef, inputText, setImageMap, setInputText, showToast],
   );
 
   return {

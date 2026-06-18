@@ -8,6 +8,12 @@ export type SerializedImageItem = {
   dataUrl: string;
 };
 
+export type LocalizedMarkdownImagesResult = {
+  markdown: string;
+  localizedCount: number;
+  failedCount: number;
+};
+
 export function extractImageSource(element: {
   getAttribute: (name: string) => string | null | undefined;
 }): string;
@@ -16,6 +22,12 @@ export function htmlToMarkdownDraft(
   html: string,
   createImageRef: (dataUrl: string) => string,
 ): MarkdownDraftResult;
+
+export function localizeRemoteMarkdownImages(
+  markdown: string,
+  importRemoteImage: (url: string) => Promise<string>,
+  createImageRef: (dataUrl: string) => string,
+): Promise<LocalizedMarkdownImagesResult>;
 
 export function serializeImageMap(imageMap: Map<string, string>): SerializedImageItem[];
 

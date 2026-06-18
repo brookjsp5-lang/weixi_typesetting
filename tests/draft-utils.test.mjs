@@ -5,6 +5,7 @@ import {
   deserializeImageMap,
   extractImageSource,
   htmlToMarkdownDraft,
+  localizeRemoteMarkdownImages,
   serializeImageMap,
 } from "../app/_lib/draft-utils.js";
 import { createPublishWorkflowSteps } from "../app/_lib/workflow-utils.js";
@@ -84,4 +85,36 @@ test("workflow image step is labeled AI 生图", () => {
   });
 
   assert.equal(steps.find((step) => step.id === "image")?.label, "AI 生图");
+});
+
+test("localizeRemoteMarkdownImages converts remote images to local refs", async () => {
+  const imported = [];
+  const localized = await localizeRemoteMarkdownImages(
+    "![图片](https://cdn.nlark.com/yuque/image.png)\n\n正文",
+    async (url) => {
+      imported.push(url);
+      return "data:image/png;base64,abc123";
+    },
+    (dataUrl) => {
+      assert.equal(dataUrl, "data:image/png;base64,abc123");
+      return "#img-7";
+    },
+  );
+
+  assert.deepEqual(imported, ["https://cdn.nlark.com/yuque/image.png"]);
+  assert.equal(localized.markdown, "![图片](#img-7)\n\n正文");
+  assert.equal(localized.localizedCount, 1);
+  assert.equal(localized.failedCount, 0);
+});
+
+test("localizeRemoteMarkdownImages keeps original image when import fails", async () => {
+  const localized = await localizeRemoteMarkdownImages(
+    "![图片](https://cdn.nlark.com/yuque/image.png)",
+    async () => "",
+    () => "#img-unused",
+  );
+
+  assert.equal(localized.markdown, "![图片](https://cdn.nlark.com/yuque/image.png)");
+  assert.equal(localized.localizedCount, 0);
+  assert.equal(localized.failedCount, 1);
 });

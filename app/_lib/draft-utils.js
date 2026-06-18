@@ -261,6 +261,44 @@ export function htmlToMarkdownDraft(html, createImageRef) {
   return htmlToMarkdownFallback(html, createImageRef);
 }
 
+export async function localizeRemoteMarkdownImages(markdown, importRemoteImage, createImageRef) {
+  const imagePattern = /!\[([^\]]*)\]\((https?:\/\/[^)\s]+)\)/g;
+  let nextMarkdown = "";
+  let lastIndex = 0;
+  let localizedCount = 0;
+  let failedCount = 0;
+
+  for (const match of markdown.matchAll(imagePattern)) {
+    const [fullMatch, alt, url] = match;
+    const index = match.index ?? 0;
+    nextMarkdown += markdown.slice(lastIndex, index);
+
+    try {
+      const dataUrl = await importRemoteImage(url);
+      if (typeof dataUrl === "string" && /^data:image\//i.test(dataUrl)) {
+        nextMarkdown += `![${alt}](${createImageRef(dataUrl)})`;
+        localizedCount += 1;
+      } else {
+        nextMarkdown += fullMatch;
+        failedCount += 1;
+      }
+    } catch {
+      nextMarkdown += fullMatch;
+      failedCount += 1;
+    }
+
+    lastIndex = index + fullMatch.length;
+  }
+
+  nextMarkdown += markdown.slice(lastIndex);
+
+  return {
+    markdown: nextMarkdown,
+    localizedCount,
+    failedCount,
+  };
+}
+
 export function serializeImageMap(imageMap) {
   return Array.from(imageMap || []).map(([id, dataUrl]) => ({ id, dataUrl }));
 }
