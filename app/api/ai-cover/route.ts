@@ -1,3 +1,7 @@
+import {
+  createImageGenerationErrorMessage,
+  requestImageGeneration,
+} from "../../_lib/cover-image-api";
 import { openRouterConfig } from "../../_lib/formatter-constants";
 import { createCoverPrompt } from "../../_lib/workflow-utils";
 import type { AiProviderType } from "../../_types/formatter";
@@ -14,8 +18,6 @@ const isKnownProvider = (providerType: unknown): providerType is AiProviderType 
   providerType === "openai" ||
   providerType === "anthropic" ||
   providerType === "custom";
-
-const normalizeBaseUrl = (baseUrl: string) => baseUrl.replace(/\/+$/, "");
 
 const createImageError = (message: string, status = 400) =>
   Response.json(
@@ -91,57 +93,26 @@ export async function POST(req: Request) {
       return createImageError("Anthropic 当前配置不支持真实图片生成，请更换生图接口。");
     }
 
-    const endpoint = `${normalizeBaseUrl(trimmedBaseUrl)}/images/generations`;
-    const requestBody = {
+    const result = await requestImageGeneration({
+      baseUrl: trimmedBaseUrl,
+      apiKey: trimmedApiKey,
       model: trimmedModel,
       prompt,
-      n: 1,
-      size: "1024x1024",
-      response_format: "b64_json",
-    };
-
-    let imageResponse = await fetch(endpoint, {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${trimmedApiKey}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(requestBody),
+      providerType: selectedProvider,
     });
 
-    if (!imageResponse.ok && imageResponse.status === 400) {
-      imageResponse = await fetch(endpoint, {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${trimmedApiKey}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          model: trimmedModel,
-          prompt,
-          n: 1,
-          size: "1024x1024",
-        }),
-      });
+    if (!result.response?.ok) {
+      return createImageError(
+        createImageGenerationErrorMessage(
+          result.data,
+          result.response?.status || 502,
+          "真实图片生成失败，请检查接口、模型和额度。",
+        ),
+        result.response?.status || 502,
+      );
     }
 
-    const data = (await imageResponse.json().catch(() => null)) as {
-      data?: Array<{ b64_json?: string; url?: string }>;
-      error?: { message?: string } | string;
-    } | null;
-
-    if (!imageResponse.ok) {
-      const rawMessage = typeof data?.error === "string" ? data.error : data?.error?.message || "";
-      const message = /not found|unsupported|model|image|404|400/i.test(rawMessage)
-        ? "当前模型或接口不支持真实图片生成，请更换支持生图的模型或接口。"
-        : rawMessage
-          ? `真实图片生成失败：${rawMessage}`
-          : "真实图片生成失败，请检查接口、模型和额度。";
-      return createImageError(message, imageResponse.status || 502);
-    }
-
-    const image = data?.data?.[0];
-    const imageUrl = image?.b64_json ? `data:image/png;base64,${image.b64_json}` : image?.url || "";
+    const imageUrl = result.imageUrl;
 
     if (!imageUrl) {
       return createImageError("图片接口未返回可用图片，请更换生图模型后重试。", 502);

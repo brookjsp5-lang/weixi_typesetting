@@ -364,7 +364,7 @@ export function AiConfigModal({
       if (!res.ok) {
         setImageModelTest({
           status: "error",
-          message: data?.error || "当前配置不支持真实生图，请更换生图模型或接口",
+          message: data?.error || "真实生图测试失败，请检查模型、接口、Key 或额度",
         });
         return;
       }
@@ -564,9 +564,13 @@ export function AiConfigModal({
                 value={aiImageBaseUrl}
                 onChange={(e) => handleImageBaseUrlChange(e.target.value)}
                 className="neo-input w-full px-3 py-2"
-                placeholder="留空则复用文本 API 地址，例如 https://api.openai.com/v1"
+                placeholder="可填 base URL 或完整 /images/generations 地址"
                 autoComplete="off"
               />
+              <p className="mt-1 text-xs neo-text-muted font-bold leading-relaxed">
+                例如 https://ark.cn-beijing.volces.com/api/v3 或
+                https://ark.cn-beijing.volces.com/api/v3/images/generations。
+              </p>
             </div>
 
             <div>
@@ -588,11 +592,11 @@ export function AiConfigModal({
                 value={aiImageModel}
                 onChange={(e) => handleImageModelChange(e.target.value)}
                 className="neo-input w-full px-3 py-2"
-                placeholder="例如 gpt-image-1；留空则不生成封面图"
+                placeholder="例如 gpt-image-1 或 doubao-seedream-4-5-251128"
                 autoComplete="off"
               />
               <p className="mt-1 text-xs neo-text-muted font-bold leading-relaxed">
-                真实生图接口需兼容 /images/generations；未配置或失败时不会生成封面图。
+                火山方舟请确认模型 ID、API Key 权限、额度和接口区域一致。
               </p>
             </div>
 
