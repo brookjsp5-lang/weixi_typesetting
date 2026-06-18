@@ -547,7 +547,7 @@ export function AiConfigModal({
               <div>
                 <h4 className="text-sm font-black text-(--neo-ink)">封面生图</h4>
                 <p className="text-xs neo-text-muted font-bold leading-relaxed">
-                  高级可选。只有填写支持生图的模型后，AI 生成才会生成封面图。
+                  高级可选。只有填写支持生图的模型后，AI 生图才会生成封面图。
                 </p>
               </div>
               <span className="shrink-0 rounded-full border border-(--neo-line) bg-white px-2 py-1 text-[10px] font-black neo-text-muted">

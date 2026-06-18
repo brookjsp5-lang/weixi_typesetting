@@ -19,6 +19,7 @@ type MarkdownEditorPaneProps = {
   onInputScroll: (e: React.UIEvent<HTMLTextAreaElement>) => void;
   onPaste: (e: React.ClipboardEvent<HTMLTextAreaElement>) => void;
   wordCount: WordCount;
+  draftSaveStatusText: string;
   insertMarkdown: (prefix: string, suffix?: string, placeholder?: string) => void;
   insertHeading: (level: number) => void;
   insertList: (type: "ul" | "ol") => void;
@@ -36,6 +37,7 @@ export function MarkdownEditorPane({
   onInputScroll,
   onPaste,
   wordCount,
+  draftSaveStatusText,
   insertMarkdown,
   insertHeading,
   insertList,
@@ -205,11 +207,10 @@ export function MarkdownEditorPane({
             字数: <strong>{wordCount.words}</strong>
           </span>
           <span>
-            预计阅读:{" "}
-            <strong>{wordCount.readTime}分钟</strong>
+            预计阅读: <strong>{wordCount.readTime}分钟</strong>
           </span>
         </div>
-        <span>支持直接粘贴图片</span>
+        <span className="text-right">{draftSaveStatusText || "支持直接粘贴图片"}</span>
       </div>
     </div>
   );

@@ -14,6 +14,7 @@ import { useAiSettings } from "./_hooks/use-ai-settings";
 import { useAiWorkflow } from "./_hooks/use-ai-workflow";
 import { useClipboardCopy } from "./_hooks/use-clipboard-copy";
 import { useCoverPromptTemplates } from "./_hooks/use-cover-prompt-templates";
+import { useDraftAutosave } from "./_hooks/use-draft-autosave";
 import { useMarkdownTools } from "./_hooks/use-markdown-tools";
 import { usePromptTemplates } from "./_hooks/use-prompt-templates";
 import { useScrollSync } from "./_hooks/use-scroll-sync";
@@ -87,6 +88,14 @@ export default function Home() {
   const copyToClipboard = useClipboardCopy(showToast);
   const { syncScroll, setSyncScroll, previewRef, handleInputScroll, handlePreviewScroll } =
     useScrollSync(inputRef);
+  const draftAutosave = useDraftAutosave({
+    inputText,
+    setInputText,
+    imageMap,
+    setImageMap,
+    imageCounterRef,
+    showToast,
+  });
 
   const markdownTools = useMarkdownTools({
     inputText,
@@ -100,6 +109,7 @@ export default function Home() {
     setImageUrl,
     setImageDesc,
     setShowImageModal,
+    showToast,
   });
 
   useEffect(() => {
@@ -201,6 +211,12 @@ export default function Home() {
     if (copied) setHasCopiedForPublish(true);
   };
 
+  const handleRestoreSample = () => {
+    imageCounterRef.current = 0;
+    setImageMap(new Map());
+    setInputText(sampleText);
+  };
+
   return (
     <main className="min-h-screen flex flex-col neo-app-bg font-sans relative overflow-x-hidden">
       <Toast toast={toast} />
@@ -268,13 +284,14 @@ export default function Home() {
               onInputScroll={handleInputScroll}
               onPaste={markdownTools.handlePaste}
               wordCount={wordCount}
+              draftSaveStatusText={draftAutosave.draftSaveStatusText}
               insertMarkdown={markdownTools.insertMarkdown}
               insertHeading={markdownTools.insertHeading}
               insertList={markdownTools.insertList}
               insertCodeBlock={markdownTools.insertCodeBlock}
               insertLink={markdownTools.insertLink}
               insertImage={markdownTools.insertImage}
-              onRestoreSample={() => setInputText(sampleText)}
+              onRestoreSample={handleRestoreSample}
             />
 
             <PreviewPane

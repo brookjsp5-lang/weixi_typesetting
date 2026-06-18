@@ -1,5 +1,7 @@
-import { useCallback } from "react";
 import type React from "react";
+import { useCallback } from "react";
+import { htmlToMarkdownDraft } from "../_lib/draft-utils";
+import type { ShowToast } from "./use-toast";
 
 type UseMarkdownToolsParams = {
   inputText: string;
@@ -13,6 +15,7 @@ type UseMarkdownToolsParams = {
   setImageUrl: React.Dispatch<React.SetStateAction<string>>;
   setImageDesc: React.Dispatch<React.SetStateAction<string>>;
   setShowImageModal: React.Dispatch<React.SetStateAction<boolean>>;
+  showToast: ShowToast;
 };
 
 export function useMarkdownTools({
@@ -27,6 +30,7 @@ export function useMarkdownTools({
   setImageUrl,
   setImageDesc,
   setShowImageModal,
+  showToast,
 }: UseMarkdownToolsParams) {
   const insertMarkdown = useCallback(
     (prefix: string, suffix: string = prefix, placeholder: string = "") => {
@@ -39,11 +43,7 @@ export function useMarkdownTools({
       const selectedText = inputText.substring(start, end);
       const textToInsert = selectedText || placeholder;
       const newText =
-        inputText.substring(0, start) +
-        prefix +
-        textToInsert +
-        suffix +
-        inputText.substring(end);
+        inputText.substring(0, start) + prefix + textToInsert + suffix + inputText.substring(end);
 
       setInputText(newText);
 
@@ -68,14 +68,18 @@ export function useMarkdownTools({
       const selectedText = inputText.substring(start, end);
       const prefix = "#".repeat(level) + " ";
       const textToInsert = selectedText || "标题";
-      const newText = inputText.substring(0, start) + prefix + textToInsert + inputText.substring(end);
+      const newText =
+        inputText.substring(0, start) + prefix + textToInsert + inputText.substring(end);
 
       setInputText(newText);
 
       setTimeout(() => {
         textarea.focus();
         textarea.scrollTop = scrollTop;
-        textarea.setSelectionRange(start + prefix.length, start + prefix.length + textToInsert.length);
+        textarea.setSelectionRange(
+          start + prefix.length,
+          start + prefix.length + textToInsert.length,
+        );
       }, 0);
     },
     [inputRef, inputText, setInputText],
@@ -92,14 +96,18 @@ export function useMarkdownTools({
       const selectedText = inputText.substring(start, end);
       const prefix = type === "ul" ? "- " : "1. ";
       const textToInsert = selectedText || "列表项";
-      const newText = inputText.substring(0, start) + prefix + textToInsert + inputText.substring(end);
+      const newText =
+        inputText.substring(0, start) + prefix + textToInsert + inputText.substring(end);
 
       setInputText(newText);
 
       setTimeout(() => {
         textarea.focus();
         textarea.scrollTop = scrollTop;
-        textarea.setSelectionRange(start + prefix.length, start + prefix.length + textToInsert.length);
+        textarea.setSelectionRange(
+          start + prefix.length,
+          start + prefix.length + textToInsert.length,
+        );
       }, 0);
     },
     [inputRef, inputText, setInputText],
@@ -202,15 +210,7 @@ export function useMarkdownTools({
       };
       reader.readAsDataURL(file);
     },
-    [
-      imageCounterRef,
-      imageDesc,
-      inputRef,
-      inputText,
-      setImageMap,
-      setInputText,
-      setShowImageModal,
-    ],
+    [imageCounterRef, imageDesc, inputRef, inputText, setImageMap, setInputText, setShowImageModal],
   );
 
   const handleOnlineImage = useCallback(() => {
@@ -239,6 +239,55 @@ export function useMarkdownTools({
 
   const handlePaste = useCallback(
     async (e: React.ClipboardEvent<HTMLTextAreaElement>) => {
+      const html = e.clipboardData?.getData("text/html");
+      if (html?.trim()) {
+        const textarea = inputRef.current;
+        if (textarea) {
+          const start = textarea.selectionStart;
+          const end = textarea.selectionEnd;
+          const scrollTop = textarea.scrollTop;
+          const localImages = new Map<string, string>();
+          const result = htmlToMarkdownDraft(html, (dataUrl) => {
+            const imageId = `img-${++imageCounterRef.current}`;
+            localImages.set(imageId, dataUrl);
+            return `#${imageId}`;
+          });
+
+          if (result.markdown) {
+            e.preventDefault();
+            const prefix = inputText.substring(0, start);
+            const suffix = inputText.substring(end);
+            const spacerBefore = prefix && !prefix.endsWith("\n") ? "\n\n" : "";
+            const spacerAfter = suffix && !suffix.startsWith("\n") ? "\n\n" : "";
+            const nextCursor = start + spacerBefore.length + result.markdown.length;
+            if (localImages.size > 0) {
+              setImageMap((prev) => {
+                const next = new Map(prev);
+                localImages.forEach((value, key) => {
+                  next.set(key, value);
+                });
+                return next;
+              });
+            }
+            setInputText((prev) => {
+              return `${prefix}${spacerBefore}${result.markdown}${spacerAfter}${suffix}`;
+            });
+            setTimeout(() => {
+              textarea.focus();
+              textarea.scrollTop = scrollTop;
+              textarea.setSelectionRange(nextCursor, nextCursor);
+            }, 0);
+            if (result.skippedImages > 0) {
+              showToast(
+                `已导入文字，${result.skippedImages} 张图片因权限或地址不可用未导入`,
+                "error",
+              );
+            }
+            return;
+          }
+        }
+      }
+
       const items = e.clipboardData?.items;
       if (!items) return;
 
@@ -267,7 +316,9 @@ export function useMarkdownTools({
               const end = textarea.selectionEnd;
               const imageMarkdown = `\n![图片](#${imageId})\n`;
 
-              setInputText((prev) => prev.substring(0, start) + imageMarkdown + prev.substring(end));
+              setInputText(
+                (prev) => prev.substring(0, start) + imageMarkdown + prev.substring(end),
+              );
 
               setTimeout(() => {
                 textarea.focus();
@@ -284,7 +335,7 @@ export function useMarkdownTools({
         }
       }
     },
-    [imageCounterRef, inputRef, setImageMap, setInputText],
+    [imageCounterRef, inputRef, inputText, setImageMap, setInputText, showToast],
   );
 
   return {

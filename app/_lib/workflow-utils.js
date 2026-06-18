@@ -277,7 +277,7 @@ export function createPublishWorkflowSteps({
     },
     {
       id: "image",
-      label: "AI 生成",
+      label: "AI 生图",
       status: !hasContent ? "pending" : hasCoverGenerated ? "done" : "pending",
       description: !hasContent ? "等待初稿" : hasCoverGenerated ? "已生成封面" : "等待生成封面",
     },
