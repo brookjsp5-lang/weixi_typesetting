@@ -91,9 +91,9 @@ wechat-formatter/
   - `use-ai-settings.ts`：管理 AI 配置弹窗状态、provider、baseUrl、apiKey、model，并使用 `localStorage` 本地保存
   - `use-ai-format.ts`：校验配置并请求 `/api/ai-format`，读取流式响应后实时写回编辑区
 - **配置弹窗**：`ai-config-modal.tsx`
-  - 支持 `openrouter`、`openai`、`anthropic`
+  - 支持 `openrouter`、`deepseek`、`volcengine`、`dashscope`、`qwen`、`minimax`、`mimo`、`moonshot`、`zhipu`、`openai`、`anthropic`、`custom`
   - OpenRouter 使用固定默认地址 `https://openrouter.ai/api/v1`
-  - OpenAI / Anthropic 支持用户自定义兼容 API 地址
+  - 国内模型与 OpenAI / Anthropic 支持 OpenAI 兼容 API 地址或自定义兼容 API 地址
   - OpenRouter 模型列表来自 `/api/openrouter-models`，免费模型优先展示
   - OpenRouter / OpenAI / Anthropic 使用 @lobehub/icons 品牌图标
 - **服务端接口**：

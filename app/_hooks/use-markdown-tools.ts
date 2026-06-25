@@ -1,6 +1,10 @@
 import type React from "react";
 import { useCallback } from "react";
-import { htmlToMarkdownDraft, localizeRemoteMarkdownImages } from "../_lib/draft-utils";
+import {
+  htmlToMarkdownDraft,
+  localizeRemoteMarkdownImages,
+  normalizeConsecutiveImageBlocks,
+} from "../_lib/draft-utils";
 import type { ShowToast } from "./use-toast";
 
 type UseMarkdownToolsParams = {
@@ -206,8 +210,9 @@ export function useMarkdownTools({
         if (currentTextarea) {
           const currentEnd = currentTextarea.selectionEnd ?? start;
           const imageMarkdown = `![${desc}](#${imageId})`;
-          const newText =
-            inputText.substring(0, start) + imageMarkdown + inputText.substring(currentEnd);
+          const newText = normalizeConsecutiveImageBlocks(
+            inputText.substring(0, start) + imageMarkdown + inputText.substring(currentEnd),
+          );
 
           setInputText(newText);
 
@@ -239,7 +244,9 @@ export function useMarkdownTools({
     const end = textarea.selectionEnd;
     const desc = imageDesc || "图片";
     const imageMarkdown = `![${desc}](${imageUrl.trim()})`;
-    const newText = inputText.substring(0, start) + imageMarkdown + inputText.substring(end);
+    const newText = normalizeConsecutiveImageBlocks(
+      inputText.substring(0, start) + imageMarkdown + inputText.substring(end),
+    );
 
     setInputText(newText);
 
@@ -278,13 +285,19 @@ export function useMarkdownTools({
                 return `#${imageId}`;
               },
             );
-            const markdownToInsert = localized.markdown;
+            const markdownToInsert = normalizeConsecutiveImageBlocks(localized.markdown);
             e.preventDefault();
             const prefix = inputText.substring(0, start);
             const suffix = inputText.substring(end);
             const spacerBefore = prefix && !prefix.endsWith("\n") ? "\n\n" : "";
             const spacerAfter = suffix && !suffix.startsWith("\n") ? "\n\n" : "";
-            const nextCursor = start + spacerBefore.length + markdownToInsert.length;
+            const nextText = normalizeConsecutiveImageBlocks(
+              `${prefix}${spacerBefore}${markdownToInsert}${spacerAfter}${suffix}`,
+            );
+            const nextCursor = Math.min(
+              nextText.length,
+              start + spacerBefore.length + markdownToInsert.length,
+            );
             if (localImages.size > 0) {
               setImageMap((prev) => {
                 const next = new Map(prev);
@@ -294,9 +307,7 @@ export function useMarkdownTools({
                 return next;
               });
             }
-            setInputText((prev) => {
-              return `${prefix}${spacerBefore}${markdownToInsert}${spacerAfter}${suffix}`;
-            });
+            setInputText(nextText);
             setTimeout(() => {
               textarea.focus();
               textarea.scrollTop = scrollTop;
@@ -311,6 +322,38 @@ export function useMarkdownTools({
             }
             return;
           }
+        }
+      }
+
+      const plainText = e.clipboardData?.getData("text/plain");
+      if (plainText?.trim() && /!\[[^\]\n]*\]\(/.test(plainText)) {
+        const textarea = inputRef.current;
+        if (textarea) {
+          e.preventDefault();
+          const start = textarea.selectionStart;
+          const end = textarea.selectionEnd;
+          const scrollTop = textarea.scrollTop;
+          const prefix = inputText.substring(0, start);
+          const suffix = inputText.substring(end);
+          const spacerBefore = prefix && !prefix.endsWith("\n") ? "\n\n" : "";
+          const spacerAfter = suffix && !suffix.startsWith("\n") ? "\n\n" : "";
+          const markdownToInsert = normalizeConsecutiveImageBlocks(plainText);
+          const nextText = normalizeConsecutiveImageBlocks(
+            `${prefix}${spacerBefore}${markdownToInsert}${spacerAfter}${suffix}`,
+          );
+          const nextCursor = Math.min(
+            nextText.length,
+            start + spacerBefore.length + markdownToInsert.length,
+          );
+
+          setInputText(nextText);
+
+          setTimeout(() => {
+            textarea.focus();
+            textarea.scrollTop = scrollTop;
+            textarea.setSelectionRange(nextCursor, nextCursor);
+          }, 0);
+          return;
         }
       }
 
@@ -342,8 +385,10 @@ export function useMarkdownTools({
               const end = textarea.selectionEnd;
               const imageMarkdown = `\n![图片](#${imageId})\n`;
 
-              setInputText(
-                (prev) => prev.substring(0, start) + imageMarkdown + prev.substring(end),
+              setInputText((prev) =>
+                normalizeConsecutiveImageBlocks(
+                  prev.substring(0, start) + imageMarkdown + prev.substring(end),
+                ),
               );
 
               setTimeout(() => {

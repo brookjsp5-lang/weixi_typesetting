@@ -9,6 +9,9 @@ const isAiProviderType = (value: string | null): value is AiProviderType =>
   value === "deepseek" ||
   value === "volcengine" ||
   value === "dashscope" ||
+  value === "qwen" ||
+  value === "minimax" ||
+  value === "mimo" ||
   value === "moonshot" ||
   value === "zhipu" ||
   value === "openai" ||

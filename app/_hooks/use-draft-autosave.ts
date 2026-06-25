@@ -1,7 +1,11 @@
 import type React from "react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { SerializedImageItem } from "../_lib/draft-utils";
-import { deserializeImageMap, serializeImageMap } from "../_lib/draft-utils";
+import {
+  deserializeImageMap,
+  normalizeConsecutiveImageBlocks,
+  serializeImageMap,
+} from "../_lib/draft-utils";
 import type { ShowToast } from "./use-toast";
 
 const DRAFT_DB_NAME = "wx-draft-db";
@@ -99,7 +103,7 @@ export function useDraftAutosave({
         if (cancelled) return;
         if (draft?.inputText) {
           const restoredImages = deserializeImageMap(draft.images);
-          setInputText(draft.inputText);
+          setInputText(normalizeConsecutiveImageBlocks(draft.inputText));
           setImageMap(restoredImages);
           imageCounterRef.current = getMaxImageCounter(restoredImages, draft.imageCounter);
           setSavedAt(draft.updatedAt || "");
@@ -126,7 +130,7 @@ export function useDraftAutosave({
       setStatus("saving");
       writeDraft({
         id: CURRENT_DRAFT_KEY,
-        inputText,
+        inputText: normalizeConsecutiveImageBlocks(inputText),
         images: serializeImageMap(imageMap),
         imageCounter: imageCounterRef.current,
         updatedAt,

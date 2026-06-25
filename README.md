@@ -10,7 +10,7 @@ TypeZen 是一款专为微信公众号设计的「Markdown 转微信排版」辅
 
 ## 核心特性
 
-- **AI 一键排版**：支持 OpenRouter 模型库，以及 OpenAI / Anthropic 兼容 API 接口，可在不改写原文内容的前提下优化标题层级、空行、列表、引用、加粗与分隔线等 Markdown 结构。
+- **AI 一键排版**：支持 OpenRouter、DeepSeek、火山方舟、阿里百炼/Qwen、MiniMax、小米 MiMo、Kimi、智谱 GLM、OpenAI、Anthropic 与自定义兼容接口，可在不改写原文内容的前提下优化标题层级、空行、列表、引用、加粗与分隔线等 Markdown 结构。
 - **全面格式支持**：原生支持所有常见的 Markdown 语法解析（由 `marked` 驱动），并针对微信公众号编辑器重新设计展示样式。
 - **丰富的主题模板**：内置 **72 套**精美模板，覆盖 6 大风格分类，并支持自定义主题色。
 - **细节自由微调**：支持调整正文字号、行高、段落间距、首行缩进、页面留白、字间距与图片圆角。
@@ -21,7 +21,7 @@ TypeZen 是一款专为微信公众号设计的「Markdown 转微信排版」辅
 
 AI 排版功能用于优化 Markdown 的「结构」而不是改写文章内容，适合在文章发布前快速整理版式。
 
-- **支持多种服务商**：支持 OpenRouter 模型库，以及 OpenAI / Anthropic 兼容 API 接口。
+- **支持多种服务商**：支持 OpenRouter、DeepSeek、火山方舟、阿里百炼/Qwen、MiniMax、小米 MiMo、Kimi、智谱 GLM、OpenAI、Anthropic 与自定义兼容接口。
 - **OpenRouter 模型选择**：支持拉取 OpenRouter 文本模型列表，免费模型会优先展示，也可以手动输入模型 ID。
 - **流式输出体验**：AI 排版结果会流式写回编辑区，减少等待感。
 - **本地保存配置**：API 类型、API 地址、API Key 与模型名称仅保存在当前浏览器本地。

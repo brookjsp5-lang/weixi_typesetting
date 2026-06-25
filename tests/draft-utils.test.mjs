@@ -6,6 +6,7 @@ import {
   extractImageSource,
   htmlToMarkdownDraft,
   localizeRemoteMarkdownImages,
+  normalizeConsecutiveImageBlocks,
   serializeImageMap,
 } from "../app/_lib/draft-utils.js";
 import { createPublishWorkflowSteps } from "../app/_lib/workflow-utils.js";
@@ -62,6 +63,49 @@ test("htmlToMarkdownDraft stores data images through createImageRef", () => {
   assert.match(result.markdown, /!\[截图\]\(#img-1\)/);
 });
 
+test("normalizeConsecutiveImageBlocks separates adjacent image lines", () => {
+  assert.equal(
+    normalizeConsecutiveImageBlocks("before\n\n![one](#img-1)\n![two](#img-2)\n\nnext"),
+    "before\n\n![one](#img-1)\n\n![two](#img-2)\n\nnext",
+  );
+});
+
+test("normalizeConsecutiveImageBlocks separates same-line image groups", () => {
+  assert.equal(
+    normalizeConsecutiveImageBlocks(
+      "![one](#img-1) ![two](https://example.com/two.png) ![three](data:image/png;base64,abc)",
+    ),
+    "![one](#img-1)\n\n![two](https://example.com/two.png)\n\n![three](data:image/png;base64,abc)",
+  );
+});
+
+test("normalizeConsecutiveImageBlocks keeps inline text-image content unchanged", () => {
+  const markdown = "intro ![one](#img-1) ![two](#img-2)";
+  assert.equal(normalizeConsecutiveImageBlocks(markdown), markdown);
+});
+
+test("normalizeConsecutiveImageBlocks skips fenced code blocks", () => {
+  const markdown =
+    "```markdown\n![one](#img-1) ![two](#img-2)\n```\n\n![three](#img-3)\n![four](#img-4)";
+
+  assert.equal(
+    normalizeConsecutiveImageBlocks(markdown),
+    "```markdown\n![one](#img-1) ![two](#img-2)\n```\n\n![three](#img-3)\n\n![four](#img-4)",
+  );
+});
+
+test("htmlToMarkdownDraft normalizes image-only HTML paragraphs", () => {
+  const result = htmlToMarkdownDraft(
+    `<article><p><img src="https://example.com/one.png" alt="one"><img src="https://example.com/two.png" alt="two"></p></article>`,
+    () => "#img-unused",
+  );
+
+  assert.equal(
+    result.markdown,
+    "![one](https://example.com/one.png)\n\n![two](https://example.com/two.png)",
+  );
+});
+
 test("image map serialization round trips draft images", () => {
   const imageMap = new Map([
     ["img-1", "data:image/png;base64,one"],
@@ -104,6 +148,18 @@ test("localizeRemoteMarkdownImages converts remote images to local refs", async 
   assert.deepEqual(imported, ["https://cdn.nlark.com/yuque/image.png"]);
   assert.equal(localized.markdown, "![图片](#img-7)\n\n正文");
   assert.equal(localized.localizedCount, 1);
+  assert.equal(localized.failedCount, 0);
+});
+
+test("localizeRemoteMarkdownImages normalizes adjacent localized images", async () => {
+  const localized = await localizeRemoteMarkdownImages(
+    "![one](https://cdn.nlark.com/one.png) ![two](https://cdn.nlark.com/two.png)",
+    async (url) => `data:image/png;base64,${url.endsWith("one.png") ? "one" : "two"}`,
+    (dataUrl) => (dataUrl.endsWith("one") ? "#img-1" : "#img-2"),
+  );
+
+  assert.equal(localized.markdown, "![one](#img-1)\n\n![two](#img-2)");
+  assert.equal(localized.localizedCount, 2);
   assert.equal(localized.failedCount, 0);
 });
 

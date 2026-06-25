@@ -23,6 +23,12 @@ test("provider presets include domestic OpenAI-compatible services", () => {
   );
   assert.equal(getProviderPreset("moonshot").baseUrl, "https://api.moonshot.ai/v1");
   assert.equal(getProviderPreset("zhipu").baseUrl, "https://open.bigmodel.cn/api/paas/v4");
+  assert.equal(getProviderPreset("minimax").baseUrl, "https://api.minimax.io/v1");
+  assert.equal(getProviderPreset("minimax").defaultModel, "MiniMax-M3");
+  assert.equal(getProviderPreset("qwen").name, "Qwen");
+  assert.equal(getProviderPreset("qwen").defaultModel, "qwen-plus");
+  assert.equal(getProviderPreset("mimo").baseUrl, "https://api.xiaomimimo.com/v1");
+  assert.equal(getProviderPreset("mimo").defaultModel, "mimo-v2.5-pro");
 });
 
 test("default prompt templates are reusable and user-editable", () => {

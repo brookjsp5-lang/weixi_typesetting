@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { type SetStateAction, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AiConfigModal } from "./_components/ai-config-modal";
 import { AppFooter } from "./_components/app-footer";
 import { AppHeader } from "./_components/app-header";
@@ -21,6 +21,7 @@ import { useScrollSync } from "./_hooks/use-scroll-sync";
 import { useTheme } from "./_hooks/use-theme";
 import { useToast } from "./_hooks/use-toast";
 import { useWordCount } from "./_hooks/use-word-count";
+import { normalizeConsecutiveImageBlocks } from "./_lib/draft-utils";
 import { aiStorageKeys, sampleText } from "./_lib/formatter-constants";
 import {
   createPublishWorkflowSteps,
@@ -80,6 +81,16 @@ export default function Home() {
   const imageCounterRef = useRef(0);
 
   const { toast, showToast } = useToast();
+  const normalizedInputText = useMemo(
+    () => normalizeConsecutiveImageBlocks(inputText),
+    [inputText],
+  );
+  const setNormalizedInputText = useCallback((value: SetStateAction<string>) => {
+    setInputText((previous) => {
+      const nextValue = typeof value === "function" ? value(previous) : value;
+      return normalizeConsecutiveImageBlocks(nextValue);
+    });
+  }, []);
   const { isDarkMode, toggleDarkMode } = useTheme();
   const aiSettings = useAiSettings(showToast);
   const promptSettings = usePromptTemplates(showToast);
@@ -90,7 +101,7 @@ export default function Home() {
     useScrollSync(inputRef);
   const draftAutosave = useDraftAutosave({
     inputText,
-    setInputText,
+    setInputText: setNormalizedInputText,
     imageMap,
     setImageMap,
     imageCounterRef,
@@ -99,7 +110,7 @@ export default function Home() {
 
   const markdownTools = useMarkdownTools({
     inputText,
-    setInputText,
+    setInputText: setNormalizedInputText,
     inputRef,
     fileInputRef,
     imageCounterRef,
@@ -129,8 +140,8 @@ export default function Home() {
   }, [publishStep]);
 
   const aiWorkflow = useAiWorkflow({
-    inputText,
-    setInputText,
+    inputText: normalizedInputText,
+    setInputText: setNormalizedInputText,
     aiProviderType: aiSettings.aiProviderType,
     aiBaseUrl: aiSettings.aiBaseUrl,
     aiApiKey: aiSettings.aiApiKey,
@@ -147,15 +158,18 @@ export default function Home() {
     allTemplates.find((template) => template.id === currentTemplateId) || allTemplates[0];
 
   const outputHtml = useMemo(() => {
-    if (!inputText.trim()) return "";
+    if (!normalizedInputText.trim()) return "";
 
-    const processedText = inputText.replace(/!\[(.*?)\]\(#(img-\d+)\)/g, (match, alt, imageId) => {
-      const base64 = imageMap.get(imageId);
-      return base64 ? `![${alt}](${base64})` : match;
-    });
+    const processedText = normalizedInputText.replace(
+      /!\[(.*?)\]\(#(img-\d+)\)/g,
+      (match, alt, imageId) => {
+        const base64 = imageMap.get(imageId);
+        return base64 ? `![${alt}](${base64})` : match;
+      },
+    );
 
     return renderArticle(processedText, currentTemplate, formatTweaks);
-  }, [inputText, currentTemplate, formatTweaks, imageMap]);
+  }, [normalizedInputText, currentTemplate, formatTweaks, imageMap]);
 
   const publishChecks = useMemo(() => runPublishChecks(inputText), [inputText]);
   const coverGenerationConfigStatus = useMemo(
@@ -214,7 +228,7 @@ export default function Home() {
   const handleRestoreSample = () => {
     imageCounterRef.current = 0;
     setImageMap(new Map());
-    setInputText(sampleText);
+    setNormalizedInputText(sampleText);
   };
 
   return (

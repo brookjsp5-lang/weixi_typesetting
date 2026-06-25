@@ -23,6 +23,8 @@ export function htmlToMarkdownDraft(
   createImageRef: (dataUrl: string) => string,
 ): MarkdownDraftResult;
 
+export function normalizeConsecutiveImageBlocks(markdown: string): string;
+
 export function localizeRemoteMarkdownImages(
   markdown: string,
   importRemoteImage: (url: string) => Promise<string>,

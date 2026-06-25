@@ -1,4 +1,5 @@
 const IMAGE_ATTRIBUTE_CANDIDATES = ["src", "data-src", "data-original", "data-actualsrc"];
+const MARKDOWN_IMAGE_PATTERN = /!\[[^\]\n]*\]\((?:\\.|[^)\n])+\)/g;
 
 const blockTags = new Set([
   "ADDRESS",
@@ -26,6 +27,71 @@ function normalizeMarkdown(markdown) {
     .replace(/[ \t]+\n/g, "\n")
     .replace(/\n{3,}/g, "\n\n")
     .trim();
+}
+
+function isFenceStart(line) {
+  return line.trim().match(/^(`{3,}|~{3,})/);
+}
+
+function normalizeImageOnlyChunk(chunk) {
+  return chunk
+    .split(/(\n{2,})/)
+    .map((part) => {
+      if (/^\n{2,}$/.test(part)) return part;
+
+      const images = part.match(MARKDOWN_IMAGE_PATTERN) || [];
+      if (images.length < 2) return part;
+
+      const textWithoutImages = part.replace(MARKDOWN_IMAGE_PATTERN, "").trim();
+      if (textWithoutImages) return part;
+
+      const leadingWhitespace = part.match(/^\s*/)?.[0] || "";
+      const trailingWhitespace = part.match(/\s*$/)?.[0] || "";
+      return `${leadingWhitespace}${images.join("\n\n")}${trailingWhitespace}`;
+    })
+    .join("");
+}
+
+export function normalizeConsecutiveImageBlocks(markdown) {
+  const lines = String(markdown || "")
+    .replace(/\r\n/g, "\n")
+    .split("\n");
+  const chunks = [];
+  let currentLines = [];
+  let inFence = false;
+  let fenceMarker = "";
+
+  const pushCurrent = (type) => {
+    if (currentLines.length === 0) return;
+    chunks.push({ type, text: currentLines.join("\n") });
+    currentLines = [];
+  };
+
+  for (const line of lines) {
+    const fenceStart = isFenceStart(line);
+
+    if (!inFence && fenceStart) {
+      pushCurrent("markdown");
+      inFence = true;
+      fenceMarker = fenceStart[1];
+      currentLines.push(line);
+      continue;
+    }
+
+    currentLines.push(line);
+
+    if (inFence && line.trim().startsWith(fenceMarker)) {
+      pushCurrent("code");
+      inFence = false;
+      fenceMarker = "";
+    }
+  }
+
+  pushCurrent(inFence ? "code" : "markdown");
+
+  return chunks
+    .map((chunk) => (chunk.type === "markdown" ? normalizeImageOnlyChunk(chunk.text) : chunk.text))
+    .join("\n");
 }
 
 function absoluteUrl(url) {
@@ -191,7 +257,7 @@ function htmlToMarkdownWithDom(html, createImageRef) {
     .map((node) => nodeToMarkdown(node, createImageRef, state))
     .join("");
   return {
-    markdown: normalizeMarkdown(markdown),
+    markdown: normalizeConsecutiveImageBlocks(normalizeMarkdown(markdown)),
     skippedImages: state.skippedImages,
   };
 }
@@ -237,7 +303,7 @@ function htmlToMarkdownFallback(html, createImageRef) {
   }
 
   return {
-    markdown: normalizeMarkdown(content),
+    markdown: normalizeConsecutiveImageBlocks(normalizeMarkdown(content)),
     skippedImages: state.skippedImages,
   };
 }
@@ -293,7 +359,7 @@ export async function localizeRemoteMarkdownImages(markdown, importRemoteImage, 
   nextMarkdown += markdown.slice(lastIndex);
 
   return {
-    markdown: nextMarkdown,
+    markdown: normalizeConsecutiveImageBlocks(nextMarkdown),
     localizedCount,
     failedCount,
   };

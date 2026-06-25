@@ -9,6 +9,9 @@ const isKnownProvider = (providerType: unknown): providerType is AiProviderType 
   providerType === "deepseek" ||
   providerType === "volcengine" ||
   providerType === "dashscope" ||
+  providerType === "qwen" ||
+  providerType === "minimax" ||
+  providerType === "mimo" ||
   providerType === "moonshot" ||
   providerType === "zhipu" ||
   providerType === "openai" ||

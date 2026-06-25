@@ -1,8 +1,8 @@
 import { createAnthropic } from "@ai-sdk/anthropic";
 import { createOpenAI } from "@ai-sdk/openai";
 import { streamText } from "ai";
-import type { AiProviderType } from "../../_types/formatter";
 import { openRouterConfig } from "../../_lib/formatter-constants";
+import type { AiProviderType } from "../../_types/formatter";
 
 const MAX_INPUT_LENGTH = 15000;
 
@@ -27,6 +27,9 @@ const isKnownProvider = (providerType: unknown): providerType is AiProviderType 
   providerType === "deepseek" ||
   providerType === "volcengine" ||
   providerType === "dashscope" ||
+  providerType === "qwen" ||
+  providerType === "minimax" ||
+  providerType === "mimo" ||
   providerType === "moonshot" ||
   providerType === "zhipu" ||
   providerType === "openai" ||
@@ -45,10 +48,7 @@ export async function POST(req: Request) {
     };
 
     if (!markdown || typeof markdown !== "string" || !markdown.trim()) {
-      return Response.json(
-        { error: "请提供需要排版的 Markdown 内容" },
-        { status: 400 },
-      );
+      return Response.json({ error: "请提供需要排版的 Markdown 内容" }, { status: 400 });
     }
 
     if (markdown.length > MAX_INPUT_LENGTH) {
@@ -62,10 +62,7 @@ export async function POST(req: Request) {
 
     const trimmedApiKey = apiKey?.trim();
     if (!trimmedApiKey) {
-      return Response.json(
-        { error: "请先填写 API Key" },
-        { status: 400 },
-      );
+      return Response.json({ error: "请先填写 API Key" }, { status: 400 });
     }
 
     const selectedProvider: AiProviderType = isKnownProvider(providerType)
@@ -76,18 +73,12 @@ export async function POST(req: Request) {
     const trimmedBaseUrl =
       rawBaseUrl || (selectedProvider === "openrouter" ? openRouterConfig.baseUrl : "");
     if (selectedProvider !== "openrouter" && !trimmedBaseUrl) {
-      return Response.json(
-        { error: "请先填写 API 地址" },
-        { status: 400 },
-      );
+      return Response.json({ error: "请先填写 API 地址" }, { status: 400 });
     }
 
     const trimmedModel = model?.trim();
     if (!trimmedModel) {
-      return Response.json(
-        { error: "请先填写 AI 模型名称" },
-        { status: 400 },
-      );
+      return Response.json({ error: "请先填写 AI 模型名称" }, { status: 400 });
     }
 
     const languageModel =
@@ -114,17 +105,11 @@ export async function POST(req: Request) {
 
     const message = err instanceof Error ? err.message : "";
     if (/auth|api key|unauthorized|401/i.test(message)) {
-      return Response.json(
-        { error: "API Key 无效或无权限，请检查后重试" },
-        { status: 401 },
-      );
+      return Response.json({ error: "API Key 无效或无权限，请检查后重试" }, { status: 401 });
     }
 
     if (/model|not found|404/i.test(message)) {
-      return Response.json(
-        { error: "模型不可用，请检查模型名称是否正确" },
-        { status: 400 },
-      );
+      return Response.json({ error: "模型不可用，请检查模型名称是否正确" }, { status: 400 });
     }
 
     if (/quota|credit|billing|insufficient|payment|429/i.test(message)) {
@@ -134,9 +119,6 @@ export async function POST(req: Request) {
       );
     }
 
-    return Response.json(
-      { error: message || "AI 排版服务异常，请稍后重试" },
-      { status: 500 },
-    );
+    return Response.json({ error: message || "AI 排版服务异常，请稍后重试" }, { status: 500 });
   }
 }
