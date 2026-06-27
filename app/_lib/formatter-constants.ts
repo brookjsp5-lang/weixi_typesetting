@@ -71,6 +71,8 @@ export const aiStorageKeys = {
   prompts: "wechat-formatter-ai-prompts",
   coverPrompts: "wechat-formatter-ai-cover-prompts",
   selectedCoverPromptId: "wechat-formatter-ai-selected-cover-prompt",
+  posterPrompts: "wechat-formatter-ai-poster-prompts",
+  selectedPosterPromptId: "wechat-formatter-ai-selected-poster-prompt",
   workflowTab: "wechat-formatter-workflow-tab",
 } as const;
 

@@ -2,6 +2,8 @@ import type {
   AiProviderType,
   AppliedAiChange,
   CoverPromptTemplate,
+  PosterPromptTemplate,
+  PosterTextBrief,
   PromptTemplate,
   ProviderPreset,
   PublishCheckItem,
@@ -16,12 +18,27 @@ export function createDefaultPromptTemplates(): PromptTemplate[];
 
 export function createDefaultCoverPromptTemplates(): CoverPromptTemplate[];
 
+export function createDefaultPosterPromptTemplates(): PosterPromptTemplate[];
+
 export function createCoverPrompt(params: {
   markdown: string;
   title: string;
   summary: string;
   keywords?: string[];
   coverPrompt?: string;
+}): string;
+
+export function normalizePosterTextBrief(value: unknown): PosterTextBrief;
+
+export function createPosterBriefPrompt(params: {
+  markdown: string;
+  posterPrompt?: string;
+}): string;
+
+export function createPosterPrompt(params: {
+  markdown: string;
+  brief: PosterTextBrief;
+  posterPrompt?: string;
 }): string;
 
 export function extractJsonObject(text: string): unknown;
@@ -64,6 +81,7 @@ export function createPublishWorkflowSteps(params: {
   hasFormatDraft: boolean;
   hasAppliedFormat: boolean;
   hasCoverGenerated: boolean;
+  hasPosterGenerated: boolean;
   hasCheckWarnings: boolean;
   hasPublishOptimization: boolean;
   hasCopied: boolean;

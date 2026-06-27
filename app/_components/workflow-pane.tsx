@@ -24,6 +24,8 @@ import type {
   CoverGenerationResult,
   CoverPromptTemplate,
   FormatTweaks,
+  PosterGenerationResult,
+  PosterPromptTemplate,
   PromptTemplate,
   PublishCheckItem,
   PublishOptimizationResult,
@@ -56,7 +58,9 @@ type WorkflowPaneProps = {
   onRestoreAiChange: () => void;
   onPublishOptimize: () => void;
   onGenerateCover: () => void;
+  onGeneratePoster: () => void;
   coverGenerationResult: CoverGenerationResult;
+  posterGenerationResult: PosterGenerationResult;
   coverGenerationConfigStatus: {
     isConfigured: boolean;
     message: string;
@@ -74,6 +78,12 @@ type WorkflowPaneProps = {
   setSelectedCoverPromptId: React.Dispatch<React.SetStateAction<string>>;
   onSaveCoverPrompt: (draft: Pick<CoverPromptTemplate, "id" | "name" | "prompt">) => void;
   onDeleteCoverPrompt: (id: string) => void;
+  posterPromptTemplates: PosterPromptTemplate[];
+  selectedPosterPrompt?: PosterPromptTemplate;
+  selectedPosterPromptId: string;
+  setSelectedPosterPromptId: React.Dispatch<React.SetStateAction<string>>;
+  onSavePosterPrompt: (draft: Pick<PosterPromptTemplate, "id" | "name" | "prompt">) => void;
+  onDeletePosterPrompt: (id: string) => void;
   publishChecks: PublishCheckItem[];
   publishOptimization: PublishOptimizationResult;
   onCopy: () => void;
@@ -123,7 +133,7 @@ const stepDescriptions: Record<PublishStepId, string> = {
   draft: "先把正文放到左侧初稿。",
   rewrite: "需要润色时，选提示词改写；不满意可还原。",
   format: "用 AI 整理结构，再选择模板和样式。",
-  image: "选择封面风格，生成封面图。",
+  image: "生成封面图，或生成可独立传播的公众号贴图。",
   check: "生成标题、摘要和关键词。",
   publish: "复制正文到公众号后台，发布前再检查一遍。",
 };
@@ -296,6 +306,108 @@ function CoverResultCard({
           className="neo-button neo-button-ghost flex-1 py-1.5 text-xs"
         >
           {copiedMaterialIds.includes("cover-prompt") ? "提示词已复制" : "复制提示词"}
+        </button>
+      </div>
+    </section>
+  );
+}
+
+function PosterResultCard({
+  posterGenerationResult,
+  runningTask,
+  onCopyText,
+  copiedMaterialIds,
+  onRegenerate,
+}: {
+  posterGenerationResult: PosterGenerationResult;
+  runningTask: RunningAiTaskType | null;
+  onCopyText: (text: string, id: string) => void;
+  copiedMaterialIds: string[];
+  onRegenerate: () => void;
+}) {
+  const [hasImageError, setHasImageError] = useState(false);
+  const imageUrl = posterGenerationResult?.imageUrl?.trim() || "";
+
+  if (runningTask === "poster") {
+    return (
+      <section className="rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-sm font-bold text-emerald-800">
+        <div className="mb-2 flex items-center gap-2 text-(--neo-ink)">
+          <Loader2 className="h-4 w-4 animate-spin" />
+          公众号贴图结果
+        </div>
+        正在提炼文案、生成背景并合成贴图，完成后会在这里显示竖版图片。
+      </section>
+    );
+  }
+
+  if (!posterGenerationResult) {
+    return (
+      <section className="rounded-xl border border-(--neo-line) bg-(--neo-surface) p-4 text-sm font-bold neo-text-muted">
+        <div className="mb-2 flex items-center gap-2 text-(--neo-ink)">
+          <ImageIcon className="h-4 w-4" />
+          公众号贴图结果
+        </div>
+        尚未生成贴图。点击上方“生成公众号贴图”后，竖版金句图会显示在这里。
+      </section>
+    );
+  }
+
+  if (!imageUrl || hasImageError) {
+    return (
+      <section className="rounded-xl border border-amber-300 bg-amber-50 p-4 text-sm font-bold text-amber-800">
+        <div className="mb-2 flex items-center gap-2 text-(--neo-ink)">
+          <ImageIcon className="h-4 w-4" />
+          公众号贴图结果
+        </div>
+        贴图已生成，但图片加载失败。请重新生成，或检查生图接口返回的背景图是否可访问。
+      </section>
+    );
+  }
+
+  return (
+    <section className="rounded-xl border border-(--neo-line) bg-(--neo-surface) p-3 space-y-3">
+      <h3 className="text-xs font-black flex items-center gap-1.5">
+        <ImageIcon className="h-3.5 w-3.5" />
+        公众号贴图结果
+      </h3>
+      {posterGenerationResult.warning && (
+        <div className="rounded-lg border border-amber-300 bg-amber-50 p-2 text-xs font-bold leading-relaxed text-amber-800">
+          {posterGenerationResult.warning}
+        </div>
+      )}
+      <img
+        src={imageUrl}
+        alt="公众号贴图"
+        onError={() => setHasImageError(true)}
+        className="mx-auto aspect-[3/4] max-h-[520px] w-full max-w-[390px] rounded-lg border border-(--neo-line) object-cover bg-white"
+      />
+      <div className="rounded-lg border border-(--neo-line) bg-white p-3 text-xs font-bold leading-relaxed">
+        <div className="text-(--neo-ink)">主标题：{posterGenerationResult.brief.title}</div>
+        <div className="mt-1 text-(--neo-ink)">金句：{posterGenerationResult.brief.quote}</div>
+        <div className="mt-1 neo-text-muted">说明：{posterGenerationResult.brief.note}</div>
+      </div>
+      <div className="grid grid-cols-2 gap-2">
+        <a
+          href={imageUrl}
+          download="wx-poster.png"
+          className="neo-button neo-button-secondary py-1.5 text-center text-xs inline-flex items-center justify-center gap-1.5"
+        >
+          <Download className="h-3.5 w-3.5" />
+          下载贴图
+        </a>
+        <button
+          type="button"
+          onClick={onRegenerate}
+          className="neo-button neo-button-secondary py-1.5 text-xs"
+        >
+          重新生成
+        </button>
+        <button
+          type="button"
+          onClick={() => onCopyText(posterGenerationResult.prompt, "poster-prompt")}
+          className="neo-button neo-button-ghost col-span-2 py-1.5 text-xs"
+        >
+          {copiedMaterialIds.includes("poster-prompt") ? "提示词已复制" : "复制生图提示词"}
         </button>
       </div>
     </section>
@@ -499,7 +611,9 @@ export function WorkflowPane({
   onRestoreAiChange,
   onPublishOptimize,
   onGenerateCover,
+  onGeneratePoster,
   coverGenerationResult,
+  posterGenerationResult,
   coverGenerationConfigStatus,
   onOpenAiConfig,
   promptTemplates,
@@ -514,6 +628,12 @@ export function WorkflowPane({
   setSelectedCoverPromptId,
   onSaveCoverPrompt,
   onDeleteCoverPrompt,
+  posterPromptTemplates,
+  selectedPosterPrompt,
+  selectedPosterPromptId,
+  setSelectedPosterPromptId,
+  onSavePosterPrompt,
+  onDeletePosterPrompt,
   publishChecks,
   publishOptimization,
   onCopy,
@@ -537,6 +657,11 @@ export function WorkflowPane({
   const [coverPromptName, setCoverPromptName] = useState("");
   const [coverPromptBody, setCoverPromptBody] = useState("");
   const [isCoverPromptEditorOpen, setIsCoverPromptEditorOpen] = useState(false);
+  const [posterPromptDraftId, setPosterPromptDraftId] = useState("");
+  const [posterPromptName, setPosterPromptName] = useState("");
+  const [posterPromptBody, setPosterPromptBody] = useState("");
+  const [isPosterPromptEditorOpen, setIsPosterPromptEditorOpen] = useState(false);
+  const [imageMode, setImageMode] = useState<"cover" | "poster">("cover");
   const [isFormatSettingsOpen, setIsFormatSettingsOpen] = useState(true);
   const [copiedMaterialIds, setCopiedMaterialIds] = useState<string[]>([]);
 
@@ -548,7 +673,7 @@ export function WorkflowPane({
   const getStepStatus = (stepId: PublishStepId) =>
     publishWorkflowSteps.find((step) => step.id === stepId)?.status || "pending";
   const formatReady = getStepStatus("format") === "done";
-  const imageReady = Boolean(coverGenerationResult);
+  const imageReady = Boolean(coverGenerationResult || posterGenerationResult);
   const materialsReady = Boolean(publishOptimization);
   const hasCopiedBody = getStepStatus("publish") === "done";
 
@@ -614,6 +739,44 @@ export function WorkflowPane({
       prompt: coverPromptBody,
     });
     clearCoverPromptDraft();
+  };
+
+  const loadPosterPromptForEdit = (template: PosterPromptTemplate) => {
+    setPosterPromptDraftId(template.id);
+    setPosterPromptName(template.name);
+    setPosterPromptBody(template.prompt);
+    setIsPosterPromptEditorOpen(true);
+  };
+
+  const editSelectedPosterPrompt = () => {
+    if (selectedPosterPrompt) {
+      loadPosterPromptForEdit(selectedPosterPrompt);
+      return;
+    }
+    setIsPosterPromptEditorOpen(true);
+  };
+
+  const newPosterPrompt = () => {
+    setPosterPromptDraftId("");
+    setPosterPromptName("");
+    setPosterPromptBody("");
+    setIsPosterPromptEditorOpen(true);
+  };
+
+  const clearPosterPromptDraft = () => {
+    setPosterPromptDraftId("");
+    setPosterPromptName("");
+    setPosterPromptBody("");
+    setIsPosterPromptEditorOpen(false);
+  };
+
+  const savePosterPrompt = () => {
+    onSavePosterPrompt({
+      id: posterPromptDraftId,
+      name: posterPromptName,
+      prompt: posterPromptBody,
+    });
+    clearPosterPromptDraft();
   };
 
   const copyPlainText = async (text: string, id = "text") => {
@@ -925,13 +1088,36 @@ export function WorkflowPane({
             <div className="space-y-4">
               <CompletionCard
                 done={imageReady}
-                text={imageReady ? "封面图已生成。" : "配置生图 API 后，点击生成封面图。"}
+                text={
+                  imageReady ? "已生成图片素材。" : "配置生图 API 后，可生成封面图或公众号贴图。"
+                }
               />
+              <section className="grid grid-cols-2 gap-2 rounded-xl border border-(--neo-line) bg-(--neo-surface) p-2">
+                <button
+                  type="button"
+                  onClick={() => setImageMode("cover")}
+                  className={`neo-button py-2 text-sm ${
+                    imageMode === "cover" ? "neo-button-primary" : "neo-button-ghost"
+                  }`}
+                >
+                  封面图
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setImageMode("poster")}
+                  className={`neo-button py-2 text-sm ${
+                    imageMode === "poster" ? "neo-button-primary" : "neo-button-ghost"
+                  }`}
+                >
+                  公众号贴图
+                </button>
+              </section>
+
               {!coverGenerationConfigStatus.isConfigured && (
                 <section className="rounded-xl border border-amber-300 bg-amber-50 p-3 space-y-2 text-amber-800">
                   <h3 className="text-sm font-black flex items-center gap-1.5 text-(--neo-ink)">
                     <ImageIcon className="w-4 h-4" />
-                    先配置封面生图
+                    先配置生图 API
                   </h3>
                   <p className="text-xs font-bold leading-relaxed">
                     {coverGenerationConfigStatus.message}
@@ -945,138 +1131,261 @@ export function WorkflowPane({
                   </button>
                 </section>
               )}
-              <section className="rounded-xl border border-(--neo-line) bg-(--neo-surface) p-3 space-y-3">
-                <div>
-                  <h3 className="text-sm font-black flex items-center gap-1.5">
-                    <PenLine className="w-4 h-4" />
-                    生图提示词
-                  </h3>
-                  <p className="mt-1 text-[11px] font-bold leading-relaxed neo-text-muted">
-                    选择封面风格，生成时会结合文章标题、摘要和关键词。
-                  </p>
-                </div>
-                <div className="flex gap-2">
-                  <select
-                    value={selectedCoverPromptId}
-                    onChange={(e) => setSelectedCoverPromptId(e.target.value)}
-                    className="neo-input min-w-0 flex-1 px-3 py-2 text-sm"
-                  >
-                    {coverPromptTemplates.map((template) => (
-                      <option key={template.id} value={template.id}>
-                        {template.name}
-                      </option>
-                    ))}
-                  </select>
-                  <button
-                    type="button"
-                    onClick={editSelectedCoverPrompt}
-                    className="neo-button neo-button-ghost shrink-0 px-3 py-2 text-xs"
-                  >
-                    编辑
-                  </button>
-                  <button
-                    type="button"
-                    disabled={!selectedCoverPrompt}
-                    onClick={() =>
-                      selectedCoverPrompt && onDeleteCoverPrompt(selectedCoverPrompt.id)
-                    }
-                    className="neo-button neo-button-ghost shrink-0 px-3 py-2 text-xs disabled:opacity-40"
-                  >
-                    删除
-                  </button>
-                </div>
-                <div className="flex items-center justify-between gap-2">
-                  <p className="truncate text-xs font-bold neo-text-muted">
-                    当前：{selectedCoverPrompt?.name || "公众号封面通用"}
-                  </p>
-                  <button
-                    type="button"
-                    onClick={newCoverPrompt}
-                    className="text-xs font-black underline text-(--neo-ink)"
-                  >
-                    新增提示词
-                  </button>
-                </div>
-                {isCoverPromptEditorOpen && (
-                  <div className="rounded-xl border border-(--neo-line) bg-white p-3 space-y-2">
-                    <input
-                      value={coverPromptName}
-                      onChange={(e) => setCoverPromptName(e.target.value)}
-                      className="neo-input w-full px-3 py-2 text-sm"
-                      placeholder="提示词名称"
-                    />
-                    <textarea
-                      value={coverPromptBody}
-                      onChange={(e) => setCoverPromptBody(e.target.value)}
-                      className="neo-input w-full min-h-28 px-3 py-2 text-sm resize-none"
-                      placeholder="输入封面风格、构图、色彩和禁用元素等要求"
-                    />
+
+              {imageMode === "cover" ? (
+                <>
+                  <section className="rounded-xl border border-(--neo-line) bg-(--neo-surface) p-3 space-y-3">
+                    <div>
+                      <h3 className="text-sm font-black flex items-center gap-1.5">
+                        <PenLine className="w-4 h-4" />
+                        生图提示词
+                      </h3>
+                      <p className="mt-1 text-[11px] font-bold leading-relaxed neo-text-muted">
+                        选择封面风格，生成时会结合文章标题、摘要和关键词。
+                      </p>
+                    </div>
                     <div className="flex gap-2">
+                      <select
+                        value={selectedCoverPromptId}
+                        onChange={(e) => setSelectedCoverPromptId(e.target.value)}
+                        className="neo-input min-w-0 flex-1 px-3 py-2 text-sm"
+                      >
+                        {coverPromptTemplates.map((template) => (
+                          <option key={template.id} value={template.id}>
+                            {template.name}
+                          </option>
+                        ))}
+                      </select>
                       <button
                         type="button"
-                        onClick={saveCoverPrompt}
-                        className="neo-button neo-button-primary flex-1 py-2 text-xs"
+                        onClick={editSelectedCoverPrompt}
+                        className="neo-button neo-button-ghost shrink-0 px-3 py-2 text-xs"
                       >
-                        保存
+                        编辑
                       </button>
                       <button
                         type="button"
-                        onClick={clearCoverPromptDraft}
-                        className="neo-button neo-button-ghost px-3 py-2 text-xs"
+                        disabled={!selectedCoverPrompt}
+                        onClick={() =>
+                          selectedCoverPrompt && onDeleteCoverPrompt(selectedCoverPrompt.id)
+                        }
+                        className="neo-button neo-button-ghost shrink-0 px-3 py-2 text-xs disabled:opacity-40"
                       >
-                        取消
+                        删除
                       </button>
                     </div>
-                  </div>
-                )}
-              </section>
-              <section className="rounded-xl border border-(--neo-line) bg-(--neo-surface) p-3 space-y-3">
-                <button
-                  type="button"
-                  onClick={onGenerateCover}
-                  disabled={
-                    !inputText.trim() ||
-                    Boolean(runningTask) ||
-                    !coverGenerationConfigStatus.isConfigured
-                  }
-                  className="neo-button neo-button-primary w-full px-4 py-3 flex items-center justify-center gap-2"
-                >
-                  {runningTask === "cover" || runningTask === "publishOptimize" ? (
-                    <Loader2 className="w-4 h-4 animate-spin" />
+                    <div className="flex items-center justify-between gap-2">
+                      <p className="truncate text-xs font-bold neo-text-muted">
+                        当前：{selectedCoverPrompt?.name || "公众号封面通用"}
+                      </p>
+                      <button
+                        type="button"
+                        onClick={newCoverPrompt}
+                        className="text-xs font-black underline text-(--neo-ink)"
+                      >
+                        新增提示词
+                      </button>
+                    </div>
+                    {isCoverPromptEditorOpen && (
+                      <div className="rounded-xl border border-(--neo-line) bg-white p-3 space-y-2">
+                        <input
+                          value={coverPromptName}
+                          onChange={(e) => setCoverPromptName(e.target.value)}
+                          className="neo-input w-full px-3 py-2 text-sm"
+                          placeholder="提示词名称"
+                        />
+                        <textarea
+                          value={coverPromptBody}
+                          onChange={(e) => setCoverPromptBody(e.target.value)}
+                          className="neo-input w-full min-h-28 px-3 py-2 text-sm resize-none"
+                          placeholder="输入封面风格、构图、色彩和禁用元素等要求"
+                        />
+                        <div className="flex gap-2">
+                          <button
+                            type="button"
+                            onClick={saveCoverPrompt}
+                            className="neo-button neo-button-primary flex-1 py-2 text-xs"
+                          >
+                            保存
+                          </button>
+                          <button
+                            type="button"
+                            onClick={clearCoverPromptDraft}
+                            className="neo-button neo-button-ghost px-3 py-2 text-xs"
+                          >
+                            取消
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </section>
+                  <section className="rounded-xl border border-(--neo-line) bg-(--neo-surface) p-3 space-y-3">
+                    <button
+                      type="button"
+                      onClick={onGenerateCover}
+                      disabled={
+                        !inputText.trim() ||
+                        Boolean(runningTask) ||
+                        !coverGenerationConfigStatus.isConfigured
+                      }
+                      className="neo-button neo-button-primary w-full px-4 py-3 flex items-center justify-center gap-2"
+                    >
+                      {runningTask === "cover" || runningTask === "publishOptimize" ? (
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                      ) : (
+                        <ImageIcon className="w-4 h-4" />
+                      )}
+                      {runningTask === "cover"
+                        ? "正在生成封面..."
+                        : runningTask === "publishOptimize"
+                          ? "正在准备物料..."
+                          : "生成封面图"}
+                    </button>
+                    <p className="px-1 text-[11px] font-bold leading-relaxed neo-text-muted">
+                      需要支持真实生图的模型；提示词只影响画面风格。
+                    </p>
+                  </section>
+
+                  <CoverResultCard
+                    coverGenerationResult={coverGenerationResult}
+                    runningTask={runningTask}
+                    onCopyText={copyPlainText}
+                    copiedMaterialIds={copiedMaterialIds}
+                  />
+
+                  {coverGenerationResult || publishOptimization ? (
+                    <PublishMaterials
+                      publishOptimization={publishOptimization}
+                      coverGenerationResult={coverGenerationResult}
+                      onCopyText={copyPlainText}
+                      copiedMaterialIds={copiedMaterialIds}
+                      showCover={false}
+                      compact
+                    />
                   ) : (
-                    <ImageIcon className="w-4 h-4" />
+                    <div className="rounded-xl border border-(--neo-line) bg-(--neo-surface) p-4 text-sm font-bold neo-text-muted">
+                      生成封面后，标题、摘要和关键词会显示在这里。
+                    </div>
                   )}
-                  {runningTask === "cover"
-                    ? "正在生成封面..."
-                    : runningTask === "publishOptimize"
-                      ? "正在准备物料..."
-                      : "生成封面图"}
-                </button>
-                <p className="px-1 text-[11px] font-bold leading-relaxed neo-text-muted">
-                  需要支持真实生图的模型；提示词只影响画面风格。
-                </p>
-              </section>
-
-              <CoverResultCard
-                coverGenerationResult={coverGenerationResult}
-                runningTask={runningTask}
-                onCopyText={copyPlainText}
-                copiedMaterialIds={copiedMaterialIds}
-              />
-
-              {coverGenerationResult || publishOptimization ? (
-                <PublishMaterials
-                  publishOptimization={publishOptimization}
-                  coverGenerationResult={coverGenerationResult}
-                  onCopyText={copyPlainText}
-                  copiedMaterialIds={copiedMaterialIds}
-                  showCover={false}
-                  compact
-                />
+                </>
               ) : (
-                <div className="rounded-xl border border-(--neo-line) bg-(--neo-surface) p-4 text-sm font-bold neo-text-muted">
-                  生成封面后，标题、摘要和关键词会显示在这里。
-                </div>
+                <>
+                  <section className="rounded-xl border border-(--neo-line) bg-(--neo-surface) p-3 space-y-3">
+                    <div>
+                      <h3 className="text-sm font-black flex items-center gap-1.5">
+                        <PenLine className="w-4 h-4" />
+                        贴图提示词
+                      </h3>
+                      <p className="mt-1 text-[11px] font-bold leading-relaxed neo-text-muted">
+                        选择贴图风格，系统会先提炼金句，再生成背景并叠加清晰中文。
+                      </p>
+                    </div>
+                    <div className="flex gap-2">
+                      <select
+                        value={selectedPosterPromptId}
+                        onChange={(e) => setSelectedPosterPromptId(e.target.value)}
+                        className="neo-input min-w-0 flex-1 px-3 py-2 text-sm"
+                      >
+                        {posterPromptTemplates.map((template) => (
+                          <option key={template.id} value={template.id}>
+                            {template.name}
+                          </option>
+                        ))}
+                      </select>
+                      <button
+                        type="button"
+                        onClick={editSelectedPosterPrompt}
+                        className="neo-button neo-button-ghost shrink-0 px-3 py-2 text-xs"
+                      >
+                        编辑
+                      </button>
+                      <button
+                        type="button"
+                        disabled={!selectedPosterPrompt}
+                        onClick={() =>
+                          selectedPosterPrompt && onDeletePosterPrompt(selectedPosterPrompt.id)
+                        }
+                        className="neo-button neo-button-ghost shrink-0 px-3 py-2 text-xs disabled:opacity-40"
+                      >
+                        删除
+                      </button>
+                    </div>
+                    <div className="flex items-center justify-between gap-2">
+                      <p className="truncate text-xs font-bold neo-text-muted">
+                        当前：{selectedPosterPrompt?.name || "金句传播贴图"}
+                      </p>
+                      <button
+                        type="button"
+                        onClick={newPosterPrompt}
+                        className="text-xs font-black underline text-(--neo-ink)"
+                      >
+                        新增提示词
+                      </button>
+                    </div>
+                    {isPosterPromptEditorOpen && (
+                      <div className="rounded-xl border border-(--neo-line) bg-white p-3 space-y-2">
+                        <input
+                          value={posterPromptName}
+                          onChange={(e) => setPosterPromptName(e.target.value)}
+                          className="neo-input w-full px-3 py-2 text-sm"
+                          placeholder="提示词名称"
+                        />
+                        <textarea
+                          value={posterPromptBody}
+                          onChange={(e) => setPosterPromptBody(e.target.value)}
+                          className="neo-input w-full min-h-28 px-3 py-2 text-sm resize-none"
+                          placeholder="输入贴图风格、使用场景、视觉氛围和禁用元素等要求"
+                        />
+                        <div className="flex gap-2">
+                          <button
+                            type="button"
+                            onClick={savePosterPrompt}
+                            className="neo-button neo-button-primary flex-1 py-2 text-xs"
+                          >
+                            保存
+                          </button>
+                          <button
+                            type="button"
+                            onClick={clearPosterPromptDraft}
+                            className="neo-button neo-button-ghost px-3 py-2 text-xs"
+                          >
+                            取消
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </section>
+                  <section className="rounded-xl border border-(--neo-line) bg-(--neo-surface) p-3 space-y-3">
+                    <button
+                      type="button"
+                      onClick={onGeneratePoster}
+                      disabled={
+                        !inputText.trim() ||
+                        Boolean(runningTask) ||
+                        !coverGenerationConfigStatus.isConfigured
+                      }
+                      className="neo-button neo-button-primary w-full px-4 py-3 flex items-center justify-center gap-2"
+                    >
+                      {runningTask === "poster" ? (
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                      ) : (
+                        <ImageIcon className="w-4 h-4" />
+                      )}
+                      {runningTask === "poster" ? "正在生成贴图..." : "生成公众号贴图"}
+                    </button>
+                    <p className="px-1 text-[11px] font-bold leading-relaxed neo-text-muted">
+                      贴图是 3:4 竖版金句图；中文文字由工具叠加，避免模型生成错字。
+                    </p>
+                  </section>
+
+                  <PosterResultCard
+                    posterGenerationResult={posterGenerationResult}
+                    runningTask={runningTask}
+                    onCopyText={copyPlainText}
+                    copiedMaterialIds={copiedMaterialIds}
+                    onRegenerate={onGeneratePoster}
+                  />
+                </>
               )}
 
               <StepActions currentStep={publishStep} setPublishStep={setPublishStep} />

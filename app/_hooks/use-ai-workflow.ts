@@ -10,6 +10,8 @@ import type {
   AppliedAiChange,
   CoverGenerationResult,
   FormatDraft,
+  PosterGenerationResult,
+  PosterTextBrief,
   PromptTemplate,
   PublishOptimizationResult,
   RewriteDraft,
@@ -28,6 +30,7 @@ type UseAiWorkflowParams = {
   aiImageApiKey: string;
   aiImageModel: string;
   coverPrompt: string;
+  posterPrompt: string;
   setShowAiConfigModal: (value: boolean) => void;
   showToast: ShowToast;
 };
@@ -68,6 +71,138 @@ const normalizePublishOptimization = (value: unknown): NonNullable<PublishOptimi
   };
 };
 
+const POSTER_WIDTH = 900;
+const POSTER_HEIGHT = 1200;
+
+const loadImage = (src: string) =>
+  new Promise<HTMLImageElement>((resolve, reject) => {
+    const image = new Image();
+    image.crossOrigin = "anonymous";
+    image.onload = () => resolve(image);
+    image.onerror = () => reject(new Error("贴图背景加载失败"));
+    image.src = src;
+  });
+
+const fillRoundedRect = (
+  ctx: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  width: number,
+  height: number,
+  radius: number,
+) => {
+  ctx.beginPath();
+  ctx.moveTo(x + radius, y);
+  ctx.lineTo(x + width - radius, y);
+  ctx.quadraticCurveTo(x + width, y, x + width, y + radius);
+  ctx.lineTo(x + width, y + height - radius);
+  ctx.quadraticCurveTo(x + width, y + height, x + width - radius, y + height);
+  ctx.lineTo(x + radius, y + height);
+  ctx.quadraticCurveTo(x, y + height, x, y + height - radius);
+  ctx.lineTo(x, y + radius);
+  ctx.quadraticCurveTo(x, y, x + radius, y);
+  ctx.closePath();
+  ctx.fill();
+};
+
+const drawCoverImage = (
+  ctx: CanvasRenderingContext2D,
+  image: HTMLImageElement,
+  width: number,
+  height: number,
+) => {
+  const imageRatio = image.width / image.height;
+  const canvasRatio = width / height;
+  const drawHeight = imageRatio > canvasRatio ? height : width / imageRatio;
+  const drawWidth = imageRatio > canvasRatio ? height * imageRatio : width;
+  const x = (width - drawWidth) / 2;
+  const y = (height - drawHeight) / 2;
+  ctx.drawImage(image, x, y, drawWidth, drawHeight);
+};
+
+const drawWrappedText = (
+  ctx: CanvasRenderingContext2D,
+  text: string,
+  x: number,
+  y: number,
+  maxWidth: number,
+  lineHeight: number,
+  maxLines: number,
+) => {
+  const chars = Array.from(text.trim());
+  const lines: string[] = [];
+  let currentLine = "";
+
+  for (const char of chars) {
+    const nextLine = currentLine + char;
+    if (ctx.measureText(nextLine).width <= maxWidth || !currentLine) {
+      currentLine = nextLine;
+      continue;
+    }
+    lines.push(currentLine);
+    currentLine = char;
+    if (lines.length >= maxLines) break;
+  }
+  if (currentLine && lines.length < maxLines) lines.push(currentLine);
+
+  if (lines.length === maxLines && chars.join("").length > lines.join("").length) {
+    const lastLine = lines[maxLines - 1] || "";
+    let truncated = lastLine;
+    while (truncated && ctx.measureText(`${truncated}…`).width > maxWidth) {
+      truncated = truncated.slice(0, -1);
+    }
+    lines[maxLines - 1] = `${truncated}…`;
+  }
+
+  lines.forEach((line, index) => {
+    ctx.fillText(line, x, y + index * lineHeight);
+  });
+  return y + lines.length * lineHeight;
+};
+
+const composePosterImage = async (backgroundImageUrl: string, brief: PosterTextBrief) => {
+  const canvas = document.createElement("canvas");
+  canvas.width = POSTER_WIDTH;
+  canvas.height = POSTER_HEIGHT;
+  const ctx = canvas.getContext("2d");
+  if (!ctx) throw new Error("当前浏览器不支持贴图生成");
+
+  const image = await loadImage(backgroundImageUrl);
+  drawCoverImage(ctx, image, POSTER_WIDTH, POSTER_HEIGHT);
+
+  const gradient = ctx.createLinearGradient(0, 0, 0, POSTER_HEIGHT);
+  gradient.addColorStop(0, "rgba(255,255,255,0.35)");
+  gradient.addColorStop(0.45, "rgba(255,255,255,0.10)");
+  gradient.addColorStop(1, "rgba(12,18,32,0.55)");
+  ctx.fillStyle = gradient;
+  ctx.fillRect(0, 0, POSTER_WIDTH, POSTER_HEIGHT);
+
+  ctx.save();
+  ctx.shadowColor = "rgba(0,0,0,0.16)";
+  ctx.shadowBlur = 28;
+  ctx.shadowOffsetY = 14;
+  ctx.fillStyle = "rgba(255,255,255,0.92)";
+  fillRoundedRect(ctx, 76, 714, 748, 356, 34);
+  ctx.restore();
+
+  ctx.fillStyle = "#111827";
+  ctx.font = "900 48px system-ui, -apple-system, BlinkMacSystemFont, 'Microsoft YaHei', sans-serif";
+  const titleBottom = drawWrappedText(ctx, brief.title, 124, 796, 652, 58, 2);
+
+  ctx.fillStyle = "#050816";
+  ctx.font = "900 58px system-ui, -apple-system, BlinkMacSystemFont, 'Microsoft YaHei', sans-serif";
+  const quoteBottom = drawWrappedText(ctx, brief.quote, 124, titleBottom + 38, 652, 72, 3);
+
+  ctx.fillStyle = "#4b5563";
+  ctx.font = "700 28px system-ui, -apple-system, BlinkMacSystemFont, 'Microsoft YaHei', sans-serif";
+  drawWrappedText(ctx, brief.note || "公众号贴图", 124, quoteBottom + 28, 652, 38, 1);
+
+  ctx.fillStyle = "#10b981";
+  fillRoundedRect(ctx, 124, 1018, 88, 10, 5);
+
+  return canvas.toDataURL("image/png");
+};
+
 export function useAiWorkflow({
   inputText,
   setInputText,
@@ -79,6 +214,7 @@ export function useAiWorkflow({
   aiImageApiKey,
   aiImageModel,
   coverPrompt,
+  posterPrompt,
   setShowAiConfigModal,
   showToast,
 }: UseAiWorkflowParams) {
@@ -90,6 +226,8 @@ export function useAiWorkflow({
   const [appliedAiChange, setAppliedAiChange] = useState<AppliedAiChange>(null);
   const [publishOptimization, setPublishOptimization] = useState<PublishOptimizationResult>(null);
   const [coverGenerationResult, setCoverGenerationResult] = useState<CoverGenerationResult>(null);
+  const [posterGenerationResult, setPosterGenerationResult] =
+    useState<PosterGenerationResult>(null);
 
   const requestAiTask = useCallback(
     async (taskType: AiTaskType, rewritePrompt = "", options: RequestAiTaskOptions = {}) => {
@@ -352,6 +490,123 @@ export function useAiWorkflow({
     showToast,
   ]);
 
+  const runPosterGeneration = useCallback(async () => {
+    if (!inputText.trim()) {
+      showToast("请先填写初稿内容", "error");
+      return;
+    }
+
+    if (runningTask) return;
+
+    const trimmedTextBaseUrl = aiBaseUrl.trim();
+    const trimmedTextApiKey = aiApiKey.trim();
+    const trimmedTextModel = aiModel.trim();
+    if (!trimmedTextBaseUrl || !trimmedTextApiKey || !trimmedTextModel) {
+      setShowAiConfigModal(true);
+      showToast("请先配置文本模型，用于提炼贴图文案", "error");
+      return;
+    }
+
+    const imageConfig = resolveCoverGenerationConfig({
+      textBaseUrl: aiBaseUrl,
+      textApiKey: aiApiKey,
+      imageBaseUrl: aiImageBaseUrl,
+      imageApiKey: aiImageApiKey,
+      imageModel: aiImageModel,
+    });
+
+    if (!imageConfig.baseUrl || !imageConfig.apiKey || !imageConfig.model) {
+      setShowAiConfigModal(true);
+      showToast("请先配置生图 API，用于生成贴图背景", "error");
+      return;
+    }
+
+    setRunningTask("poster");
+    setPosterGenerationResult(null);
+
+    try {
+      const briefResponse = await fetch("/api/ai-poster-brief", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          markdown: inputText,
+          providerType: aiProviderType,
+          baseUrl: trimmedTextBaseUrl,
+          apiKey: trimmedTextApiKey,
+          model: trimmedTextModel,
+          posterPrompt,
+        }),
+      });
+      const briefData = (await briefResponse.json().catch(() => null)) as {
+        result?: PosterTextBrief;
+        error?: string;
+      } | null;
+
+      if (!briefResponse.ok || !briefData?.result) {
+        showToast(briefData?.error || "贴图文案生成失败，请重试", "error");
+        return;
+      }
+
+      const posterResponse = await fetch("/api/ai-poster", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          markdown: inputText,
+          providerType: aiProviderType,
+          baseUrl: imageConfig.baseUrl,
+          apiKey: imageConfig.apiKey,
+          model: imageConfig.model,
+          brief: briefData.result,
+          posterPrompt,
+        }),
+      });
+      const posterData = (await posterResponse.json().catch(() => null)) as {
+        result?: {
+          backgroundImageUrl: string;
+          prompt: string;
+          brief: PosterTextBrief;
+          createdAt: string;
+          source?: "ai";
+          warning?: string;
+        };
+        error?: string;
+      } | null;
+
+      if (!posterResponse.ok || !posterData?.result?.backgroundImageUrl) {
+        showToast(posterData?.error || "贴图背景生成失败，请重试", "error");
+        return;
+      }
+
+      const imageUrl = await composePosterImage(
+        posterData.result.backgroundImageUrl,
+        posterData.result.brief,
+      );
+      setPosterGenerationResult({
+        ...posterData.result,
+        imageUrl,
+      });
+      showToast("公众号贴图已生成");
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "";
+      showToast(message || "公众号贴图生成失败，请检查配置后重试", "error");
+    } finally {
+      setRunningTask(null);
+    }
+  }, [
+    inputText,
+    runningTask,
+    aiBaseUrl,
+    aiApiKey,
+    aiModel,
+    aiImageBaseUrl,
+    aiImageApiKey,
+    aiImageModel,
+    aiProviderType,
+    posterPrompt,
+    setShowAiConfigModal,
+    showToast,
+  ]);
+
   return {
     runningTask,
     isAiFormatting: runningTask === "format",
@@ -367,6 +622,9 @@ export function useAiWorkflow({
     coverGenerationResult,
     setCoverGenerationResult,
     hasGeneratedCover: Boolean(coverGenerationResult?.imageUrl?.trim()),
+    posterGenerationResult,
+    setPosterGenerationResult,
+    hasGeneratedPoster: Boolean(posterGenerationResult?.imageUrl?.trim()),
     runFormat,
     applyFormatDraft,
     discardFormatDraft,
@@ -375,5 +633,6 @@ export function useAiWorkflow({
     restoreAppliedAiChange,
     runPublishOptimize,
     runCoverGeneration,
+    runPosterGeneration,
   };
 }

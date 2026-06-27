@@ -16,6 +16,7 @@ import { useClipboardCopy } from "./_hooks/use-clipboard-copy";
 import { useCoverPromptTemplates } from "./_hooks/use-cover-prompt-templates";
 import { useDraftAutosave } from "./_hooks/use-draft-autosave";
 import { useMarkdownTools } from "./_hooks/use-markdown-tools";
+import { usePosterPromptTemplates } from "./_hooks/use-poster-prompt-templates";
 import { usePromptTemplates } from "./_hooks/use-prompt-templates";
 import { useScrollSync } from "./_hooks/use-scroll-sync";
 import { useTheme } from "./_hooks/use-theme";
@@ -95,6 +96,7 @@ export default function Home() {
   const aiSettings = useAiSettings(showToast);
   const promptSettings = usePromptTemplates(showToast);
   const coverPromptSettings = useCoverPromptTemplates(showToast);
+  const posterPromptSettings = usePosterPromptTemplates(showToast);
   const wordCount = useWordCount(inputText);
   const copyToClipboard = useClipboardCopy(showToast);
   const { syncScroll, setSyncScroll, previewRef, handleInputScroll, handlePreviewScroll } =
@@ -150,6 +152,7 @@ export default function Home() {
     aiImageApiKey: aiSettings.aiImageApiKey,
     aiImageModel: aiSettings.aiImageModel,
     coverPrompt: coverPromptSettings.selectedCoverPrompt?.prompt || "",
+    posterPrompt: posterPromptSettings.selectedPosterPrompt?.prompt || "",
     setShowAiConfigModal: aiSettings.setShowAiConfigModal,
     showToast,
   });
@@ -203,6 +206,7 @@ export default function Home() {
         hasFormatDraft: Boolean(aiWorkflow.formatDraft),
         hasAppliedFormat: aiWorkflow.hasAppliedFormat,
         hasCoverGenerated: aiWorkflow.hasGeneratedCover,
+        hasPosterGenerated: aiWorkflow.hasGeneratedPoster,
         hasCheckWarnings: publishChecks.some((item) => item.status === "warning"),
         hasPublishOptimization: Boolean(aiWorkflow.publishOptimization),
         hasCopied: hasCopiedForPublish,
@@ -214,6 +218,7 @@ export default function Home() {
       aiWorkflow.formatDraft,
       aiWorkflow.hasAppliedFormat,
       aiWorkflow.hasGeneratedCover,
+      aiWorkflow.hasGeneratedPoster,
       publishChecks,
       aiWorkflow.publishOptimization,
       hasCopiedForPublish,
@@ -330,7 +335,9 @@ export default function Home() {
               onRestoreAiChange={aiWorkflow.restoreAppliedAiChange}
               onPublishOptimize={aiWorkflow.runPublishOptimize}
               onGenerateCover={aiWorkflow.runCoverGeneration}
+              onGeneratePoster={aiWorkflow.runPosterGeneration}
               coverGenerationResult={aiWorkflow.coverGenerationResult}
+              posterGenerationResult={aiWorkflow.posterGenerationResult}
               coverGenerationConfigStatus={coverGenerationConfigStatus}
               onOpenAiConfig={() => aiSettings.setShowAiConfigModal(true)}
               promptTemplates={promptSettings.promptTemplates}
@@ -345,6 +352,12 @@ export default function Home() {
               setSelectedCoverPromptId={coverPromptSettings.setSelectedCoverPromptId}
               onSaveCoverPrompt={coverPromptSettings.saveCoverPromptTemplate}
               onDeleteCoverPrompt={coverPromptSettings.deleteCoverPromptTemplate}
+              posterPromptTemplates={posterPromptSettings.posterPromptTemplates}
+              selectedPosterPrompt={posterPromptSettings.selectedPosterPrompt}
+              selectedPosterPromptId={posterPromptSettings.selectedPosterPromptId}
+              setSelectedPosterPromptId={posterPromptSettings.setSelectedPosterPromptId}
+              onSavePosterPrompt={posterPromptSettings.savePosterPromptTemplate}
+              onDeletePosterPrompt={posterPromptSettings.deletePosterPromptTemplate}
               publishChecks={publishChecks}
               publishOptimization={aiWorkflow.publishOptimization}
               onCopy={handleCopy}

@@ -5,11 +5,14 @@ import {
   createAppliedAiChange,
   createCoverPrompt,
   createDefaultCoverPromptTemplates,
+  createDefaultPosterPromptTemplates,
   createDefaultPromptTemplates,
+  createPosterPrompt,
   createPublishWorkflowSteps,
   extractJsonObject,
   getCoverGenerationConfigStatus,
   getProviderPreset,
+  normalizePosterTextBrief,
   resolveCoverGenerationConfig,
   runPublishChecks,
 } from "../app/_lib/workflow-utils.js";
@@ -53,6 +56,16 @@ test("default cover prompt templates are separate from rewrite prompts", () => {
   assert.ok(!rewriteTemplates.some((template) => template.id.startsWith("cover-")));
 });
 
+test("default poster prompt templates are separate from cover prompts", () => {
+  const templates = createDefaultPosterPromptTemplates();
+  const coverTemplates = createDefaultCoverPromptTemplates();
+
+  assert.ok(templates.length >= 3);
+  assert.ok(templates.every((template) => template.id.startsWith("poster-")));
+  assert.ok(templates.every((template) => template.prompt.includes("贴图")));
+  assert.ok(!coverTemplates.some((template) => template.id.startsWith("poster-")));
+});
+
 test("createCoverPrompt combines article context with selected cover prompt", () => {
   const prompt = createCoverPrompt({
     markdown: "# 用 WX 整理公众号文章\n\n正文内容",
@@ -66,6 +79,32 @@ test("createCoverPrompt combines article context with selected cover prompt", ()
   assert.match(prompt, /文章摘要：把初稿、排版、封面和发布物料整理到可发布状态。/);
   assert.match(prompt, /关键词：公众号、排版/);
   assert.match(prompt, /封面风格要求：极简商务风，浅色背景，清晰标题区，不使用真实人物。/);
+});
+
+test("createPosterPrompt keeps text overlay out of image model prompt", () => {
+  const prompt = createPosterPrompt({
+    markdown: "# 做内容要先抓住重点\n公众号写作要把观点提炼成一句可传播的话。",
+    brief: {
+      title: "先抓住重点",
+      quote: "好内容不是写得更多，而是让读者更快记住。",
+      note: "适合内容创作者收藏",
+      backgroundPrompt: "安静的书桌、便签和柔和光线",
+    },
+    posterPrompt: "知识类公众号贴图，克制高级，竖版构图。",
+  });
+
+  assert.match(prompt, /公众号贴图背景/);
+  assert.match(prompt, /竖版 3:4/);
+  assert.match(prompt, /不要在画面中生成任何中文或英文文字/);
+  assert.match(prompt, /安静的书桌、便签和柔和光线/);
+  assert.match(prompt, /知识类公众号贴图/);
+});
+
+test("normalizePosterTextBrief rejects invalid generated poster brief", () => {
+  assert.throws(
+    () => normalizePosterTextBrief({ title: "", quote: "", backgroundPrompt: "" }),
+    /AI 贴图文案结果解析失败/,
+  );
 });
 
 test("extractJsonObject accepts model responses wrapped in prose or fences", () => {

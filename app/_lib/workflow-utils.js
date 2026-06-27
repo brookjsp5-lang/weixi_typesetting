@@ -138,7 +138,7 @@ export function createDefaultCoverPromptTemplates() {
       id: "cover-general",
       name: "公众号封面通用",
       prompt:
-        "适合微信公众号首图，横版构图，标题区域清晰，画面简洁有编辑感，不包含二维码、品牌水印或真实人物肖像。",
+        "适合微信公众号封面首图，横版构图，标题区域清晰，画面简洁有编辑感，不包含二维码、品牌水印或真实人物肖像。",
       createdAt: now,
       updatedAt: now,
     },
@@ -161,6 +161,36 @@ export function createDefaultCoverPromptTemplates() {
   ];
 }
 
+export function createDefaultPosterPromptTemplates() {
+  const now = new Date().toISOString();
+  return [
+    {
+      id: "poster-quote-card",
+      name: "金句传播贴图",
+      prompt:
+        "公众号贴图，突出一句有记忆点的金句，竖版 3:4 构图，背景简洁高级，适合朋友圈和公众号文末传播。",
+      createdAt: now,
+      updatedAt: now,
+    },
+    {
+      id: "poster-summary-card",
+      name: "总结要点贴图",
+      prompt:
+        "公众号贴图，用于承载文章核心结论和总结，信息层次清晰，适合知识类、教程类、干货类内容传播。",
+      createdAt: now,
+      updatedAt: now,
+    },
+    {
+      id: "poster-editorial-card",
+      name: "观点编辑贴图",
+      prompt:
+        "公众号贴图，编辑感强，适合观点表达和深度文章，画面克制、有留白、有主题氛围，但不要杂乱。",
+      createdAt: now,
+      updatedAt: now,
+    },
+  ];
+}
+
 export function createCoverPrompt({ markdown, title, summary, keywords = [], coverPrompt = "" }) {
   const excerpt = String(markdown || "")
     .replace(/\s+/g, " ")
@@ -177,6 +207,70 @@ export function createCoverPrompt({ markdown, title, summary, keywords = [], cov
 文章摘要：${summary || "根据正文主题生成封面氛围"}
 关键词：${cleanKeywords.join("、") || "公众号、内容创作、排版"}${styleSection}
 正文参考：${excerpt}`;
+}
+
+const trimBriefValue = (value, maxLength) =>
+  String(value || "")
+    .replace(/\s+/g, " ")
+    .trim()
+    .slice(0, maxLength);
+
+export function normalizePosterTextBrief(value) {
+  const parsed = value || {};
+  const brief = {
+    title: trimBriefValue(parsed.title, 24),
+    quote: trimBriefValue(parsed.quote, 48),
+    note: trimBriefValue(parsed.note, 36),
+    backgroundPrompt: trimBriefValue(parsed.backgroundPrompt, 160),
+  };
+
+  if (!brief.title || !brief.quote || !brief.backgroundPrompt) {
+    throw new Error("AI 贴图文案结果解析失败");
+  }
+
+  return brief;
+}
+
+export function createPosterBriefPrompt({ markdown, posterPrompt = "" }) {
+  const excerpt = String(markdown || "")
+    .replace(/\s+/g, " ")
+    .slice(0, 2000);
+  const cleanPosterPrompt = String(posterPrompt || "").trim();
+
+  return `请根据公众号文章初稿，提炼一张可独立传播的公众号贴图文案。
+
+只输出一个 JSON 对象，不要解释，不要使用 Markdown 代码块。JSON 结构必须是：
+{
+  "title": "12字以内主标题",
+  "quote": "28字以内金句或总结句",
+  "note": "18字以内辅助说明",
+  "backgroundPrompt": "用于生成无文字背景图的画面提示词"
+}
+
+要求：
+1. title、quote、note 必须来自原文主题，不编造事实。
+2. quote 要适合做金句图或总结图，清楚、有传播感，但不要夸张标题党。
+3. backgroundPrompt 只描述画面、氛围、色彩、构图，不要要求模型生成中文或英文文字。
+4. 贴图提示词要求：${cleanPosterPrompt || "公众号贴图，竖版 3:4，清晰留白，适合叠加中文文案。"}
+
+正文参考：${excerpt}`;
+}
+
+export function createPosterPrompt({ markdown, brief, posterPrompt = "" }) {
+  const excerpt = String(markdown || "")
+    .replace(/\s+/g, " ")
+    .slice(0, 800);
+  const normalizedBrief = normalizePosterTextBrief(brief);
+  const cleanPosterPrompt = String(posterPrompt || "").trim();
+
+  return `生成一张公众号贴图背景图，竖版 3:4 构图，适合后续叠加清晰中文标题和金句。
+
+画面主题：${normalizedBrief.backgroundPrompt}
+贴图风格要求：${cleanPosterPrompt || "公众号贴图，克制高级，留白充足。"}
+文章主题参考：${normalizedBrief.title}
+文章摘要参考：${excerpt}
+
+重要限制：不要在画面中生成任何中文或英文文字，不要生成二维码、品牌水印、真实人物肖像、UI 截图或复杂小字。`;
 }
 
 export function extractJsonObject(text) {
@@ -252,6 +346,7 @@ export function createPublishWorkflowSteps({
   hasFormatDraft,
   hasAppliedFormat,
   hasCoverGenerated,
+  hasPosterGenerated,
   hasCheckWarnings,
   hasPublishOptimization,
   hasCopied,
@@ -302,8 +397,16 @@ export function createPublishWorkflowSteps({
     {
       id: "image",
       label: "AI 生图",
-      status: !hasContent ? "pending" : hasCoverGenerated ? "done" : "pending",
-      description: !hasContent ? "等待初稿" : hasCoverGenerated ? "已生成封面" : "等待生成封面",
+      status: !hasContent
+        ? "pending"
+        : hasCoverGenerated || hasPosterGenerated
+          ? "done"
+          : "pending",
+      description: !hasContent
+        ? "等待初稿"
+        : hasCoverGenerated || hasPosterGenerated
+          ? "已生成图片"
+          : "等待生成图片",
     },
     {
       id: "check",

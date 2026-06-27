@@ -20,7 +20,7 @@ export type AiProviderType =
 
 export type AiTaskType = "format" | "rewrite" | "publishOptimize";
 
-export type RunningAiTaskType = AiTaskType | "cover";
+export type RunningAiTaskType = AiTaskType | "cover" | "poster";
 
 export type ProviderPreset = {
   id: AiProviderType;
@@ -75,6 +75,14 @@ export type CoverPromptTemplate = {
   updatedAt: string;
 };
 
+export type PosterPromptTemplate = {
+  id: string;
+  name: string;
+  prompt: string;
+  createdAt: string;
+  updatedAt: string;
+};
+
 export type RewriteDraft = {
   original: string;
   rewritten: string;
@@ -114,6 +122,23 @@ export type CoverGenerationResult = {
   imageUrl: string;
   prompt: string;
   titleHint: string;
+  createdAt: string;
+  source?: "ai";
+  warning?: string;
+} | null;
+
+export type PosterTextBrief = {
+  title: string;
+  quote: string;
+  note: string;
+  backgroundPrompt: string;
+};
+
+export type PosterGenerationResult = {
+  imageUrl: string;
+  backgroundImageUrl: string;
+  prompt: string;
+  brief: PosterTextBrief;
   createdAt: string;
   source?: "ai";
   warning?: string;
