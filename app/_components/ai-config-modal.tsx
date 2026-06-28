@@ -80,22 +80,30 @@ const emptyDraft: ProviderDraft = {
   imageModel: "",
 };
 
-const createEmptyProviderDrafts = (): Record<AiProviderType, ProviderDraft> => ({
-  openrouter: {
+const createDraftFromPreset = (provider: AiProviderType): ProviderDraft => {
+  const preset = getProviderPreset(provider);
+  return {
     ...emptyDraft,
-    baseUrl: openRouterConfig.baseUrl,
-  },
-  deepseek: { ...emptyDraft, baseUrl: getProviderPreset("deepseek").baseUrl },
-  volcengine: { ...emptyDraft, baseUrl: getProviderPreset("volcengine").baseUrl },
-  dashscope: { ...emptyDraft, baseUrl: getProviderPreset("dashscope").baseUrl },
-  qwen: { ...emptyDraft, baseUrl: getProviderPreset("qwen").baseUrl },
-  minimax: { ...emptyDraft, baseUrl: getProviderPreset("minimax").baseUrl },
-  mimo: { ...emptyDraft, baseUrl: getProviderPreset("mimo").baseUrl },
-  moonshot: { ...emptyDraft, baseUrl: getProviderPreset("moonshot").baseUrl },
-  zhipu: { ...emptyDraft, baseUrl: getProviderPreset("zhipu").baseUrl },
-  openai: { ...emptyDraft },
-  anthropic: { ...emptyDraft },
-  custom: { ...emptyDraft },
+    baseUrl: provider === "openrouter" ? openRouterConfig.baseUrl : preset.baseUrl,
+    model: preset.defaultModel,
+    imageBaseUrl: preset.imageBaseUrl || "",
+    imageModel: preset.defaultImageModel || "",
+  };
+};
+
+const createEmptyProviderDrafts = (): Record<AiProviderType, ProviderDraft> => ({
+  openrouter: createDraftFromPreset("openrouter"),
+  deepseek: createDraftFromPreset("deepseek"),
+  volcengine: createDraftFromPreset("volcengine"),
+  dashscope: createDraftFromPreset("dashscope"),
+  qwen: createDraftFromPreset("qwen"),
+  minimax: createDraftFromPreset("minimax"),
+  mimo: createDraftFromPreset("mimo"),
+  moonshot: createDraftFromPreset("moonshot"),
+  zhipu: createDraftFromPreset("zhipu"),
+  openai: createDraftFromPreset("openai"),
+  anthropic: createDraftFromPreset("anthropic"),
+  custom: createDraftFromPreset("custom"),
 });
 
 type AiConfigModalProps = {
@@ -290,6 +298,8 @@ export function AiConfigModal({
     const preset = getProviderPreset(provider);
     const targetBaseUrl = targetDraft.baseUrl || preset.baseUrl;
     const targetModel = targetDraft.model || preset.defaultModel;
+    const targetImageBaseUrl = targetDraft.imageBaseUrl || preset.imageBaseUrl || "";
+    const targetImageModel = targetDraft.imageModel || preset.defaultImageModel || "";
 
     setProviderDrafts(nextDrafts);
     setModelTest({ status: "idle", message: "" });
@@ -298,9 +308,9 @@ export function AiConfigModal({
     setAiBaseUrl(targetBaseUrl);
     setAiApiKey(targetDraft.apiKey);
     setAiModel(targetModel);
-    setAiImageBaseUrl(targetDraft.imageBaseUrl);
+    setAiImageBaseUrl(targetImageBaseUrl);
     setAiImageApiKey(targetDraft.imageApiKey);
-    setAiImageModel(targetDraft.imageModel);
+    setAiImageModel(targetImageModel);
   };
 
   const handleTestModel = async () => {
@@ -559,20 +569,30 @@ export function AiConfigModal({
             </div>
 
             <div>
-              <label className="block text-sm font-black text-(--neo-ink) mb-1">
-                生图 API 地址
-              </label>
+              <div className="mb-1 flex items-center justify-between gap-3">
+                <label className="block text-sm font-black text-(--neo-ink)">生图 API 地址</label>
+                {currentPreset.imageBaseUrl && aiImageBaseUrl !== currentPreset.imageBaseUrl && (
+                  <button
+                    type="button"
+                    onClick={() => handleImageBaseUrlChange(currentPreset.imageBaseUrl || "")}
+                    className="text-xs font-black underline text-(--neo-ink)"
+                  >
+                    使用预设
+                  </button>
+                )}
+              </div>
               <input
                 type="text"
                 value={aiImageBaseUrl}
                 onChange={(e) => handleImageBaseUrlChange(e.target.value)}
                 className="neo-input w-full px-3 py-2"
-                placeholder="可填 base URL 或完整 /images/generations 地址"
+                placeholder={
+                  currentPreset.imageBaseUrl || "可填 base URL 或完整 /images/generations 地址"
+                }
                 autoComplete="off"
               />
               <p className="mt-1 text-xs neo-text-muted font-bold leading-relaxed">
-                例如 https://ark.cn-beijing.volces.com/api/v3 或
-                https://ark.cn-beijing.volces.com/api/v3/images/generations。
+                支持 OpenAI 兼容 /images/generations，也支持 MiniMax 官方 /image_generation。
               </p>
             </div>
 
@@ -589,17 +609,34 @@ export function AiConfigModal({
             </div>
 
             <div>
-              <label className="block text-sm font-black text-(--neo-ink) mb-1">生图模型</label>
+              <div className="mb-1 flex items-center justify-between gap-3">
+                <label className="block text-sm font-black text-(--neo-ink)">生图模型</label>
+                {currentPreset.defaultImageModel &&
+                  aiImageModel !== currentPreset.defaultImageModel && (
+                    <button
+                      type="button"
+                      onClick={() =>
+                        handleImageModelChange(currentPreset.defaultImageModel || "")
+                      }
+                      className="text-xs font-black underline text-(--neo-ink)"
+                    >
+                      使用预设
+                    </button>
+                  )}
+              </div>
               <input
                 type="text"
                 value={aiImageModel}
                 onChange={(e) => handleImageModelChange(e.target.value)}
                 className="neo-input w-full px-3 py-2"
-                placeholder="例如 gpt-image-1 或 doubao-seedream-4-5-251128"
+                placeholder={
+                  currentPreset.defaultImageModel || "例如 gpt-image-1 或 doubao-seedream-4-5-251128"
+                }
                 autoComplete="off"
               />
               <p className="mt-1 text-xs neo-text-muted font-bold leading-relaxed">
-                火山方舟请确认模型 ID、API Key 权限、额度和接口区域一致。
+                {currentPreset.imageModelHelp ||
+                  "火山方舟请确认模型 ID、API Key 权限、额度和接口区域一致。"}
               </p>
             </div>
 

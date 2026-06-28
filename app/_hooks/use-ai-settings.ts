@@ -41,9 +41,9 @@ export function useAiSettings(showToast: ShowToast) {
     );
     setAiApiKey(localStorage.getItem(aiStorageKeys.apiKey) || "");
     setAiModel(localStorage.getItem(aiStorageKeys.model) || preset.defaultModel || "");
-    setAiImageBaseUrl(localStorage.getItem(aiStorageKeys.imageBaseUrl) || "");
+    setAiImageBaseUrl(localStorage.getItem(aiStorageKeys.imageBaseUrl) || preset.imageBaseUrl || "");
     setAiImageApiKey(localStorage.getItem(aiStorageKeys.imageApiKey) || "");
-    setAiImageModel(localStorage.getItem(aiStorageKeys.imageModel) || "");
+    setAiImageModel(localStorage.getItem(aiStorageKeys.imageModel) || preset.defaultImageModel || "");
   }, []);
 
   const saveAiSettings = () => {

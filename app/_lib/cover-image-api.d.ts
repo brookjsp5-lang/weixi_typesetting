@@ -10,6 +10,31 @@ export type ImageGenerationRequestInput = {
 
 export function resolveImageGenerationEndpoint(baseUrl: string): string;
 
+export function isOpenRouterImageConfig(input?: {
+  baseUrl?: string;
+  providerType?: AiProviderType | string;
+}): boolean;
+
+export function isOpenAIImageConfig(input?: {
+  baseUrl?: string;
+  providerType?: AiProviderType | string;
+}): boolean;
+
+export function isDashScopeImageConfig(input?: {
+  baseUrl?: string;
+  providerType?: AiProviderType | string;
+}): boolean;
+
+export function isMiniMaxImageConfig(input?: {
+  baseUrl?: string;
+  providerType?: AiProviderType | string;
+}): boolean;
+
+export function isZhipuImageConfig(input?: {
+  baseUrl?: string;
+  providerType?: AiProviderType | string;
+}): boolean;
+
 export function isVolcengineImageConfig(input?: {
   baseUrl?: string;
   providerType?: AiProviderType | string;

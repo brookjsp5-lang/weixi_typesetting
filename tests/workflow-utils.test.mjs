@@ -18,20 +18,68 @@ import {
 } from "../app/_lib/workflow-utils.js";
 
 test("provider presets include domestic OpenAI-compatible services", () => {
+  assert.equal(getProviderPreset("openrouter").imageBaseUrl, "https://openrouter.ai/api/v1/images");
+  assert.equal(getProviderPreset("openrouter").defaultImageModel, "bytedance-seed/seedream-4.5");
   assert.equal(getProviderPreset("deepseek").baseUrl, "https://api.deepseek.com");
   assert.equal(getProviderPreset("volcengine").baseUrl, "https://ark.cn-beijing.volces.com/api/v3");
+  assert.equal(
+    getProviderPreset("volcengine").imageBaseUrl,
+    "https://ark.cn-beijing.volces.com/api/v3/images/generations",
+  );
+  assert.equal(getProviderPreset("volcengine").defaultImageModel, "doubao-seedream-5-0-lite-260128");
   assert.equal(
     getProviderPreset("dashscope").baseUrl,
     "https://dashscope.aliyuncs.com/compatible-mode/v1",
   );
+  assert.equal(
+    getProviderPreset("dashscope").imageBaseUrl,
+    "https://dashscope.aliyuncs.com/api/v1/services/aigc/multimodal-generation/generation",
+  );
+  assert.equal(getProviderPreset("dashscope").defaultImageModel, "qwen-image-2.0-pro");
   assert.equal(getProviderPreset("moonshot").baseUrl, "https://api.moonshot.ai/v1");
   assert.equal(getProviderPreset("zhipu").baseUrl, "https://open.bigmodel.cn/api/paas/v4");
-  assert.equal(getProviderPreset("minimax").baseUrl, "https://api.minimax.io/v1");
+  assert.equal(
+    getProviderPreset("zhipu").imageBaseUrl,
+    "https://open.bigmodel.cn/api/paas/v4/images/generations",
+  );
+  assert.equal(getProviderPreset("zhipu").defaultImageModel, "glm-image");
+  assert.equal(getProviderPreset("minimax").baseUrl, "https://api.minimaxi.com/v1");
   assert.equal(getProviderPreset("minimax").defaultModel, "MiniMax-M3");
+  assert.equal(getProviderPreset("minimax").imageBaseUrl, "https://api.minimaxi.com/v1/image_generation");
+  assert.equal(getProviderPreset("minimax").defaultImageModel, "image-01");
   assert.equal(getProviderPreset("qwen").name, "Qwen");
   assert.equal(getProviderPreset("qwen").defaultModel, "qwen-plus");
+  assert.equal(
+    getProviderPreset("qwen").imageBaseUrl,
+    "https://dashscope.aliyuncs.com/api/v1/services/aigc/multimodal-generation/generation",
+  );
+  assert.equal(getProviderPreset("qwen").defaultImageModel, "qwen-image-2.0-pro");
   assert.equal(getProviderPreset("mimo").baseUrl, "https://api.xiaomimimo.com/v1");
   assert.equal(getProviderPreset("mimo").defaultModel, "mimo-v2.5-pro");
+  assert.equal(getProviderPreset("openai").imageBaseUrl, "https://api.openai.com/v1/images/generations");
+  assert.equal(getProviderPreset("openai").defaultImageModel, "gpt-image-2");
+  assert.equal(getProviderPreset("deepseek").defaultImageModel, undefined);
+  assert.equal(getProviderPreset("moonshot").defaultImageModel, undefined);
+  assert.equal(getProviderPreset("mimo").defaultImageModel, undefined);
+  assert.equal(getProviderPreset("anthropic").defaultImageModel, undefined);
+});
+
+test("provider presets point to current official API key pages", () => {
+  assert.equal(getProviderPreset("openrouter").apiKeyUrl, "https://openrouter.ai/keys");
+  assert.equal(getProviderPreset("openai").apiKeyUrl, "https://platform.openai.com/api-keys");
+  assert.equal(getProviderPreset("minimax").apiKeyUrl, "https://platform.minimaxi.com/console/access");
+  assert.equal(
+    getProviderPreset("mimo").apiKeyUrl,
+    "https://platform.xiaomimimo.com/console/api-keys",
+  );
+  assert.equal(
+    getProviderPreset("moonshot").apiKeyUrl,
+    "https://platform.kimi.ai/console/api-keys",
+  );
+  assert.equal(
+    getProviderPreset("anthropic").apiKeyUrl,
+    "https://platform.claude.com/settings/keys",
+  );
 });
 
 test("default prompt templates are reusable and user-editable", () => {

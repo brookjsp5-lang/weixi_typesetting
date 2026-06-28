@@ -29,6 +29,9 @@ export type ProviderPreset = {
   defaultModel: string;
   apiKeyUrl: string;
   modelHelp: string;
+  imageBaseUrl?: string;
+  defaultImageModel?: string;
+  imageModelHelp?: string;
 };
 
 export type H1LayoutType = "left" | "center" | "right";

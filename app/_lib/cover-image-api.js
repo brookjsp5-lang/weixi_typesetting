@@ -1,12 +1,57 @@
 const IMAGE_GENERATIONS_PATH = "/images/generations";
+const OPENROUTER_IMAGES_PATH = "/images";
+const DASHSCOPE_IMAGE_GENERATION_PATH = "/services/aigc/multimodal-generation/generation";
+const MINIMAX_IMAGE_GENERATION_PATH = "/image_generation";
 
 export function resolveImageGenerationEndpoint(baseUrl) {
   const normalized = String(baseUrl || "")
     .trim()
     .replace(/\/+$/, "");
   if (!normalized) return "";
+  if (new RegExp(`${DASHSCOPE_IMAGE_GENERATION_PATH}$`, "i").test(normalized)) {
+    return normalized;
+  }
+  if (new RegExp(`${MINIMAX_IMAGE_GENERATION_PATH}$`, "i").test(normalized)) return normalized;
+  if (/api\.minimax(?:i)?\.(?:com|io)\/v1$/i.test(normalized)) {
+    return `${normalized}${MINIMAX_IMAGE_GENERATION_PATH}`;
+  }
+  if (/openrouter\.ai\/api\/v1$/i.test(normalized)) return `${normalized}${OPENROUTER_IMAGES_PATH}`;
+  if (/openrouter\.ai\/api\/v1\/images$/i.test(normalized)) return normalized;
   if (new RegExp(`${IMAGE_GENERATIONS_PATH}$`, "i").test(normalized)) return normalized;
   return `${normalized}${IMAGE_GENERATIONS_PATH}`;
+}
+
+export function isOpenRouterImageConfig({ baseUrl = "", providerType = "" } = {}) {
+  const value = `${providerType} ${baseUrl}`.toLowerCase();
+  return value.includes("openrouter");
+}
+
+export function isOpenAIImageConfig({ baseUrl = "", providerType = "" } = {}) {
+  const value = `${providerType} ${baseUrl}`.toLowerCase();
+  return value.includes("openai") || value.includes("api.openai.com");
+}
+
+export function isDashScopeImageConfig({ baseUrl = "", providerType = "" } = {}) {
+  const value = `${providerType} ${baseUrl}`.toLowerCase();
+  return (
+    value.includes("dashscope") ||
+    value.includes("qwen") ||
+    value.includes("dashscope.aliyuncs.com")
+  );
+}
+
+export function isMiniMaxImageConfig({ baseUrl = "", providerType = "" } = {}) {
+  const value = `${providerType} ${baseUrl}`.toLowerCase();
+  return value.includes("minimax") || value.includes("minimaxi.com");
+}
+
+export function isZhipuImageConfig({ baseUrl = "", providerType = "" } = {}) {
+  const value = `${providerType} ${baseUrl}`.toLowerCase();
+  return (
+    value.includes("zhipu") ||
+    value.includes("bigmodel") ||
+    value.includes("open.bigmodel.cn")
+  );
 }
 
 export function isVolcengineImageConfig({ baseUrl = "", providerType = "" } = {}) {
@@ -20,6 +65,72 @@ export function isVolcengineImageConfig({ baseUrl = "", providerType = "" } = {}
 }
 
 export function buildImageGenerationRequestBodies({ baseUrl, model, prompt, providerType }) {
+  if (isOpenRouterImageConfig({ baseUrl, providerType })) {
+    return [
+      {
+        model,
+        prompt,
+        aspect_ratio: "16:9",
+        n: 1,
+      },
+    ];
+  }
+
+  if (isOpenAIImageConfig({ baseUrl, providerType })) {
+    return [
+      {
+        model,
+        prompt,
+        n: 1,
+        size: "1536x1024",
+      },
+    ];
+  }
+
+  if (isDashScopeImageConfig({ baseUrl, providerType })) {
+    return [
+      {
+        model,
+        input: {
+          messages: [
+            {
+              role: "user",
+              content: [{ text: prompt }],
+            },
+          ],
+        },
+        parameters: {
+          n: 1,
+          size: "2688*1536",
+        },
+      },
+    ];
+  }
+
+  if (isMiniMaxImageConfig({ baseUrl, providerType })) {
+    return [
+      {
+        model,
+        prompt,
+        aspect_ratio: "16:9",
+        response_format: "url",
+        n: 1,
+        prompt_optimizer: true,
+      },
+    ];
+  }
+
+  if (isZhipuImageConfig({ baseUrl, providerType })) {
+    return [
+      {
+        model,
+        prompt,
+        size: "1728x960",
+        quality: "hd",
+      },
+    ];
+  }
+
   if (isVolcengineImageConfig({ baseUrl, providerType })) {
     return [
       {
@@ -54,6 +165,16 @@ export function buildImageGenerationRequestBodies({ baseUrl, model, prompt, prov
 export function parseImageGenerationResult(data) {
   const image = data?.data?.[0];
   if (image?.b64_json) return `data:image/png;base64,${image.b64_json}`;
+  if (data?.data?.image_base64) return `data:image/png;base64,${data.data.image_base64}`;
+  if (Array.isArray(data?.data?.image_urls) && data.data.image_urls[0]) {
+    return data.data.image_urls[0];
+  }
+  if (data?.data?.image_url) return data.data.image_url;
+  const contentItems = data?.output?.choices?.[0]?.message?.content;
+  if (Array.isArray(contentItems)) {
+    const imageItem = contentItems.find((item) => item?.image);
+    if (imageItem?.image) return imageItem.image;
+  }
   return image?.url || "";
 }
 
