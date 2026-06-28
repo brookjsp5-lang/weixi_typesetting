@@ -155,6 +155,22 @@ test("normalizePosterTextBrief rejects invalid generated poster brief", () => {
   );
 });
 
+test("normalizePosterTextBrief accepts common AI field aliases", () => {
+  const brief = normalizePosterTextBrief({
+    headline: "内容重点",
+    sentence: "好内容要让读者更快记住",
+    subtitle: "适合公众号传播",
+    imagePrompt: "安静书桌与柔和光线",
+  });
+
+  assert.deepEqual(brief, {
+    title: "内容重点",
+    quote: "好内容要让读者更快记住",
+    note: "适合公众号传播",
+    backgroundPrompt: "安静书桌与柔和光线",
+  });
+});
+
 test("extractJsonObject accepts model responses wrapped in prose or fences", () => {
   const json = extractJsonObject(
     `这里是结果：\n\`\`\`json\n{"titles":["A"],"keywords":["B"]}\n\`\`\``,

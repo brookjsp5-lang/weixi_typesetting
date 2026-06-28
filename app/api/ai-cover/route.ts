@@ -1,12 +1,11 @@
 import {
   createImageGenerationErrorMessage,
+  remoteImageToDataUrl,
   requestImageGeneration,
 } from "../../_lib/cover-image-api";
 import { openRouterConfig } from "../../_lib/formatter-constants";
 import { createCoverPrompt } from "../../_lib/workflow-utils";
 import type { AiProviderType } from "../../_types/formatter";
-
-const MAX_INPUT_LENGTH = 15000;
 
 const isKnownProvider = (providerType: unknown): providerType is AiProviderType =>
   providerType === "openrouter" ||
@@ -57,13 +56,6 @@ export async function POST(req: Request) {
 
     if (!markdown || typeof markdown !== "string" || !markdown.trim()) {
       return Response.json({ error: "请提供需要生成封面的 Markdown 内容" }, { status: 400 });
-    }
-
-    if (markdown.length > MAX_INPUT_LENGTH) {
-      return Response.json(
-        { error: `内容过长（${markdown.length} 字符），请控制在 ${MAX_INPUT_LENGTH} 字符以内` },
-        { status: 400 },
-      );
     }
 
     const selectedProvider = isKnownProvider(providerType) ? providerType : "openrouter";
@@ -121,9 +113,23 @@ export async function POST(req: Request) {
       return createImageError("图片接口未返回可用图片，请更换生图模型后重试。", 502);
     }
 
+    let displayImageUrl = imageUrl;
+    try {
+      displayImageUrl = await remoteImageToDataUrl(imageUrl);
+    } catch (error) {
+      const detail = error instanceof Error ? error.message : "";
+      return createImageError(
+        detail
+          ? `生图链接不可访问：${detail}`
+          : "生图链接不可访问，请重新生成或更换生图模型接口。",
+        502,
+      );
+    }
+
     return Response.json({
       result: {
-        imageUrl,
+        imageUrl: displayImageUrl,
+        rawImageUrl: imageUrl,
         prompt,
         titleHint: title.trim(),
         createdAt: new Date().toISOString(),

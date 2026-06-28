@@ -178,6 +178,23 @@ export function parseImageGenerationResult(data) {
   return image?.url || "";
 }
 
+export async function remoteImageToDataUrl(imageUrl, fetchImpl = fetch) {
+  if (!/^https?:\/\//i.test(String(imageUrl || ""))) return imageUrl;
+
+  const response = await fetchImpl(imageUrl);
+  if (!response.ok) {
+    throw new Error(`图片链接不可访问（HTTP ${response.status}）`);
+  }
+
+  const contentType = response.headers.get("content-type") || "image/png";
+  if (!/^image\//i.test(contentType)) {
+    throw new Error(`图片链接返回的不是图片（${contentType}）`);
+  }
+
+  const buffer = Buffer.from(await response.arrayBuffer());
+  return `data:${contentType};base64,${buffer.toString("base64")}`;
+}
+
 export function getImageGenerationRawError(data) {
   if (!data) return "";
   if (typeof data.error === "string") return data.error;

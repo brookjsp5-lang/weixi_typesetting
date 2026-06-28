@@ -8,12 +8,15 @@ import {
   FileCheck2,
   Image as ImageIcon,
   Loader2,
+  Mic2,
   PenLine,
   Send,
   Settings,
   Sparkles,
   Tags,
+  Trash2,
   Undo2,
+  Video,
   Wand2,
 } from "lucide-react";
 import type React from "react";
@@ -24,7 +27,9 @@ import type {
   CoverGenerationResult,
   CoverPromptTemplate,
   FormatTweaks,
+  PodcastScriptResult,
   PosterGenerationResult,
+  PosterLibraryItem,
   PosterPromptTemplate,
   PromptTemplate,
   PublishCheckItem,
@@ -32,6 +37,8 @@ import type {
   PublishStepId,
   PublishWorkflowStep,
   RunningAiTaskType,
+  VideoScriptResult,
+  WorkflowModuleId,
   WordCount,
 } from "../_types/formatter";
 import type { TemplateConfig } from "../template-engine";
@@ -84,6 +91,10 @@ type WorkflowPaneProps = {
   setSelectedPosterPromptId: React.Dispatch<React.SetStateAction<string>>;
   onSavePosterPrompt: (draft: Pick<PosterPromptTemplate, "id" | "name" | "prompt">) => void;
   onDeletePosterPrompt: (id: string) => void;
+  posterLibraryItems: PosterLibraryItem[];
+  isLoadingPosterLibrary: boolean;
+  onDeletePosterLibraryItem: (id: string) => void;
+  onClearPosterLibrary: () => void;
   publishChecks: PublishCheckItem[];
   publishOptimization: PublishOptimizationResult;
   onCopy: () => void;
@@ -98,6 +109,10 @@ type WorkflowPaneProps = {
   onResetFormatTweaks: () => void;
   syncScroll: boolean;
   setSyncScroll: React.Dispatch<React.SetStateAction<boolean>>;
+  podcastScript: PodcastScriptResult;
+  onGeneratePodcastScript: () => void;
+  videoScript: VideoScriptResult;
+  onGenerateVideoScript: () => void;
 };
 
 const publishStepOrder: PublishStepId[] = [
@@ -107,6 +122,17 @@ const publishStepOrder: PublishStepId[] = [
   "image",
   "check",
   "publish",
+];
+
+const workflowModules: Array<{
+  id: WorkflowModuleId;
+  label: string;
+  description: string;
+}> = [
+  { id: "guide", label: "发布向导", description: "一步步完成正文发布" },
+  { id: "poster", label: "公众号贴图", description: "生成金句图并管理图库" },
+  { id: "podcast", label: "AI 播客", description: "生成口播脚本" },
+  { id: "video", label: "AI 视频", description: "生成短视频分镜" },
 ];
 
 const workflowStepClassNames = {
@@ -133,7 +159,7 @@ const stepDescriptions: Record<PublishStepId, string> = {
   draft: "先把正文放到左侧初稿。",
   rewrite: "需要润色时，选提示词改写；不满意可还原。",
   format: "用 AI 整理结构，再选择模板和样式。",
-  image: "生成封面图，或生成可独立传播的公众号贴图。",
+  image: "生成公众号封面图，并同步准备标题、摘要和关键词。",
   check: "生成标题、摘要和关键词。",
   publish: "复制正文到公众号后台，发布前再检查一遍。",
 };
@@ -414,6 +440,87 @@ function PosterResultCard({
   );
 }
 
+function PosterLibrary({
+  items,
+  isLoading,
+  onCopyText,
+  copiedMaterialIds,
+  onDelete,
+  onClear,
+}: {
+  items: PosterLibraryItem[];
+  isLoading: boolean;
+  onCopyText: (text: string, id: string) => void;
+  copiedMaterialIds: string[];
+  onDelete: (id: string) => void;
+  onClear: () => void;
+}) {
+  return (
+    <section className="rounded-xl border border-(--neo-line) bg-(--neo-surface) p-3 space-y-3">
+      <div className="flex items-center justify-between gap-2">
+        <h3 className="text-sm font-black">历史贴图库</h3>
+        {items.length > 0 && (
+          <button
+            type="button"
+            onClick={onClear}
+            className="neo-button neo-button-ghost px-3 py-1.5 text-xs inline-flex items-center gap-1.5"
+          >
+            <Trash2 className="h-3.5 w-3.5" />
+            清空
+          </button>
+        )}
+      </div>
+
+      {isLoading && <p className="text-xs font-bold neo-text-muted">正在读取本地图库...</p>}
+
+      {!isLoading && items.length === 0 && (
+        <p className="text-xs font-bold leading-relaxed neo-text-muted">
+          生成后的公众号贴图会保存在这里，方便后续下载和复用提示词。
+        </p>
+      )}
+
+      <div className="grid grid-cols-2 gap-3">
+        {items.map((item) => (
+          <article
+            key={item.id}
+            className="rounded-xl border border-(--neo-line) bg-white p-2 space-y-2"
+          >
+            <img
+              src={item.imageUrl}
+              alt={item.brief.title}
+              className="aspect-[3/4] w-full rounded-lg border border-(--neo-line) object-cover"
+            />
+            <div className="text-[11px] font-black line-clamp-2">{item.brief.title}</div>
+            <div className="flex gap-1.5">
+              <a
+                href={item.imageUrl}
+                download="wx-poster.png"
+                className="neo-button neo-button-secondary flex-1 px-2 py-1 text-[10px] text-center"
+              >
+                下载
+              </a>
+              <button
+                type="button"
+                onClick={() => onDelete(item.id)}
+                className="neo-button neo-button-ghost px-2 py-1 text-[10px]"
+              >
+                删除
+              </button>
+            </div>
+            <button
+              type="button"
+              onClick={() => onCopyText(item.prompt, `poster-library:${item.id}`)}
+              className="neo-button neo-button-ghost w-full px-2 py-1 text-[10px]"
+            >
+              {copiedMaterialIds.includes(`poster-library:${item.id}`) ? "已复制" : "复制提示词"}
+            </button>
+          </article>
+        ))}
+      </div>
+    </section>
+  );
+}
+
 function PublishMaterials({
   publishOptimization,
   coverGenerationResult,
@@ -634,6 +741,10 @@ export function WorkflowPane({
   setSelectedPosterPromptId,
   onSavePosterPrompt,
   onDeletePosterPrompt,
+  posterLibraryItems,
+  isLoadingPosterLibrary,
+  onDeletePosterLibraryItem,
+  onClearPosterLibrary,
   publishChecks,
   publishOptimization,
   onCopy,
@@ -648,6 +759,10 @@ export function WorkflowPane({
   onResetFormatTweaks,
   syncScroll,
   setSyncScroll,
+  podcastScript,
+  onGeneratePodcastScript,
+  videoScript,
+  onGenerateVideoScript,
 }: WorkflowPaneProps) {
   const [promptDraftId, setPromptDraftId] = useState("");
   const [promptName, setPromptName] = useState("");
@@ -661,9 +776,9 @@ export function WorkflowPane({
   const [posterPromptName, setPosterPromptName] = useState("");
   const [posterPromptBody, setPosterPromptBody] = useState("");
   const [isPosterPromptEditorOpen, setIsPosterPromptEditorOpen] = useState(false);
-  const [imageMode, setImageMode] = useState<"cover" | "poster">("cover");
   const [isFormatSettingsOpen, setIsFormatSettingsOpen] = useState(true);
   const [copiedMaterialIds, setCopiedMaterialIds] = useState<string[]>([]);
+  const [workflowModule, setWorkflowModule] = useState<WorkflowModuleId>("guide");
 
   const headingCount = (inputText.match(/^#{1,6}\s+.+$/gm) || []).length;
   const imageCount = (inputText.match(/!\[[^\]]*]\([^)]+\)/g) || []).length;
@@ -673,7 +788,7 @@ export function WorkflowPane({
   const getStepStatus = (stepId: PublishStepId) =>
     publishWorkflowSteps.find((step) => step.id === stepId)?.status || "pending";
   const formatReady = getStepStatus("format") === "done";
-  const imageReady = Boolean(coverGenerationResult || posterGenerationResult);
+  const imageReady = Boolean(coverGenerationResult);
   const materialsReady = Boolean(publishOptimization);
   const hasCopiedBody = getStepStatus("publish") === "done";
 
@@ -796,7 +911,7 @@ export function WorkflowPane({
           <div className="flex items-center justify-between gap-3 mb-3">
             <h2 className="text-sm font-black text-(--neo-on-header) uppercase flex items-center gap-2">
               <Send className="w-4 h-4" />
-              发布向导
+              工作区
             </h2>
             <button
               type="button"
@@ -808,7 +923,29 @@ export function WorkflowPane({
             </button>
           </div>
 
-          <div className="rounded-xl border border-(--neo-line) bg-(--neo-surface) p-2">
+          <div className="mb-3 grid grid-cols-2 gap-1.5">
+            {workflowModules.map((module) => (
+              <button
+                key={module.id}
+                type="button"
+                onClick={() => setWorkflowModule(module.id)}
+                className={`rounded-lg border px-2 py-2 text-left transition ${
+                  workflowModule === module.id
+                    ? "border-(--neo-green) bg-emerald-50 text-emerald-700"
+                    : "border-(--neo-line) bg-white text-(--neo-ink)"
+                }`}
+                title={module.description}
+              >
+                <div className="text-[11px] font-black">{module.label}</div>
+                <div className="mt-0.5 truncate text-[9px] font-bold opacity-70">
+                  {module.description}
+                </div>
+              </button>
+            ))}
+          </div>
+
+          {workflowModule === "guide" && (
+            <div className="rounded-xl border border-(--neo-line) bg-(--neo-surface) p-2">
             <div className="grid grid-cols-3 gap-1.5">
               {publishWorkflowSteps.map((step, index) => (
                 <button
@@ -832,9 +969,12 @@ export function WorkflowPane({
               ))}
             </div>
           </div>
+          )}
         </div>
 
         <div className="flex-1 min-h-0 overflow-y-auto p-3 bg-(--neo-surface) custom-scrollbar">
+          {workflowModule === "guide" && (
+            <>
           <div className="mb-3 rounded-xl border border-(--neo-line) bg-white p-3">
             <div className="text-[11px] font-black neo-text-muted">当前步骤</div>
             <div className="mt-1 text-lg font-black text-(--neo-ink)">{currentStepLabel}</div>
@@ -1089,28 +1229,11 @@ export function WorkflowPane({
               <CompletionCard
                 done={imageReady}
                 text={
-                  imageReady ? "已生成图片素材。" : "配置生图 API 后，可生成封面图或公众号贴图。"
+                  imageReady ? "已生成公众号封面图。" : "配置生图 API 后，生成公众号封面图。"
                 }
               />
-              <section className="grid grid-cols-2 gap-2 rounded-xl border border-(--neo-line) bg-(--neo-surface) p-2">
-                <button
-                  type="button"
-                  onClick={() => setImageMode("cover")}
-                  className={`neo-button py-2 text-sm ${
-                    imageMode === "cover" ? "neo-button-primary" : "neo-button-ghost"
-                  }`}
-                >
-                  封面图
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setImageMode("poster")}
-                  className={`neo-button py-2 text-sm ${
-                    imageMode === "poster" ? "neo-button-primary" : "neo-button-ghost"
-                  }`}
-                >
-                  公众号贴图
-                </button>
+              <section className="rounded-xl border border-(--neo-line) bg-(--neo-surface) p-3 text-xs font-bold leading-relaxed neo-text-muted">
+                这里专注生成公众号封面图；金句图和总结图请切换到上方“公众号贴图”模块。
               </section>
 
               {!coverGenerationConfigStatus.isConfigured && (
@@ -1132,8 +1255,6 @@ export function WorkflowPane({
                 </section>
               )}
 
-              {imageMode === "cover" ? (
-                <>
                   <section className="rounded-xl border border-(--neo-line) bg-(--neo-surface) p-3 space-y-3">
                     <div>
                       <h3 className="text-sm font-black flex items-center gap-1.5">
@@ -1267,126 +1388,6 @@ export function WorkflowPane({
                       生成封面后，标题、摘要和关键词会显示在这里。
                     </div>
                   )}
-                </>
-              ) : (
-                <>
-                  <section className="rounded-xl border border-(--neo-line) bg-(--neo-surface) p-3 space-y-3">
-                    <div>
-                      <h3 className="text-sm font-black flex items-center gap-1.5">
-                        <PenLine className="w-4 h-4" />
-                        贴图提示词
-                      </h3>
-                      <p className="mt-1 text-[11px] font-bold leading-relaxed neo-text-muted">
-                        选择贴图风格，系统会先提炼金句，再生成背景并叠加清晰中文。
-                      </p>
-                    </div>
-                    <div className="flex gap-2">
-                      <select
-                        value={selectedPosterPromptId}
-                        onChange={(e) => setSelectedPosterPromptId(e.target.value)}
-                        className="neo-input min-w-0 flex-1 px-3 py-2 text-sm"
-                      >
-                        {posterPromptTemplates.map((template) => (
-                          <option key={template.id} value={template.id}>
-                            {template.name}
-                          </option>
-                        ))}
-                      </select>
-                      <button
-                        type="button"
-                        onClick={editSelectedPosterPrompt}
-                        className="neo-button neo-button-ghost shrink-0 px-3 py-2 text-xs"
-                      >
-                        编辑
-                      </button>
-                      <button
-                        type="button"
-                        disabled={!selectedPosterPrompt}
-                        onClick={() =>
-                          selectedPosterPrompt && onDeletePosterPrompt(selectedPosterPrompt.id)
-                        }
-                        className="neo-button neo-button-ghost shrink-0 px-3 py-2 text-xs disabled:opacity-40"
-                      >
-                        删除
-                      </button>
-                    </div>
-                    <div className="flex items-center justify-between gap-2">
-                      <p className="truncate text-xs font-bold neo-text-muted">
-                        当前：{selectedPosterPrompt?.name || "金句传播贴图"}
-                      </p>
-                      <button
-                        type="button"
-                        onClick={newPosterPrompt}
-                        className="text-xs font-black underline text-(--neo-ink)"
-                      >
-                        新增提示词
-                      </button>
-                    </div>
-                    {isPosterPromptEditorOpen && (
-                      <div className="rounded-xl border border-(--neo-line) bg-white p-3 space-y-2">
-                        <input
-                          value={posterPromptName}
-                          onChange={(e) => setPosterPromptName(e.target.value)}
-                          className="neo-input w-full px-3 py-2 text-sm"
-                          placeholder="提示词名称"
-                        />
-                        <textarea
-                          value={posterPromptBody}
-                          onChange={(e) => setPosterPromptBody(e.target.value)}
-                          className="neo-input w-full min-h-28 px-3 py-2 text-sm resize-none"
-                          placeholder="输入贴图风格、使用场景、视觉氛围和禁用元素等要求"
-                        />
-                        <div className="flex gap-2">
-                          <button
-                            type="button"
-                            onClick={savePosterPrompt}
-                            className="neo-button neo-button-primary flex-1 py-2 text-xs"
-                          >
-                            保存
-                          </button>
-                          <button
-                            type="button"
-                            onClick={clearPosterPromptDraft}
-                            className="neo-button neo-button-ghost px-3 py-2 text-xs"
-                          >
-                            取消
-                          </button>
-                        </div>
-                      </div>
-                    )}
-                  </section>
-                  <section className="rounded-xl border border-(--neo-line) bg-(--neo-surface) p-3 space-y-3">
-                    <button
-                      type="button"
-                      onClick={onGeneratePoster}
-                      disabled={
-                        !inputText.trim() ||
-                        Boolean(runningTask) ||
-                        !coverGenerationConfigStatus.isConfigured
-                      }
-                      className="neo-button neo-button-primary w-full px-4 py-3 flex items-center justify-center gap-2"
-                    >
-                      {runningTask === "poster" ? (
-                        <Loader2 className="w-4 h-4 animate-spin" />
-                      ) : (
-                        <ImageIcon className="w-4 h-4" />
-                      )}
-                      {runningTask === "poster" ? "正在生成贴图..." : "生成公众号贴图"}
-                    </button>
-                    <p className="px-1 text-[11px] font-bold leading-relaxed neo-text-muted">
-                      贴图是 3:4 竖版金句图；中文文字由工具叠加，避免模型生成错字。
-                    </p>
-                  </section>
-
-                  <PosterResultCard
-                    posterGenerationResult={posterGenerationResult}
-                    runningTask={runningTask}
-                    onCopyText={copyPlainText}
-                    copiedMaterialIds={copiedMaterialIds}
-                    onRegenerate={onGeneratePoster}
-                  />
-                </>
-              )}
 
               <StepActions currentStep={publishStep} setPublishStep={setPublishStep} />
             </div>
@@ -1488,6 +1489,306 @@ export function WorkflowPane({
               )}
 
               <StepActions currentStep={publishStep} setPublishStep={setPublishStep} />
+            </div>
+          )}
+            </>
+          )}
+
+          {workflowModule === "poster" && (
+            <div className="space-y-4">
+              <div className="rounded-xl border border-(--neo-line) bg-white p-3">
+                <div className="text-[11px] font-black neo-text-muted">独立模块</div>
+                <div className="mt-1 text-lg font-black text-(--neo-ink)">公众号贴图</div>
+                <p className="mt-1 text-xs font-bold leading-relaxed neo-text-muted">
+                  根据初稿提炼金句，再生成无文字背景并叠加中文文案；结果会保存到本地图库。
+                </p>
+              </div>
+
+              {!coverGenerationConfigStatus.isConfigured && (
+                <section className="rounded-xl border border-amber-300 bg-amber-50 p-3 space-y-2 text-amber-800">
+                  <h3 className="text-sm font-black flex items-center gap-1.5 text-(--neo-ink)">
+                    <ImageIcon className="w-4 h-4" />
+                    先配置生图 API
+                  </h3>
+                  <p className="text-xs font-bold leading-relaxed">
+                    {coverGenerationConfigStatus.message}
+                  </p>
+                  <button
+                    type="button"
+                    onClick={onOpenAiConfig}
+                    className="neo-button neo-button-secondary w-full py-2 text-xs"
+                  >
+                    去配置
+                  </button>
+                </section>
+              )}
+
+              <section className="rounded-xl border border-(--neo-line) bg-(--neo-surface) p-3 space-y-3">
+                <div>
+                  <h3 className="text-sm font-black flex items-center gap-1.5">
+                    <PenLine className="w-4 h-4" />
+                    贴图提示词
+                  </h3>
+                  <p className="mt-1 text-[11px] font-bold leading-relaxed neo-text-muted">
+                    选择贴图风格，系统会先提炼文案，再生成适合叠字的背景图。
+                  </p>
+                </div>
+                <div className="flex gap-2">
+                  <select
+                    value={selectedPosterPromptId}
+                    onChange={(e) => setSelectedPosterPromptId(e.target.value)}
+                    className="neo-input min-w-0 flex-1 px-3 py-2 text-sm"
+                  >
+                    {posterPromptTemplates.map((template) => (
+                      <option key={template.id} value={template.id}>
+                        {template.name}
+                      </option>
+                    ))}
+                  </select>
+                  <button
+                    type="button"
+                    onClick={editSelectedPosterPrompt}
+                    className="neo-button neo-button-ghost shrink-0 px-3 py-2 text-xs"
+                  >
+                    编辑
+                  </button>
+                  <button
+                    type="button"
+                    disabled={!selectedPosterPrompt}
+                    onClick={() =>
+                      selectedPosterPrompt && onDeletePosterPrompt(selectedPosterPrompt.id)
+                    }
+                    className="neo-button neo-button-ghost shrink-0 px-3 py-2 text-xs disabled:opacity-40"
+                  >
+                    删除
+                  </button>
+                </div>
+                <div className="flex items-center justify-between gap-2">
+                  <p className="truncate text-xs font-bold neo-text-muted">
+                    当前：{selectedPosterPrompt?.name || "金句传播贴图"}
+                  </p>
+                  <button
+                    type="button"
+                    onClick={newPosterPrompt}
+                    className="text-xs font-black underline text-(--neo-ink)"
+                  >
+                    新增提示词
+                  </button>
+                </div>
+                {isPosterPromptEditorOpen && (
+                  <div className="rounded-xl border border-(--neo-line) bg-white p-3 space-y-2">
+                    <input
+                      value={posterPromptName}
+                      onChange={(e) => setPosterPromptName(e.target.value)}
+                      className="neo-input w-full px-3 py-2 text-sm"
+                      placeholder="提示词名称"
+                    />
+                    <textarea
+                      value={posterPromptBody}
+                      onChange={(e) => setPosterPromptBody(e.target.value)}
+                      className="neo-input w-full min-h-28 px-3 py-2 text-sm resize-none"
+                      placeholder="输入贴图风格、使用场景、视觉氛围和禁用元素等要求"
+                    />
+                    <div className="flex gap-2">
+                      <button
+                        type="button"
+                        onClick={savePosterPrompt}
+                        className="neo-button neo-button-primary flex-1 py-2 text-xs"
+                      >
+                        保存
+                      </button>
+                      <button
+                        type="button"
+                        onClick={clearPosterPromptDraft}
+                        className="neo-button neo-button-ghost px-3 py-2 text-xs"
+                      >
+                        取消
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </section>
+
+              <section className="rounded-xl border border-(--neo-line) bg-(--neo-surface) p-3 space-y-3">
+                <button
+                  type="button"
+                  onClick={onGeneratePoster}
+                  disabled={
+                    !inputText.trim() ||
+                    Boolean(runningTask) ||
+                    !coverGenerationConfigStatus.isConfigured
+                  }
+                  className="neo-button neo-button-primary w-full px-4 py-3 flex items-center justify-center gap-2"
+                >
+                  {runningTask === "poster" ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <ImageIcon className="w-4 h-4" />
+                  )}
+                  {runningTask === "poster" ? "正在生成贴图..." : "生成公众号贴图"}
+                </button>
+                <p className="px-1 text-[11px] font-bold leading-relaxed neo-text-muted">
+                  中文由工具叠加，避免模型生成错字；贴图不会自动插入正文。
+                </p>
+              </section>
+
+              <PosterResultCard
+                posterGenerationResult={posterGenerationResult}
+                runningTask={runningTask}
+                onCopyText={copyPlainText}
+                copiedMaterialIds={copiedMaterialIds}
+                onRegenerate={onGeneratePoster}
+              />
+
+              <PosterLibrary
+                items={posterLibraryItems}
+                isLoading={isLoadingPosterLibrary}
+                onCopyText={copyPlainText}
+                copiedMaterialIds={copiedMaterialIds}
+                onDelete={onDeletePosterLibraryItem}
+                onClear={onClearPosterLibrary}
+              />
+            </div>
+          )}
+
+          {workflowModule === "podcast" && (
+            <div className="space-y-4">
+              <div className="rounded-xl border border-(--neo-line) bg-white p-3">
+                <div className="text-[11px] font-black neo-text-muted">脚本模块</div>
+                <div className="mt-1 text-lg font-black text-(--neo-ink)">AI 播客</div>
+                <p className="mt-1 text-xs font-bold leading-relaxed neo-text-muted">
+                  根据当前初稿生成播客口播脚本，后续可接 TTS 生成音频。
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={onGeneratePodcastScript}
+                disabled={!inputText.trim() || Boolean(runningTask)}
+                className="neo-button neo-button-primary w-full px-4 py-3 flex items-center justify-center gap-2"
+              >
+                {runningTask === "podcast" ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Mic2 className="h-4 w-4" />
+                )}
+                {runningTask === "podcast" ? "正在生成播客脚本..." : "生成播客脚本"}
+              </button>
+              {podcastScript ? (
+                <section className="rounded-xl border border-(--neo-line) bg-(--neo-surface) p-3 space-y-3">
+                  <h3 className="text-sm font-black">{podcastScript.title}</h3>
+                  <p className="text-xs font-bold leading-relaxed">{podcastScript.intro}</p>
+                  {podcastScript.segments.map((segment) => (
+                    <div key={segment.heading} className="rounded-lg border border-(--neo-line) bg-white p-2">
+                      <div className="text-xs font-black">{segment.heading}</div>
+                      <p className="mt-1 text-[11px] font-bold leading-relaxed neo-text-muted">
+                        {segment.narration}
+                      </p>
+                    </div>
+                  ))}
+                  <p className="text-xs font-bold leading-relaxed">{podcastScript.outro}</p>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      copyPlainText(
+                        [
+                          podcastScript.title,
+                          podcastScript.intro,
+                          ...podcastScript.segments.flatMap((segment) => [
+                            segment.heading,
+                            segment.narration,
+                          ]),
+                          podcastScript.outro,
+                        ].join("\n\n"),
+                        "podcast-script",
+                      )
+                    }
+                    className="neo-button neo-button-secondary w-full py-2 text-xs"
+                  >
+                    {copiedMaterialIds.includes("podcast-script") ? "脚本已复制" : "复制播客脚本"}
+                  </button>
+                </section>
+              ) : (
+                <section className="rounded-xl border border-(--neo-line) bg-(--neo-surface) p-4 text-sm font-bold neo-text-muted">
+                  尚未生成播客脚本。
+                </section>
+              )}
+            </div>
+          )}
+
+          {workflowModule === "video" && (
+            <div className="space-y-4">
+              <div className="rounded-xl border border-(--neo-line) bg-white p-3">
+                <div className="text-[11px] font-black neo-text-muted">脚本模块</div>
+                <div className="mt-1 text-lg font-black text-(--neo-ink)">AI 视频</div>
+                <p className="mt-1 text-xs font-bold leading-relaxed neo-text-muted">
+                  根据当前初稿生成短视频分镜，后续可接视频生成模型。
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={onGenerateVideoScript}
+                disabled={!inputText.trim() || Boolean(runningTask)}
+                className="neo-button neo-button-primary w-full px-4 py-3 flex items-center justify-center gap-2"
+              >
+                {runningTask === "video" ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Video className="h-4 w-4" />
+                )}
+                {runningTask === "video" ? "正在生成视频分镜..." : "生成视频分镜"}
+              </button>
+              {videoScript ? (
+                <section className="rounded-xl border border-(--neo-line) bg-(--neo-surface) p-3 space-y-3">
+                  <h3 className="text-sm font-black">{videoScript.title}</h3>
+                  {videoScript.scenes.map((scene, index) => (
+                    <div
+                      key={`${scene.shot}-${scene.narration.slice(0, 24)}`}
+                      className="rounded-lg border border-(--neo-line) bg-white p-2"
+                    >
+                      <div className="text-xs font-black">
+                        {index + 1}. {scene.shot}
+                      </div>
+                      <p className="mt-1 text-[11px] font-bold leading-relaxed">
+                        画面：{scene.visual}
+                      </p>
+                      <p className="mt-1 text-[11px] font-bold leading-relaxed neo-text-muted">
+                        旁白：{scene.narration}
+                      </p>
+                      <p className="mt-1 text-[11px] font-bold leading-relaxed neo-text-muted">
+                        字幕：{scene.subtitle}
+                      </p>
+                    </div>
+                  ))}
+                  {videoScript.summary && (
+                    <p className="text-xs font-bold leading-relaxed">{videoScript.summary}</p>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() =>
+                      copyPlainText(
+                        [
+                          videoScript.title,
+                          ...videoScript.scenes.flatMap((scene, index) => [
+                            `${index + 1}. ${scene.shot}`,
+                            `画面：${scene.visual}`,
+                            `旁白：${scene.narration}`,
+                            `字幕：${scene.subtitle}`,
+                          ]),
+                          videoScript.summary,
+                        ].join("\n\n"),
+                        "video-script",
+                      )
+                    }
+                    className="neo-button neo-button-secondary w-full py-2 text-xs"
+                  >
+                    {copiedMaterialIds.includes("video-script") ? "分镜已复制" : "复制视频分镜"}
+                  </button>
+                </section>
+              ) : (
+                <section className="rounded-xl border border-(--neo-line) bg-(--neo-surface) p-4 text-sm font-bold neo-text-muted">
+                  尚未生成视频分镜。
+                </section>
+              )}
             </div>
           )}
         </div>

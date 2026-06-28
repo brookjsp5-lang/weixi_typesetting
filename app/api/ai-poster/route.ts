@@ -1,12 +1,11 @@
 import {
   createImageGenerationErrorMessage,
+  remoteImageToDataUrl,
   requestImageGeneration,
 } from "../../_lib/cover-image-api";
 import { openRouterConfig } from "../../_lib/formatter-constants";
 import { createPosterPrompt, normalizePosterTextBrief } from "../../_lib/workflow-utils";
 import type { AiProviderType, PosterTextBrief } from "../../_types/formatter";
-
-const MAX_INPUT_LENGTH = 15000;
 
 const isKnownProvider = (providerType: unknown): providerType is AiProviderType =>
   providerType === "openrouter" ||
@@ -29,15 +28,6 @@ const createImageError = (message: string, status = 400) =>
     },
     { status },
   );
-
-const remoteImageToDataUrl = async (imageUrl: string) => {
-  if (!/^https?:\/\//i.test(imageUrl)) return imageUrl;
-  const response = await fetch(imageUrl);
-  if (!response.ok) return imageUrl;
-  const contentType = response.headers.get("content-type") || "image/png";
-  const buffer = Buffer.from(await response.arrayBuffer());
-  return `data:${contentType};base64,${buffer.toString("base64")}`;
-};
 
 export async function POST(req: Request) {
   try {
@@ -62,13 +52,6 @@ export async function POST(req: Request) {
 
     if (!markdown || typeof markdown !== "string" || !markdown.trim()) {
       return Response.json({ error: "请提供需要生成贴图的 Markdown 内容" }, { status: 400 });
-    }
-
-    if (markdown.length > MAX_INPUT_LENGTH) {
-      return Response.json(
-        { error: `内容过长（${markdown.length} 字符），请控制在 ${MAX_INPUT_LENGTH} 字符以内` },
-        { status: 400 },
-      );
     }
 
     const selectedProvider = isKnownProvider(providerType) ? providerType : "openrouter";
@@ -124,22 +107,27 @@ export async function POST(req: Request) {
       return createImageError("图片接口未返回可用贴图背景，请更换生图模型后重试。", 502);
     }
 
-    let warning = "";
     let backgroundImageUrl = imageUrl;
     try {
       backgroundImageUrl = await remoteImageToDataUrl(imageUrl);
-    } catch {
-      warning = "背景图无法转成本地图片，下载贴图时可能受跨域限制。";
+    } catch (error) {
+      const detail = error instanceof Error ? error.message : "";
+      return createImageError(
+        detail
+          ? `生图链接不可访问：${detail}`
+          : "生图链接不可访问，请重新生成或更换生图模型接口。",
+        502,
+      );
     }
 
     return Response.json({
       result: {
         backgroundImageUrl,
+        rawBackgroundImageUrl: imageUrl,
         prompt,
         brief: posterBrief,
         createdAt: new Date().toISOString(),
         source: "ai",
-        warning,
       },
     });
   } catch (err: unknown) {

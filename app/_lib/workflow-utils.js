@@ -1,3 +1,5 @@
+import { createMediaSourceExcerpt, extractJsonObjectFromAiText } from "./ai-output-utils.js";
+
 export const providerPresets = [
   {
     id: "openrouter",
@@ -215,9 +217,7 @@ export function createDefaultPosterPromptTemplates() {
 }
 
 export function createCoverPrompt({ markdown, title, summary, keywords = [], coverPrompt = "" }) {
-  const excerpt = String(markdown || "")
-    .replace(/\s+/g, " ")
-    .slice(0, 1000);
+  const excerpt = createMediaSourceExcerpt(markdown, 1000);
   const cleanKeywords = Array.isArray(keywords) ? keywords.filter(Boolean) : [];
   const cleanCoverPrompt = String(coverPrompt || "").trim();
   const styleSection = cleanCoverPrompt
@@ -241,10 +241,13 @@ const trimBriefValue = (value, maxLength) =>
 export function normalizePosterTextBrief(value) {
   const parsed = value || {};
   const brief = {
-    title: trimBriefValue(parsed.title, 24),
-    quote: trimBriefValue(parsed.quote, 48),
-    note: trimBriefValue(parsed.note, 36),
-    backgroundPrompt: trimBriefValue(parsed.backgroundPrompt, 160),
+    title: trimBriefValue(parsed.title || parsed.headline || parsed.mainTitle, 24),
+    quote: trimBriefValue(parsed.quote || parsed.sentence || parsed.slogan || parsed.summary, 48),
+    note: trimBriefValue(parsed.note || parsed.subtitle || parsed.description, 36),
+    backgroundPrompt: trimBriefValue(
+      parsed.backgroundPrompt || parsed.background_prompt || parsed.imagePrompt || parsed.visualPrompt || parsed.prompt,
+      160,
+    ),
   };
 
   if (!brief.title || !brief.quote || !brief.backgroundPrompt) {
@@ -255,9 +258,7 @@ export function normalizePosterTextBrief(value) {
 }
 
 export function createPosterBriefPrompt({ markdown, posterPrompt = "" }) {
-  const excerpt = String(markdown || "")
-    .replace(/\s+/g, " ")
-    .slice(0, 2000);
+  const excerpt = createMediaSourceExcerpt(markdown, 3500);
   const cleanPosterPrompt = String(posterPrompt || "").trim();
 
   return `请根据公众号文章初稿，提炼一张可独立传播的公众号贴图文案。
@@ -280,9 +281,7 @@ export function createPosterBriefPrompt({ markdown, posterPrompt = "" }) {
 }
 
 export function createPosterPrompt({ markdown, brief, posterPrompt = "" }) {
-  const excerpt = String(markdown || "")
-    .replace(/\s+/g, " ")
-    .slice(0, 800);
+  const excerpt = createMediaSourceExcerpt(markdown, 800);
   const normalizedBrief = normalizePosterTextBrief(brief);
   const cleanPosterPrompt = String(posterPrompt || "").trim();
 
@@ -297,18 +296,7 @@ export function createPosterPrompt({ markdown, brief, posterPrompt = "" }) {
 }
 
 export function extractJsonObject(text) {
-  const withoutFence = text
-    .replace(/```json/gi, "```")
-    .replace(/```/g, "")
-    .trim();
-  const start = withoutFence.indexOf("{");
-  const end = withoutFence.lastIndexOf("}");
-
-  if (start === -1 || end === -1 || end <= start) {
-    throw new Error("AI 未返回可解析的 JSON 结果");
-  }
-
-  return JSON.parse(withoutFence.slice(start, end + 1));
+  return extractJsonObjectFromAiText(text);
 }
 
 export function createAppliedAiChange({ taskType, original, applied, label }) {

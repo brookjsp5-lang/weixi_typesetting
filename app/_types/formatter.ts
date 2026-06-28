@@ -4,6 +4,8 @@ export type PublishStepId = "draft" | "rewrite" | "format" | "image" | "check" |
 
 export type WorkflowTab = PublishStepId;
 
+export type WorkflowModuleId = "guide" | "poster" | "podcast" | "video";
+
 export type AiProviderType =
   | "openrouter"
   | "deepseek"
@@ -20,7 +22,7 @@ export type AiProviderType =
 
 export type AiTaskType = "format" | "rewrite" | "publishOptimize";
 
-export type RunningAiTaskType = AiTaskType | "cover" | "poster";
+export type RunningAiTaskType = AiTaskType | "cover" | "poster" | "podcast" | "video";
 
 export type ProviderPreset = {
   id: AiProviderType;
@@ -123,6 +125,7 @@ export type PublishWorkflowStep = {
 
 export type CoverGenerationResult = {
   imageUrl: string;
+  rawImageUrl?: string;
   prompt: string;
   titleHint: string;
   createdAt: string;
@@ -140,11 +143,45 @@ export type PosterTextBrief = {
 export type PosterGenerationResult = {
   imageUrl: string;
   backgroundImageUrl: string;
+  rawBackgroundImageUrl?: string;
   prompt: string;
   brief: PosterTextBrief;
   createdAt: string;
   source?: "ai";
   warning?: string;
+} | null;
+
+export type PosterLibraryItem = NonNullable<PosterGenerationResult> & {
+  id: string;
+  articleTitle: string;
+  posterPromptName: string;
+};
+
+export type PodcastScriptSegment = {
+  heading: string;
+  narration: string;
+};
+
+export type PodcastScriptResult = {
+  title: string;
+  intro: string;
+  segments: PodcastScriptSegment[];
+  outro: string;
+  createdAt?: string;
+} | null;
+
+export type VideoScriptScene = {
+  shot: string;
+  visual: string;
+  narration: string;
+  subtitle: string;
+};
+
+export type VideoScriptResult = {
+  title: string;
+  scenes: VideoScriptScene[];
+  summary: string;
+  createdAt?: string;
 } | null;
 
 export type PublishOptimizationResult = {

@@ -1,4 +1,5 @@
 import { useCallback, useState } from "react";
+import { sanitizeAiTextOutput } from "../_lib/ai-output-utils";
 import {
   createAppliedAiChange,
   extractJsonObject,
@@ -10,12 +11,15 @@ import type {
   AppliedAiChange,
   CoverGenerationResult,
   FormatDraft,
+  PodcastScriptResult,
   PosterGenerationResult,
+  PosterLibraryItem,
   PosterTextBrief,
   PromptTemplate,
   PublishOptimizationResult,
   RewriteDraft,
   RunningAiTaskType,
+  VideoScriptResult,
 } from "../_types/formatter";
 import type { ShowToast } from "./use-toast";
 
@@ -31,6 +35,8 @@ type UseAiWorkflowParams = {
   aiImageModel: string;
   coverPrompt: string;
   posterPrompt: string;
+  posterPromptName?: string;
+  onPosterGenerated?: (result: PosterLibraryItem) => void;
   setShowAiConfigModal: (value: boolean) => void;
   showToast: ShowToast;
 };
@@ -215,6 +221,8 @@ export function useAiWorkflow({
   aiImageModel,
   coverPrompt,
   posterPrompt,
+  posterPromptName = "",
+  onPosterGenerated,
   setShowAiConfigModal,
   showToast,
 }: UseAiWorkflowParams) {
@@ -228,6 +236,8 @@ export function useAiWorkflow({
   const [coverGenerationResult, setCoverGenerationResult] = useState<CoverGenerationResult>(null);
   const [posterGenerationResult, setPosterGenerationResult] =
     useState<PosterGenerationResult>(null);
+  const [podcastScript, setPodcastScript] = useState<PodcastScriptResult>(null);
+  const [videoScript, setVideoScript] = useState<VideoScriptResult>(null);
 
   const requestAiTask = useCallback(
     async (taskType: AiTaskType, rewritePrompt = "", options: RequestAiTaskOptions = {}) => {
@@ -271,7 +281,7 @@ export function useAiWorkflow({
             return null;
           }
 
-          const result = await readStreamText(res.body);
+          const result = sanitizeAiTextOutput(await readStreamText(res.body));
           if (result) return result;
 
           if (attempt < maxAttempts) continue;
@@ -581,9 +591,16 @@ export function useAiWorkflow({
         posterData.result.backgroundImageUrl,
         posterData.result.brief,
       );
-      setPosterGenerationResult({
+      const posterResult = {
         ...posterData.result,
         imageUrl,
+      };
+      setPosterGenerationResult(posterResult);
+      onPosterGenerated?.({
+        ...posterResult,
+        articleTitle: inputText.match(/^#\s+(.+)$/m)?.[1]?.trim() || "未命名文章",
+        id: `${Date.now()}-${Math.random().toString(16).slice(2)}`,
+        posterPromptName: posterPromptName || "当前贴图提示词",
       });
       showToast("公众号贴图已生成");
     } catch (err) {
@@ -603,6 +620,124 @@ export function useAiWorkflow({
     aiImageModel,
     aiProviderType,
     posterPrompt,
+    posterPromptName,
+    onPosterGenerated,
+    setShowAiConfigModal,
+    showToast,
+  ]);
+
+  const runPodcastScript = useCallback(async () => {
+    if (!inputText.trim()) {
+      showToast("请先填写初稿内容", "error");
+      return;
+    }
+
+    if (runningTask) return;
+
+    const trimmedBaseUrl = aiBaseUrl.trim();
+    const trimmedApiKey = aiApiKey.trim();
+    const trimmedModel = aiModel.trim();
+    if (!trimmedBaseUrl || !trimmedApiKey || !trimmedModel) {
+      setShowAiConfigModal(true);
+      showToast("请先配置文本模型，用于生成播客脚本", "error");
+      return;
+    }
+
+    setRunningTask("podcast");
+    try {
+      const res = await fetch("/api/ai-podcast-script", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          markdown: inputText,
+          providerType: aiProviderType,
+          baseUrl: trimmedBaseUrl,
+          apiKey: trimmedApiKey,
+          model: trimmedModel,
+        }),
+      });
+      const data = (await res.json().catch(() => null)) as {
+        result?: NonNullable<PodcastScriptResult>;
+        error?: string;
+      } | null;
+
+      if (!res.ok || !data?.result) {
+        showToast(data?.error || "AI 播客脚本生成失败，请重试", "error");
+        return;
+      }
+
+      setPodcastScript(data.result);
+      showToast("AI 播客脚本已生成");
+    } catch {
+      showToast("AI 播客脚本生成失败，请检查模型配置后重试", "error");
+    } finally {
+      setRunningTask(null);
+    }
+  }, [
+    inputText,
+    runningTask,
+    aiBaseUrl,
+    aiApiKey,
+    aiModel,
+    aiProviderType,
+    setShowAiConfigModal,
+    showToast,
+  ]);
+
+  const runVideoScript = useCallback(async () => {
+    if (!inputText.trim()) {
+      showToast("请先填写初稿内容", "error");
+      return;
+    }
+
+    if (runningTask) return;
+
+    const trimmedBaseUrl = aiBaseUrl.trim();
+    const trimmedApiKey = aiApiKey.trim();
+    const trimmedModel = aiModel.trim();
+    if (!trimmedBaseUrl || !trimmedApiKey || !trimmedModel) {
+      setShowAiConfigModal(true);
+      showToast("请先配置文本模型，用于生成视频分镜", "error");
+      return;
+    }
+
+    setRunningTask("video");
+    try {
+      const res = await fetch("/api/ai-video-script", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          markdown: inputText,
+          providerType: aiProviderType,
+          baseUrl: trimmedBaseUrl,
+          apiKey: trimmedApiKey,
+          model: trimmedModel,
+        }),
+      });
+      const data = (await res.json().catch(() => null)) as {
+        result?: NonNullable<VideoScriptResult>;
+        error?: string;
+      } | null;
+
+      if (!res.ok || !data?.result) {
+        showToast(data?.error || "AI 视频分镜生成失败，请重试", "error");
+        return;
+      }
+
+      setVideoScript(data.result);
+      showToast("AI 视频分镜已生成");
+    } catch {
+      showToast("AI 视频分镜生成失败，请检查模型配置后重试", "error");
+    } finally {
+      setRunningTask(null);
+    }
+  }, [
+    inputText,
+    runningTask,
+    aiBaseUrl,
+    aiApiKey,
+    aiModel,
+    aiProviderType,
     setShowAiConfigModal,
     showToast,
   ]);
@@ -625,6 +760,10 @@ export function useAiWorkflow({
     posterGenerationResult,
     setPosterGenerationResult,
     hasGeneratedPoster: Boolean(posterGenerationResult?.imageUrl?.trim()),
+    podcastScript,
+    setPodcastScript,
+    videoScript,
+    setVideoScript,
     runFormat,
     applyFormatDraft,
     discardFormatDraft,
@@ -634,5 +773,7 @@ export function useAiWorkflow({
     runPublishOptimize,
     runCoverGeneration,
     runPosterGeneration,
+    runPodcastScript,
+    runVideoScript,
   };
 }

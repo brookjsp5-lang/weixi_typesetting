@@ -17,6 +17,7 @@ import { useCoverPromptTemplates } from "./_hooks/use-cover-prompt-templates";
 import { useDraftAutosave } from "./_hooks/use-draft-autosave";
 import { useMarkdownTools } from "./_hooks/use-markdown-tools";
 import { usePosterPromptTemplates } from "./_hooks/use-poster-prompt-templates";
+import { usePosterLibrary } from "./_hooks/use-poster-library";
 import { usePromptTemplates } from "./_hooks/use-prompt-templates";
 import { useScrollSync } from "./_hooks/use-scroll-sync";
 import { useTheme } from "./_hooks/use-theme";
@@ -97,6 +98,7 @@ export default function Home() {
   const promptSettings = usePromptTemplates(showToast);
   const coverPromptSettings = useCoverPromptTemplates(showToast);
   const posterPromptSettings = usePosterPromptTemplates(showToast);
+  const posterLibrary = usePosterLibrary(showToast);
   const wordCount = useWordCount(inputText);
   const copyToClipboard = useClipboardCopy(showToast);
   const { syncScroll, setSyncScroll, previewRef, handleInputScroll, handlePreviewScroll } =
@@ -153,6 +155,8 @@ export default function Home() {
     aiImageModel: aiSettings.aiImageModel,
     coverPrompt: coverPromptSettings.selectedCoverPrompt?.prompt || "",
     posterPrompt: posterPromptSettings.selectedPosterPrompt?.prompt || "",
+    posterPromptName: posterPromptSettings.selectedPosterPrompt?.name || "",
+    onPosterGenerated: posterLibrary.savePoster,
     setShowAiConfigModal: aiSettings.setShowAiConfigModal,
     showToast,
   });
@@ -206,7 +210,7 @@ export default function Home() {
         hasFormatDraft: Boolean(aiWorkflow.formatDraft),
         hasAppliedFormat: aiWorkflow.hasAppliedFormat,
         hasCoverGenerated: aiWorkflow.hasGeneratedCover,
-        hasPosterGenerated: aiWorkflow.hasGeneratedPoster,
+        hasPosterGenerated: false,
         hasCheckWarnings: publishChecks.some((item) => item.status === "warning"),
         hasPublishOptimization: Boolean(aiWorkflow.publishOptimization),
         hasCopied: hasCopiedForPublish,
@@ -218,7 +222,6 @@ export default function Home() {
       aiWorkflow.formatDraft,
       aiWorkflow.hasAppliedFormat,
       aiWorkflow.hasGeneratedCover,
-      aiWorkflow.hasGeneratedPoster,
       publishChecks,
       aiWorkflow.publishOptimization,
       hasCopiedForPublish,
@@ -358,6 +361,10 @@ export default function Home() {
               setSelectedPosterPromptId={posterPromptSettings.setSelectedPosterPromptId}
               onSavePosterPrompt={posterPromptSettings.savePosterPromptTemplate}
               onDeletePosterPrompt={posterPromptSettings.deletePosterPromptTemplate}
+              posterLibraryItems={posterLibrary.posters}
+              isLoadingPosterLibrary={posterLibrary.isLoadingPosters}
+              onDeletePosterLibraryItem={posterLibrary.deletePoster}
+              onClearPosterLibrary={posterLibrary.clearPosters}
               publishChecks={publishChecks}
               publishOptimization={aiWorkflow.publishOptimization}
               onCopy={handleCopy}
@@ -372,6 +379,10 @@ export default function Home() {
               onResetFormatTweaks={() => setFormatTweaks(DEFAULT_FORMAT_TWEAKS)}
               syncScroll={syncScroll}
               setSyncScroll={setSyncScroll}
+              podcastScript={aiWorkflow.podcastScript}
+              onGeneratePodcastScript={aiWorkflow.runPodcastScript}
+              videoScript={aiWorkflow.videoScript}
+              onGenerateVideoScript={aiWorkflow.runVideoScript}
             />
           </div>
         </div>

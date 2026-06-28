@@ -1,15 +1,13 @@
 import { createAnthropic } from "@ai-sdk/anthropic";
 import { createOpenAI } from "@ai-sdk/openai";
 import { generateText } from "ai";
+import { extractJsonObjectFromAiText } from "../../_lib/ai-output-utils";
 import { openRouterConfig } from "../../_lib/formatter-constants";
 import {
   createPosterBriefPrompt,
-  extractJsonObject,
   normalizePosterTextBrief,
 } from "../../_lib/workflow-utils";
 import type { AiProviderType } from "../../_types/formatter";
-
-const MAX_INPUT_LENGTH = 15000;
 
 const isKnownProvider = (providerType: unknown): providerType is AiProviderType =>
   providerType === "openrouter" ||
@@ -48,13 +46,6 @@ export async function POST(req: Request) {
       return Response.json({ error: "请提供需要生成贴图的 Markdown 内容" }, { status: 400 });
     }
 
-    if (markdown.length > MAX_INPUT_LENGTH) {
-      return Response.json(
-        { error: `内容过长（${markdown.length} 字符），请控制在 ${MAX_INPUT_LENGTH} 字符以内` },
-        { status: 400 },
-      );
-    }
-
     const trimmedApiKey = apiKey?.trim();
     if (!trimmedApiKey) {
       return Response.json({ error: "请先填写文本模型 API Key" }, { status: 400 });
@@ -84,13 +75,28 @@ export async function POST(req: Request) {
             baseURL: trimmedBaseUrl,
           }).chat(trimmedModel);
 
+    const prompt = createPosterBriefPrompt({ markdown, posterPrompt });
     const result = await generateText({
       model: languageModel,
-      prompt: createPosterBriefPrompt({ markdown, posterPrompt }),
+      prompt,
       temperature: 0.5,
     });
 
-    const brief = normalizePosterTextBrief(extractJsonObject(result.text));
+    let parsedBrief: unknown;
+    try {
+      parsedBrief = extractJsonObjectFromAiText(result.text);
+    } catch {
+      const repair = await generateText({
+        model: languageModel,
+        prompt: `${prompt}
+
+上一次输出不是合法 JSON。请只返回一个 JSON 对象，不要解释，不要 Markdown 代码块，不要 <think>。`,
+        temperature: 0.2,
+      });
+      parsedBrief = extractJsonObjectFromAiText(repair.text);
+    }
+
+    const brief = normalizePosterTextBrief(parsedBrief);
     return Response.json({ result: brief });
   } catch (err: unknown) {
     console.error("AI poster brief error:", err);

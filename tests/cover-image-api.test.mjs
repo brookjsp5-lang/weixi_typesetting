@@ -5,6 +5,7 @@ import {
   buildImageGenerationRequestBodies,
   createImageGenerationErrorMessage,
   parseImageGenerationResult,
+  remoteImageToDataUrl,
   resolveImageGenerationEndpoint,
 } from "../app/_lib/cover-image-api.js";
 
@@ -221,5 +222,27 @@ test("createImageGenerationErrorMessage preserves concrete provider errors", () 
   assert.equal(
     createImageGenerationErrorMessage({ error: { message: "invalid api key" } }, 401),
     "真实图片生成失败：invalid api key",
+  );
+});
+
+test("remoteImageToDataUrl converts reachable image urls", async () => {
+  const fetcher = async () =>
+    new Response(new Uint8Array([1, 2, 3]), {
+      status: 200,
+      headers: { "content-type": "image/png" },
+    });
+
+  assert.equal(
+    await remoteImageToDataUrl("https://example.com/image.png", fetcher),
+    "data:image/png;base64,AQID",
+  );
+});
+
+test("remoteImageToDataUrl fails clearly for inaccessible image urls", async () => {
+  const fetcher = async () => new Response("not found", { status: 404 });
+
+  await assert.rejects(
+    () => remoteImageToDataUrl("https://example.com/missing.png", fetcher),
+    /图片链接不可访问/,
   );
 });

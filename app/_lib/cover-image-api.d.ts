@@ -49,6 +49,11 @@ export function buildImageGenerationRequestBodies(input: {
 
 export function parseImageGenerationResult(data: unknown): string;
 
+export function remoteImageToDataUrl(
+  imageUrl: string,
+  fetchImpl?: typeof fetch,
+): Promise<string>;
+
 export function getImageGenerationRawError(data: unknown): string;
 
 export function createImageGenerationErrorMessage(
