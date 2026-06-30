@@ -26,6 +26,7 @@ export function createCoverPrompt(params: {
   summary: string;
   keywords?: string[];
   coverPrompt?: string;
+  textMode?: "canvas" | "model";
 }): string;
 
 export function normalizePosterTextBrief(value: unknown): PosterTextBrief;
@@ -87,4 +88,9 @@ export function createPublishWorkflowSteps(params: {
   hasCopied: boolean;
 }): PublishWorkflowStep[];
 
-export function runPublishChecks(markdown: string): PublishCheckItem[];
+export function runPublishChecks(
+  markdown: string,
+  options?: {
+    hasCoverImage?: boolean;
+  },
+): PublishCheckItem[];

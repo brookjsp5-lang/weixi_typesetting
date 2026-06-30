@@ -129,6 +129,36 @@ test("createCoverPrompt combines article context with selected cover prompt", ()
   assert.match(prompt, /封面风格要求：极简商务风，浅色背景，清晰标题区，不使用真实人物。/);
 });
 
+test("createCoverPrompt defaults to background-only canvas text mode", () => {
+  const prompt = createCoverPrompt({
+    markdown: "# Codex CLI 教程\n\n配置代理和模型。",
+    title: "Codex CLI 子代理保姆级教程",
+    summary: "配置代理、模型和工作流。",
+    keywords: ["Codex", "CLI"],
+    coverPrompt: "左侧大面积留白放标题，右侧科技元素。",
+  });
+
+  assert.match(prompt, /不要在画面中生成任何中文或英文文字/);
+  assert.match(prompt, /左侧保留大面积干净留白/);
+  assert.match(prompt, /后续由 WX 工具叠加中文标题/);
+  assert.doesNotMatch(prompt, /必须完整显示中文标题/);
+});
+
+test("createCoverPrompt model text mode asks image model to render the exact title", () => {
+  const prompt = createCoverPrompt({
+    markdown: "# Codex CLI 教程\n\n配置代理和模型。",
+    title: "Codex CLI 子代理保姆级教程",
+    summary: "配置代理、模型和工作流。",
+    keywords: ["Codex", "CLI"],
+    coverPrompt: "左侧大面积留白放标题，右侧科技元素。",
+    textMode: "model",
+  });
+
+  assert.match(prompt, /必须在左侧完整显示中文标题：《Codex CLI 子代理保姆级教程》/);
+  assert.match(prompt, /不要改字，不要漏字，不要生成乱码/);
+  assert.doesNotMatch(prompt, /后续由 WX 工具叠加中文标题/);
+});
+
 test("createPosterPrompt keeps text overlay out of image model prompt", () => {
   const prompt = createPosterPrompt({
     markdown: "# 做内容要先抓住重点\n公众号写作要把观点提炼成一句可传播的话。",
@@ -284,6 +314,14 @@ test("publish checks flag long paragraphs, missing images, links, and headings",
   assert.equal(checks.find((item) => item.id === "images")?.status, "warning");
   assert.equal(checks.find((item) => item.id === "links")?.status, "warning");
   assert.equal(checks.find((item) => item.id === "code")?.status, "success");
+});
+
+test("publish checks account for generated cover image", () => {
+  const checks = runPublishChecks("# 主标题\n\n正文内容", { hasCoverImage: true });
+  const imageCheck = checks.find((item) => item.id === "images");
+
+  assert.equal(imageCheck?.status, "success");
+  assert.equal(imageCheck?.message, "已生成封面图，正文未检测到图片。");
 });
 
 test("publish workflow steps reflect draft, rewrite, format, image, check, and publish progress", () => {

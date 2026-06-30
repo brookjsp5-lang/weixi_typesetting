@@ -30,7 +30,7 @@ import {
   getCoverGenerationConfigStatus,
   runPublishChecks,
 } from "./_lib/workflow-utils";
-import type { ActiveTab, FormatTweaks, PublishStepId } from "./_types/formatter";
+import type { ActiveTab, FormatTweaks, ImageTextMode, PublishStepId } from "./_types/formatter";
 import { allTemplates, groupedTemplates, renderArticle } from "./template-engine";
 
 const DEFAULT_FORMAT_TWEAKS: FormatTweaks = {
@@ -77,6 +77,7 @@ export default function Home() {
   const [imageUrl, setImageUrl] = useState("");
   const [imageDesc, setImageDesc] = useState("");
   const [hasCopiedForPublish, setHasCopiedForPublish] = useState(false);
+  const [coverTextMode, setCoverTextMode] = useState<ImageTextMode>("canvas");
 
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -140,8 +141,19 @@ export default function Home() {
   }, []);
 
   useEffect(() => {
+    const savedCoverTextMode = localStorage.getItem(aiStorageKeys.coverTextMode);
+    if (savedCoverTextMode === "canvas" || savedCoverTextMode === "model") {
+      setCoverTextMode(savedCoverTextMode);
+    }
+  }, []);
+
+  useEffect(() => {
     localStorage.setItem(aiStorageKeys.workflowTab, publishStep);
   }, [publishStep]);
+
+  useEffect(() => {
+    localStorage.setItem(aiStorageKeys.coverTextMode, coverTextMode);
+  }, [coverTextMode]);
 
   const aiWorkflow = useAiWorkflow({
     inputText: normalizedInputText,
@@ -153,6 +165,7 @@ export default function Home() {
     aiImageBaseUrl: aiSettings.aiImageBaseUrl,
     aiImageApiKey: aiSettings.aiImageApiKey,
     aiImageModel: aiSettings.aiImageModel,
+    coverTextMode,
     coverPrompt: coverPromptSettings.selectedCoverPrompt?.prompt || "",
     posterPrompt: posterPromptSettings.selectedPosterPrompt?.prompt || "",
     posterPromptName: posterPromptSettings.selectedPosterPrompt?.name || "",
@@ -178,7 +191,10 @@ export default function Home() {
     return renderArticle(processedText, currentTemplate, formatTweaks);
   }, [normalizedInputText, currentTemplate, formatTweaks, imageMap]);
 
-  const publishChecks = useMemo(() => runPublishChecks(inputText), [inputText]);
+  const publishChecks = useMemo(
+    () => runPublishChecks(inputText, { hasCoverImage: aiWorkflow.hasGeneratedCover }),
+    [inputText, aiWorkflow.hasGeneratedCover],
+  );
   const coverGenerationConfigStatus = useMemo(
     () =>
       getCoverGenerationConfigStatus({
@@ -340,6 +356,10 @@ export default function Home() {
               onGenerateCover={aiWorkflow.runCoverGeneration}
               onGeneratePoster={aiWorkflow.runPosterGeneration}
               coverGenerationResult={aiWorkflow.coverGenerationResult}
+              coverTextMode={coverTextMode}
+              setCoverTextMode={setCoverTextMode}
+              selectedCoverTitle={aiWorkflow.selectedCoverTitle}
+              onSelectCoverTitle={aiWorkflow.recomposeCoverTitle}
               posterGenerationResult={aiWorkflow.posterGenerationResult}
               coverGenerationConfigStatus={coverGenerationConfigStatus}
               onOpenAiConfig={() => aiSettings.setShowAiConfigModal(true)}

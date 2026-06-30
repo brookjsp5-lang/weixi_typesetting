@@ -24,6 +24,8 @@ export type AiTaskType = "format" | "rewrite" | "publishOptimize";
 
 export type RunningAiTaskType = AiTaskType | "cover" | "poster" | "podcast" | "video";
 
+export type ImageTextMode = "canvas" | "model";
+
 export type ProviderPreset = {
   id: AiProviderType;
   name: string;
@@ -125,9 +127,12 @@ export type PublishWorkflowStep = {
 
 export type CoverGenerationResult = {
   imageUrl: string;
+  backgroundImageUrl?: string;
   rawImageUrl?: string;
+  rawBackgroundImageUrl?: string;
   prompt: string;
   titleHint: string;
+  textMode: ImageTextMode;
   createdAt: string;
   source?: "ai";
   warning?: string;

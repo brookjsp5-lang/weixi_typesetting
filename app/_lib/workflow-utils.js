@@ -216,17 +216,31 @@ export function createDefaultPosterPromptTemplates() {
   ];
 }
 
-export function createCoverPrompt({ markdown, title, summary, keywords = [], coverPrompt = "" }) {
+export function createCoverPrompt({
+  markdown,
+  title,
+  summary,
+  keywords = [],
+  coverPrompt = "",
+  textMode = "canvas",
+}) {
   const excerpt = createMediaSourceExcerpt(markdown, 1000);
   const cleanKeywords = Array.isArray(keywords) ? keywords.filter(Boolean) : [];
   const cleanCoverPrompt = String(coverPrompt || "").trim();
+  const cleanTitle = String(title || "").trim();
+  const isModelTextMode = textMode === "model";
   const styleSection = cleanCoverPrompt
     ? `\n封面风格要求：${cleanCoverPrompt}`
     : "\n封面风格要求：适合微信公众号首图，横版构图，留出安全的标题空间，视觉清晰、有编辑感。";
+  const titleInstruction = isModelTextMode
+    ? `必须在左侧完整显示中文标题：《${cleanTitle || "根据正文提炼一个克制清晰的主题"}》。标题文字必须清晰可读，不要改字，不要漏字，不要生成乱码。`
+    : "左侧保留大面积干净留白，后续由 WX 工具叠加中文标题；不要在画面中生成任何中文或英文文字、字母、数字、Logo、水印。";
 
-  return `为微信公众号文章生成一张专业封面图。画面需要适合中文公众号首图，横版构图，留出安全的标题空间，视觉清晰、有编辑感，不要包含二维码、品牌水印或真实人物肖像。
+  return `为微信公众号文章生成一张专业封面图。画面需要适合中文公众号首图，横版 16:9 构图，视觉清晰、有编辑感，不要包含二维码、品牌水印或真实人物肖像。
 
-文章标题方向：${title || "根据正文提炼一个克制清晰的主题"}
+标题处理要求：${titleInstruction}
+
+文章标题方向：${cleanTitle || "根据正文提炼一个克制清晰的主题"}
 文章摘要：${summary || "根据正文主题生成封面氛围"}
 关键词：${cleanKeywords.join("、") || "公众号、内容创作、排版"}${styleSection}
 正文参考：${excerpt}`;
@@ -442,8 +456,9 @@ function countMatches(text, pattern) {
   return (text.match(pattern) || []).length;
 }
 
-export function runPublishChecks(markdown) {
+export function runPublishChecks(markdown, options = {}) {
   const trimmed = markdown.trim();
+  const hasCoverImage = Boolean(options.hasCoverImage);
   const headings = countMatches(trimmed, /^#{1,6}\s+.+$/gm);
   const longParagraphs = trimmed
     .split(/\n{2,}/)
@@ -481,10 +496,14 @@ export function runPublishChecks(markdown) {
       status: localImages > 0 ? "warning" : "success",
       message:
         images === 0
-          ? "未检测到图片。"
+          ? hasCoverImage
+            ? "已生成封面图，正文未检测到图片。"
+            : "未检测到图片。"
           : localImages > 0
             ? "检测到本地粘贴图片，发布前建议确认公众号后台能正常识别。"
-            : `检测到 ${images} 张在线图片。`,
+            : hasCoverImage
+              ? `已生成封面图，正文检测到 ${images} 张在线图片。`
+              : `检测到 ${images} 张在线图片。`,
     },
     {
       id: "links",

@@ -4,6 +4,7 @@ import test from "node:test";
 import {
   buildImageGenerationRequestBodies,
   createImageGenerationErrorMessage,
+  getUnsupportedImageModelMessage,
   parseImageGenerationResult,
   remoteImageToDataUrl,
   resolveImageGenerationEndpoint,
@@ -171,6 +172,29 @@ test("buildImageGenerationRequestBodies uses MiniMax image_generation payload", 
     n: 1,
     prompt_optimizer: true,
   });
+});
+
+test("buildImageGenerationRequestBodies disables MiniMax prompt optimizer in model text mode", () => {
+  const [payload] = buildImageGenerationRequestBodies({
+    baseUrl: "https://api.minimaxi.com/v1/image_generation",
+    model: "image-01",
+    prompt: "必须显示标题",
+    providerType: "minimax",
+    textMode: "model",
+  });
+
+  assert.equal(payload.prompt_optimizer, false);
+});
+
+test("getUnsupportedImageModelMessage rejects MiniMax text models as image models", () => {
+  assert.match(
+    getUnsupportedImageModelMessage({ providerType: "minimax", model: "MiniMax-M3" }),
+    /MiniMax-M3 是文本 \/ Coding 模型/,
+  );
+  assert.equal(
+    getUnsupportedImageModelMessage({ providerType: "minimax", model: "image-01" }),
+    "",
+  );
 });
 
 test("buildImageGenerationRequestBodies uses Zhipu GLM image payload", () => {

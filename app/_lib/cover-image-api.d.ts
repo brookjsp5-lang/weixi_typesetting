@@ -1,4 +1,4 @@
-import type { AiProviderType } from "../_types/formatter";
+import type { AiProviderType, ImageTextMode } from "../_types/formatter";
 
 export type ImageGenerationRequestInput = {
   baseUrl: string;
@@ -6,6 +6,7 @@ export type ImageGenerationRequestInput = {
   model: string;
   prompt: string;
   providerType?: AiProviderType;
+  textMode?: ImageTextMode;
 };
 
 export function resolveImageGenerationEndpoint(baseUrl: string): string;
@@ -40,11 +41,17 @@ export function isVolcengineImageConfig(input?: {
   providerType?: AiProviderType | string;
 }): boolean;
 
+export function getUnsupportedImageModelMessage(input?: {
+  providerType?: AiProviderType | string;
+  model?: string;
+}): string;
+
 export function buildImageGenerationRequestBodies(input: {
   baseUrl: string;
   model: string;
   prompt: string;
   providerType?: AiProviderType | string;
+  textMode?: ImageTextMode;
 }): Array<Record<string, unknown>>;
 
 export function parseImageGenerationResult(data: unknown): string;

@@ -1,5 +1,6 @@
 import {
   createImageGenerationErrorMessage,
+  getUnsupportedImageModelMessage,
   remoteImageToDataUrl,
   requestImageGeneration,
 } from "../../_lib/cover-image-api";
@@ -42,6 +43,7 @@ export async function POST(req: Request) {
       summary = "",
       keywords = [],
       coverPrompt = "",
+      textMode = "canvas",
     } = body as {
       markdown?: string;
       providerType?: AiProviderType;
@@ -52,6 +54,7 @@ export async function POST(req: Request) {
       summary?: string;
       keywords?: string[];
       coverPrompt?: string;
+      textMode?: "canvas" | "model";
     };
 
     if (!markdown || typeof markdown !== "string" || !markdown.trim()) {
@@ -59,6 +62,7 @@ export async function POST(req: Request) {
     }
 
     const selectedProvider = isKnownProvider(providerType) ? providerType : "openrouter";
+    const coverTextMode = textMode === "model" ? "model" : "canvas";
     const rawBaseUrl = baseUrl?.trim();
     const trimmedBaseUrl =
       rawBaseUrl || (selectedProvider === "openrouter" ? openRouterConfig.baseUrl : "");
@@ -69,6 +73,7 @@ export async function POST(req: Request) {
       summary: summary.trim(),
       keywords: Array.isArray(keywords) ? keywords.filter((item) => typeof item === "string") : [],
       coverPrompt,
+      textMode: coverTextMode,
     });
 
     if (!trimmedModel) {
@@ -88,12 +93,21 @@ export async function POST(req: Request) {
       return createImageError("Anthropic 当前配置不支持真实图片生成，请更换生图接口。");
     }
 
+    const unsupportedModelMessage = getUnsupportedImageModelMessage({
+      providerType: selectedProvider,
+      model: trimmedModel,
+    });
+    if (unsupportedModelMessage) {
+      return createImageError(unsupportedModelMessage);
+    }
+
     const result = await requestImageGeneration({
       baseUrl: trimmedBaseUrl,
       apiKey: trimmedApiKey,
       model: trimmedModel,
       prompt,
       providerType: selectedProvider,
+      textMode: coverTextMode,
     });
 
     if (!result.response?.ok) {
@@ -129,9 +143,12 @@ export async function POST(req: Request) {
     return Response.json({
       result: {
         imageUrl: displayImageUrl,
+        backgroundImageUrl: displayImageUrl,
         rawImageUrl: imageUrl,
+        rawBackgroundImageUrl: imageUrl,
         prompt,
         titleHint: title.trim(),
+        textMode: coverTextMode,
         createdAt: new Date().toISOString(),
         source: "ai",
       },

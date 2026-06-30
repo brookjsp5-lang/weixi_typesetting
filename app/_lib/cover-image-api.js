@@ -45,6 +45,19 @@ export function isMiniMaxImageConfig({ baseUrl = "", providerType = "" } = {}) {
   return value.includes("minimax") || value.includes("minimaxi.com");
 }
 
+export function getUnsupportedImageModelMessage({ providerType = "", model = "" } = {}) {
+  const provider = String(providerType || "").toLowerCase();
+  const normalizedModel = String(model || "").trim();
+  const lowerModel = normalizedModel.toLowerCase();
+  if (
+    provider === "minimax" &&
+    /^minimax-(m|text|abab)|^abab|m3$|m2\.7$|minimax-m3$/i.test(lowerModel)
+  ) {
+    return `${normalizedModel || "MiniMax-M3"} 是文本 / Coding 模型，不是生图模型。请将封面生图模型改为 image-01 或 image-01-live。`;
+  }
+  return "";
+}
+
 export function isZhipuImageConfig({ baseUrl = "", providerType = "" } = {}) {
   const value = `${providerType} ${baseUrl}`.toLowerCase();
   return (
@@ -64,7 +77,13 @@ export function isVolcengineImageConfig({ baseUrl = "", providerType = "" } = {}
   );
 }
 
-export function buildImageGenerationRequestBodies({ baseUrl, model, prompt, providerType }) {
+export function buildImageGenerationRequestBodies({
+  baseUrl,
+  model,
+  prompt,
+  providerType,
+  textMode = "canvas",
+}) {
   if (isOpenRouterImageConfig({ baseUrl, providerType })) {
     return [
       {
@@ -115,7 +134,7 @@ export function buildImageGenerationRequestBodies({ baseUrl, model, prompt, prov
         aspect_ratio: "16:9",
         response_format: "url",
         n: 1,
-        prompt_optimizer: true,
+        prompt_optimizer: textMode !== "model",
       },
     ];
   }
@@ -209,13 +228,21 @@ export function createImageGenerationErrorMessage(data, status, fallbackMessage)
   return fallbackMessage || "真实图片生成失败，请检查接口、模型和额度。";
 }
 
-export async function requestImageGeneration({ baseUrl, apiKey, model, prompt, providerType }) {
+export async function requestImageGeneration({
+  baseUrl,
+  apiKey,
+  model,
+  prompt,
+  providerType,
+  textMode = "canvas",
+}) {
   const endpoint = resolveImageGenerationEndpoint(baseUrl);
   const requestBodies = buildImageGenerationRequestBodies({
     baseUrl,
     model,
     prompt,
     providerType,
+    textMode,
   });
 
   let lastResponse = null;

@@ -20,13 +20,14 @@ import {
   Wand2,
 } from "lucide-react";
 import type React from "react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type {
   ActiveTab,
   AppliedAiChange,
   CoverGenerationResult,
   CoverPromptTemplate,
   FormatTweaks,
+  ImageTextMode,
   PodcastScriptResult,
   PosterGenerationResult,
   PosterLibraryItem,
@@ -67,6 +68,10 @@ type WorkflowPaneProps = {
   onGenerateCover: () => void;
   onGeneratePoster: () => void;
   coverGenerationResult: CoverGenerationResult;
+  coverTextMode: ImageTextMode;
+  setCoverTextMode: React.Dispatch<React.SetStateAction<ImageTextMode>>;
+  selectedCoverTitle: string;
+  onSelectCoverTitle: (title: string) => void;
   posterGenerationResult: PosterGenerationResult;
   coverGenerationConfigStatus: {
     isConfigured: boolean;
@@ -252,11 +257,13 @@ function CoverResultCard({
   coverGenerationResult,
   runningTask,
   onCopyText,
+  onCopyImage,
   copiedMaterialIds,
 }: {
   coverGenerationResult: CoverGenerationResult;
   runningTask: RunningAiTaskType | null;
   onCopyText: (text: string, id: string) => void;
+  onCopyImage: (imageUrl: string, id: string) => void;
   copiedMaterialIds: string[];
 }) {
   const [hasImageError, setHasImageError] = useState(false);
@@ -317,7 +324,12 @@ function CoverResultCard({
         onError={() => setHasImageError(true)}
         className="aspect-video w-full rounded-lg border border-(--neo-line) object-cover bg-white"
       />
-      <div className="flex gap-2">
+      <div className="rounded-lg border border-(--neo-line) bg-white p-2 text-[11px] font-bold leading-relaxed neo-text-muted">
+        {coverGenerationResult.textMode === "canvas"
+          ? `标题由 WX 叠加：${coverGenerationResult.titleHint || "公众号封面"}`
+          : "标题由模型直接生成，文字准确性取决于模型能力。"}
+      </div>
+      <div className="grid grid-cols-2 gap-2">
         <a
           href={imageUrl}
           download="wx-cover.png"
@@ -328,8 +340,16 @@ function CoverResultCard({
         </a>
         <button
           type="button"
+          onClick={() => onCopyImage(imageUrl, "cover-image")}
+          className="neo-button neo-button-secondary flex-1 py-1.5 text-xs inline-flex items-center justify-center gap-1.5"
+        >
+          <Clipboard className="h-3.5 w-3.5" />
+          {copiedMaterialIds.includes("cover-image") ? "封面已复制" : "复制封面"}
+        </button>
+        <button
+          type="button"
           onClick={() => onCopyText(coverGenerationResult.prompt, "cover-prompt")}
-          className="neo-button neo-button-ghost flex-1 py-1.5 text-xs"
+          className="neo-button neo-button-ghost col-span-2 py-1.5 text-xs"
         >
           {copiedMaterialIds.includes("cover-prompt") ? "提示词已复制" : "复制提示词"}
         </button>
@@ -525,6 +545,7 @@ function PublishMaterials({
   publishOptimization,
   coverGenerationResult,
   onCopyText,
+  onCopyImage,
   copiedMaterialIds,
   showCover = true,
   compact = false,
@@ -532,6 +553,7 @@ function PublishMaterials({
   publishOptimization: PublishOptimizationResult;
   coverGenerationResult: CoverGenerationResult;
   onCopyText: (text: string, id: string) => void;
+  onCopyImage: (imageUrl: string, id: string) => void;
   copiedMaterialIds: string[];
   showCover?: boolean;
   compact?: boolean;
@@ -550,7 +572,7 @@ function PublishMaterials({
           alt="公众号封面图"
           className="aspect-video w-full rounded-lg border border-(--neo-line) object-cover bg-white"
         />
-        <div className="flex gap-2">
+        <div className="grid grid-cols-2 gap-2">
           <a
             href={coverGenerationResult.imageUrl}
             download="wx-cover.png"
@@ -561,8 +583,16 @@ function PublishMaterials({
           </a>
           <button
             type="button"
+            onClick={() => onCopyImage(coverGenerationResult.imageUrl, "cover-image")}
+            className="neo-button neo-button-secondary flex-1 py-1.5 text-xs inline-flex items-center justify-center gap-1.5"
+          >
+            <Clipboard className="h-3.5 w-3.5" />
+            {copiedMaterialIds.includes("cover-image") ? "封面已复制" : "复制封面"}
+          </button>
+          <button
+            type="button"
             onClick={() => onCopyText(coverGenerationResult.prompt, "cover-prompt")}
-            className="neo-button neo-button-ghost flex-1 py-1.5 text-xs"
+            className="neo-button neo-button-ghost col-span-2 py-1.5 text-xs"
           >
             {copiedMaterialIds.includes("cover-prompt") ? "提示词已复制" : "复制提示词"}
           </button>
@@ -664,16 +694,30 @@ function PublishChecklist({
   copiedMaterialIds: string[];
 }) {
   const checklist = [
-    { label: "正文 HTML", done: hasCopiedBody },
-    { label: "封面图", done: Boolean(coverGenerationResult) },
+    { label: "正文 HTML", done: hasCopiedBody, doneLabel: "已复制", pendingLabel: "待复制" },
+    {
+      label: "封面图",
+      done: copiedMaterialIds.includes("cover-image"),
+      doneLabel: "已复制",
+      pendingLabel: coverGenerationResult ? "待复制" : "待生成",
+    },
     {
       label: "标题",
       done: copiedMaterialIds.some((id) => id.startsWith("title:")),
+      doneLabel: "已复制",
+      pendingLabel: "待复制",
     },
-    { label: "摘要", done: copiedMaterialIds.includes("summary") },
+    {
+      label: "摘要",
+      done: copiedMaterialIds.includes("summary"),
+      doneLabel: "已复制",
+      pendingLabel: "待复制",
+    },
     {
       label: "关键词",
       done: copiedMaterialIds.some((id) => id.startsWith("keyword:")),
+      doneLabel: "已复制",
+      pendingLabel: "待复制",
     },
   ];
 
@@ -695,7 +739,7 @@ function PublishChecklist({
                 : "border-(--neo-line) bg-white neo-text-muted"
             }`}
           >
-            {item.done ? "已复制" : "待复制"} · {item.label}
+            {item.done ? item.doneLabel : item.pendingLabel} · {item.label}
           </div>
         ))}
       </div>
@@ -720,6 +764,10 @@ export function WorkflowPane({
   onGenerateCover,
   onGeneratePoster,
   coverGenerationResult,
+  coverTextMode,
+  setCoverTextMode,
+  selectedCoverTitle,
+  onSelectCoverTitle,
   posterGenerationResult,
   coverGenerationConfigStatus,
   onOpenAiConfig,
@@ -791,6 +839,10 @@ export function WorkflowPane({
   const imageReady = Boolean(coverGenerationResult);
   const materialsReady = Boolean(publishOptimization);
   const hasCopiedBody = getStepStatus("publish") === "done";
+
+  useEffect(() => {
+    setCopiedMaterialIds((current) => current.filter((id) => id !== "cover-image"));
+  }, [coverGenerationResult?.imageUrl]);
 
   const loadPromptForEdit = (template: PromptTemplate) => {
     setPromptDraftId(template.id);
@@ -898,6 +950,19 @@ export function WorkflowPane({
     if (!text.trim()) return;
     await navigator.clipboard.writeText(text);
     setCopiedMaterialIds((current) => (current.includes(id) ? current : [...current, id]));
+  };
+
+  const copyImageToClipboard = async (imageUrl: string, id = "cover-image") => {
+    if (!imageUrl.trim() || !navigator.clipboard?.write || !("ClipboardItem" in window)) return;
+    try {
+      const response = await fetch(imageUrl);
+      const blob = await response.blob();
+      const mimeType = blob.type || "image/png";
+      await navigator.clipboard.write([new ClipboardItem({ [mimeType]: blob })]);
+      setCopiedMaterialIds((current) => (current.includes(id) ? current : [...current, id]));
+    } catch (error) {
+      console.error("复制封面图失败", error);
+    }
   };
 
   return (
@@ -1341,6 +1406,69 @@ export function WorkflowPane({
                     )}
                   </section>
                   <section className="rounded-xl border border-(--neo-line) bg-(--neo-surface) p-3 space-y-3">
+                    <div>
+                      <h3 className="text-sm font-black flex items-center gap-1.5">
+                        <PenLine className="w-4 h-4" />
+                        标题显示方式
+                      </h3>
+                      <p className="mt-1 text-[11px] font-bold leading-relaxed neo-text-muted">
+                        默认由 WX 叠加标题，确保中文不漏字；模型直出适合测试 Seedream、Qwen Image 等文字能力。
+                      </p>
+                    </div>
+                    <div className="grid grid-cols-2 gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setCoverTextMode("canvas")}
+                        className={`rounded-lg border px-3 py-2 text-left text-xs font-black ${
+                          coverTextMode === "canvas"
+                            ? "border-(--neo-green) bg-emerald-50 text-emerald-700"
+                            : "border-(--neo-line) bg-white text-(--neo-ink)"
+                        }`}
+                      >
+                        工具叠字
+                        <span className="mt-0.5 block text-[10px] font-bold opacity-70">推荐</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setCoverTextMode("model")}
+                        className={`rounded-lg border px-3 py-2 text-left text-xs font-black ${
+                          coverTextMode === "model"
+                            ? "border-(--neo-pink) bg-pink-50 text-pink-700"
+                            : "border-(--neo-line) bg-white text-(--neo-ink)"
+                        }`}
+                      >
+                        模型直出标题
+                        <span className="mt-0.5 block text-[10px] font-bold opacity-70">高级</span>
+                      </button>
+                    </div>
+                    {coverTextMode === "model" && (
+                      <div className="rounded-lg border border-amber-300 bg-amber-50 p-2 text-[11px] font-bold leading-relaxed text-amber-800">
+                        模型直出会要求生图模型直接写标题，但可能缺字、错字或不显示。
+                      </div>
+                    )}
+                  </section>
+
+                  {publishOptimization?.titles?.length ? (
+                    <section className="rounded-xl border border-(--neo-line) bg-(--neo-surface) p-3 space-y-2">
+                      <h3 className="text-xs font-black">封面标题候选</h3>
+                      {publishOptimization.titles.slice(0, 3).map((title) => (
+                        <button
+                          key={title}
+                          type="button"
+                          onClick={() => onSelectCoverTitle(title)}
+                          className={`w-full rounded-lg border p-2 text-left text-xs font-bold ${
+                            (selectedCoverTitle || coverGenerationResult?.titleHint) === title
+                              ? "border-(--neo-green) bg-emerald-50 text-emerald-700"
+                              : "border-(--neo-line) bg-white text-(--neo-ink)"
+                          }`}
+                        >
+                          {title}
+                        </button>
+                      ))}
+                    </section>
+                  ) : null}
+
+                  <section className="rounded-xl border border-(--neo-line) bg-(--neo-surface) p-3 space-y-3">
                     <button
                       type="button"
                       onClick={onGenerateCover}
@@ -1363,7 +1491,9 @@ export function WorkflowPane({
                           : "生成封面图"}
                     </button>
                     <p className="px-1 text-[11px] font-bold leading-relaxed neo-text-muted">
-                      需要支持真实生图的模型；提示词只影响画面风格。
+                      {coverTextMode === "canvas"
+                        ? "模型负责生成背景，WX 会把选中的标题叠加到左侧留白区。"
+                        : "模型会尝试直接生成带标题的封面，文字准确性取决于模型能力。"}
                     </p>
                   </section>
 
@@ -1371,6 +1501,7 @@ export function WorkflowPane({
                     coverGenerationResult={coverGenerationResult}
                     runningTask={runningTask}
                     onCopyText={copyPlainText}
+                    onCopyImage={copyImageToClipboard}
                     copiedMaterialIds={copiedMaterialIds}
                   />
 
@@ -1379,6 +1510,7 @@ export function WorkflowPane({
                       publishOptimization={publishOptimization}
                       coverGenerationResult={coverGenerationResult}
                       onCopyText={copyPlainText}
+                      onCopyImage={copyImageToClipboard}
                       copiedMaterialIds={copiedMaterialIds}
                       showCover={false}
                       compact
@@ -1419,6 +1551,7 @@ export function WorkflowPane({
                 publishOptimization={publishOptimization}
                 coverGenerationResult={coverGenerationResult}
                 onCopyText={copyPlainText}
+                onCopyImage={copyImageToClipboard}
                 copiedMaterialIds={copiedMaterialIds}
               />
 
@@ -1448,6 +1581,7 @@ export function WorkflowPane({
                 publishOptimization={publishOptimization}
                 coverGenerationResult={coverGenerationResult}
                 onCopyText={copyPlainText}
+                onCopyImage={copyImageToClipboard}
                 copiedMaterialIds={copiedMaterialIds}
                 compact
               />

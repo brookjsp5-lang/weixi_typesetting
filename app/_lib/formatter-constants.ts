@@ -68,6 +68,7 @@ export const aiStorageKeys = {
   imageBaseUrl: "wechat-formatter-ai-image-base-url",
   imageApiKey: "wechat-formatter-ai-image-api-key",
   imageModel: "wechat-formatter-ai-image-model",
+  coverTextMode: "wechat-formatter-ai-cover-text-mode",
   prompts: "wechat-formatter-ai-prompts",
   coverPrompts: "wechat-formatter-ai-cover-prompts",
   selectedCoverPromptId: "wechat-formatter-ai-selected-cover-prompt",
