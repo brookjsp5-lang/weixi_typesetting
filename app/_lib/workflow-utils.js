@@ -64,7 +64,7 @@ export const providerPresets = [
     modelHelp: "MiniMax-M3、MiniMax-M2.7 或其他 MiniMax OpenAI 兼容模型",
     imageBaseUrl: "https://api.minimaxi.com/v1/image_generation",
     defaultImageModel: "image-01",
-    imageModelHelp: "image-01 或其他 MiniMax 官方生图模型",
+    imageModelHelp: "image-01、image-01-live；image-01-live 适合手绘、卡通等风格增强",
   },
   {
     id: "mimo",

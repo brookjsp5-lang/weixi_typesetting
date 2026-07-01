@@ -124,7 +124,14 @@ export async function POST(req: Request) {
     const imageUrl = result.imageUrl;
 
     if (!imageUrl) {
-      return createImageError("图片接口未返回可用图片，请更换生图模型后重试。", 502);
+      return createImageError(
+        createImageGenerationErrorMessage(
+          result.data,
+          result.response?.status || 502,
+          "图片接口未返回可用图片，请更换生图模型后重试。",
+        ),
+        502,
+      );
     }
 
     let displayImageUrl = imageUrl;

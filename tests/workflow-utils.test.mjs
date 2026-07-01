@@ -47,6 +47,7 @@ test("provider presets include domestic OpenAI-compatible services", () => {
   assert.equal(getProviderPreset("minimax").defaultModel, "MiniMax-M3");
   assert.equal(getProviderPreset("minimax").imageBaseUrl, "https://api.minimaxi.com/v1/image_generation");
   assert.equal(getProviderPreset("minimax").defaultImageModel, "image-01");
+  assert.match(getProviderPreset("minimax").imageModelHelp || "", /image-01-live/);
   assert.equal(getProviderPreset("qwen").name, "Qwen");
   assert.equal(getProviderPreset("qwen").defaultModel, "qwen-plus");
   assert.equal(

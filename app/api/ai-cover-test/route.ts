@@ -77,7 +77,16 @@ export async function POST(req: Request) {
     }
 
     if (!result.imageUrl) {
-      return Response.json({ error: "生图接口未返回图片，请更换生图模型后重试" }, { status: 502 });
+      return Response.json(
+        {
+          error: createImageGenerationErrorMessage(
+            result.data,
+            result.response?.status || 502,
+            "生图接口未返回图片，请更换生图模型后重试",
+          ),
+        },
+        { status: 502 },
+      );
     }
 
     return Response.json({ ok: true, message: "生图配置可用" });

@@ -174,6 +174,19 @@ test("buildImageGenerationRequestBodies uses MiniMax image_generation payload", 
   });
 });
 
+test("buildImageGenerationRequestBodies limits MiniMax prompts to official max length", () => {
+  const longPrompt = "封面标题与风格要求".repeat(200);
+  const [payload] = buildImageGenerationRequestBodies({
+    baseUrl: "https://api.minimaxi.com/v1/image_generation",
+    model: "image-01",
+    prompt: longPrompt,
+    providerType: "minimax",
+  });
+
+  assert.equal(payload.prompt.length, 1500);
+  assert.equal(payload.prompt, longPrompt.slice(0, 1500));
+});
+
 test("buildImageGenerationRequestBodies disables MiniMax prompt optimizer in model text mode", () => {
   const [payload] = buildImageGenerationRequestBodies({
     baseUrl: "https://api.minimaxi.com/v1/image_generation",
@@ -193,6 +206,10 @@ test("getUnsupportedImageModelMessage rejects MiniMax text models as image model
   );
   assert.equal(
     getUnsupportedImageModelMessage({ providerType: "minimax", model: "image-01" }),
+    "",
+  );
+  assert.equal(
+    getUnsupportedImageModelMessage({ providerType: "minimax", model: "image-01-live" }),
     "",
   );
 });
@@ -246,6 +263,13 @@ test("createImageGenerationErrorMessage preserves concrete provider errors", () 
   assert.equal(
     createImageGenerationErrorMessage({ error: { message: "invalid api key" } }, 401),
     "真实图片生成失败：invalid api key",
+  );
+  assert.equal(
+    createImageGenerationErrorMessage(
+      { base_resp: { status_code: 1008, status_msg: "prompt length exceeds limit" } },
+      200,
+    ),
+    "真实图片生成失败：prompt length exceeds limit",
   );
 });
 

@@ -2,6 +2,13 @@ const IMAGE_GENERATIONS_PATH = "/images/generations";
 const OPENROUTER_IMAGES_PATH = "/images";
 const DASHSCOPE_IMAGE_GENERATION_PATH = "/services/aigc/multimodal-generation/generation";
 const MINIMAX_IMAGE_GENERATION_PATH = "/image_generation";
+const MINIMAX_PROMPT_MAX_LENGTH = 1500;
+
+function limitText(value, maxLength) {
+  const text = String(value || "");
+  if (text.length <= maxLength) return text;
+  return Array.from(text).slice(0, maxLength).join("");
+}
 
 export function resolveImageGenerationEndpoint(baseUrl) {
   const normalized = String(baseUrl || "")
@@ -130,7 +137,7 @@ export function buildImageGenerationRequestBodies({
     return [
       {
         model,
-        prompt,
+        prompt: limitText(prompt, MINIMAX_PROMPT_MAX_LENGTH),
         aspect_ratio: "16:9",
         response_format: "url",
         n: 1,
@@ -217,6 +224,10 @@ export async function remoteImageToDataUrl(imageUrl, fetchImpl = fetch) {
 export function getImageGenerationRawError(data) {
   if (!data) return "";
   if (typeof data.error === "string") return data.error;
+  const baseResp = data.base_resp || data.baseResp;
+  const statusCode = baseResp?.status_code ?? baseResp?.statusCode;
+  const statusMessage = baseResp?.status_msg || baseResp?.statusMessage;
+  if (statusMessage && statusCode !== 0 && statusCode !== "0") return statusMessage;
   return data.error?.message || data.message || "";
 }
 
