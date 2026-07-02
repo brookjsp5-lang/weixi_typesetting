@@ -4,7 +4,7 @@ import type { SerializedImageItem } from "../_lib/draft-utils";
 import {
   deserializeImageMap,
   normalizeConsecutiveImageBlocks,
-  serializeImageMap,
+  serializeAutosaveImageMap,
 } from "../_lib/draft-utils";
 import type { ShowToast } from "./use-toast";
 
@@ -74,6 +74,17 @@ const readDraft = () =>
 const writeDraft = (draft: SavedDraft) =>
   withDraftStore<IDBValidKey>("readwrite", (store) => store.put(draft));
 
+const writeDraftWithTextFallback = async (draft: SavedDraft) => {
+  try {
+    await writeDraft(draft);
+    return { savedImages: true };
+  } catch (error) {
+    if (draft.images.length === 0) throw error;
+    await writeDraft({ ...draft, images: [] });
+    return { savedImages: false };
+  }
+};
+
 const getMaxImageCounter = (imageMap: Map<string, string>, savedCounter: number) => {
   const maxImageId = Array.from(imageMap.keys()).reduce((max, id) => {
     const match = id.match(/^img-(\d+)$/);
@@ -94,6 +105,7 @@ export function useDraftAutosave({
   const [savedAt, setSavedAt] = useState<string>("");
   const restoredRef = useRef(false);
   const hasShownErrorRef = useRef(false);
+  const hasShownImageFallbackRef = useRef(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -127,18 +139,30 @@ export function useDraftAutosave({
 
     const timer = window.setTimeout(() => {
       const updatedAt = new Date().toISOString();
+      const normalizedInputText = normalizeConsecutiveImageBlocks(inputText);
       setStatus("saving");
-      writeDraft({
+      writeDraftWithTextFallback({
         id: CURRENT_DRAFT_KEY,
-        inputText: normalizeConsecutiveImageBlocks(inputText),
-        images: serializeImageMap(imageMap),
+        inputText: normalizedInputText,
+        images: serializeAutosaveImageMap(imageMap, normalizedInputText),
         imageCounter: imageCounterRef.current,
         updatedAt,
       })
-        .then(() => {
+        .then(({ savedImages }) => {
           setSavedAt(updatedAt);
           setStatus("saved");
           hasShownErrorRef.current = false;
+          if (savedImages) {
+            hasShownImageFallbackRef.current = false;
+            return;
+          }
+          if (!hasShownImageFallbackRef.current) {
+            showToast(
+              "\u521d\u7a3f\u6587\u5b57\u5df2\u4fdd\u5b58\uff0c\u56fe\u7247\u6570\u636e\u8fc7\u5927\u672a\u7eb3\u5165\u81ea\u52a8\u4fdd\u5b58",
+              "error",
+            );
+            hasShownImageFallbackRef.current = true;
+          }
         })
         .catch(() => {
           setStatus("error");

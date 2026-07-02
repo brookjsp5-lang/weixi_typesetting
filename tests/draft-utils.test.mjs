@@ -7,6 +7,7 @@ import {
   htmlToMarkdownDraft,
   localizeRemoteMarkdownImages,
   normalizeConsecutiveImageBlocks,
+  serializeAutosaveImageMap,
   serializeImageMap,
 } from "../app/_lib/draft-utils.js";
 import { createPublishWorkflowSteps } from "../app/_lib/workflow-utils.js";
@@ -113,6 +114,32 @@ test("image map serialization round trips draft images", () => {
   ]);
 
   assert.deepEqual(deserializeImageMap(serializeImageMap(imageMap)), imageMap);
+});
+
+test("serializeAutosaveImageMap only keeps images referenced by markdown", () => {
+  const imageMap = new Map([
+    ["img-1", "data:image/png;base64,one"],
+    ["img-2", "data:image/png;base64,two"],
+    ["img-3", "data:image/png;base64,three"],
+  ]);
+
+  assert.deepEqual(serializeAutosaveImageMap(imageMap, "![one](#img-1)\n\n![three](#img-3)"), [
+    { id: "img-1", dataUrl: "data:image/png;base64,one" },
+    { id: "img-3", dataUrl: "data:image/png;base64,three" },
+  ]);
+});
+
+test("serializeAutosaveImageMap drops oversized images instead of exceeding the save budget", () => {
+  const imageMap = new Map([
+    ["img-1", `data:image/png;base64,${"a".repeat(80)}`],
+    ["img-2", `data:image/png;base64,${"b".repeat(80)}`],
+  ]);
+
+  const result = serializeAutosaveImageMap(imageMap, "![one](#img-1)\n\n![two](#img-2)", {
+    maxTotalBytes: 120,
+  });
+
+  assert.deepEqual(result.map((item) => item.id), ["img-1"]);
 });
 
 test("workflow image step is labeled AI 生图", () => {

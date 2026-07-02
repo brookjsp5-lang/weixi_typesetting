@@ -1,5 +1,7 @@
 const IMAGE_ATTRIBUTE_CANDIDATES = ["src", "data-src", "data-original", "data-actualsrc"];
 const MARKDOWN_IMAGE_PATTERN = /!\[[^\]\n]*\]\((?:\\.|[^)\n])+\)/g;
+const LOCAL_IMAGE_REF_PATTERN = /!\[[^\]\n]*\]\(#([A-Za-z0-9_-]+)\)/g;
+const DEFAULT_AUTOSAVE_IMAGE_MAX_BYTES = 12 * 1024 * 1024;
 
 const blockTags = new Set([
   "ADDRESS",
@@ -367,6 +369,42 @@ export async function localizeRemoteMarkdownImages(markdown, importRemoteImage, 
 
 export function serializeImageMap(imageMap) {
   return Array.from(imageMap || []).map(([id, dataUrl]) => ({ id, dataUrl }));
+}
+
+function getReferencedLocalImageIds(markdown) {
+  const ids = [];
+  const seen = new Set();
+
+  for (const match of String(markdown || "").matchAll(LOCAL_IMAGE_REF_PATTERN)) {
+    const id = match[1];
+    if (!seen.has(id)) {
+      ids.push(id);
+      seen.add(id);
+    }
+  }
+
+  return ids;
+}
+
+export function serializeAutosaveImageMap(imageMap, markdown, options = {}) {
+  const maxTotalBytes = Number.isFinite(options.maxTotalBytes)
+    ? Math.max(0, options.maxTotalBytes)
+    : DEFAULT_AUTOSAVE_IMAGE_MAX_BYTES;
+  const items = [];
+  let totalBytes = 0;
+
+  for (const id of getReferencedLocalImageIds(markdown)) {
+    const dataUrl = imageMap?.get?.(id);
+    if (typeof dataUrl !== "string" || !dataUrl) continue;
+
+    const nextTotalBytes = totalBytes + dataUrl.length;
+    if (nextTotalBytes > maxTotalBytes) continue;
+
+    items.push({ id, dataUrl });
+    totalBytes = nextTotalBytes;
+  }
+
+  return items;
 }
 
 export function deserializeImageMap(items) {

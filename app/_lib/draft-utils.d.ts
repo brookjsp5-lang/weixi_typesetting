@@ -33,4 +33,10 @@ export function localizeRemoteMarkdownImages(
 
 export function serializeImageMap(imageMap: Map<string, string>): SerializedImageItem[];
 
+export function serializeAutosaveImageMap(
+  imageMap: Map<string, string>,
+  markdown: string,
+  options?: { maxTotalBytes?: number },
+): SerializedImageItem[];
+
 export function deserializeImageMap(items: SerializedImageItem[] | unknown): Map<string, string>;
