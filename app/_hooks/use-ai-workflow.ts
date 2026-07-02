@@ -1,5 +1,6 @@
 import { useCallback, useState } from "react";
 import { sanitizeAiTextOutput } from "../_lib/ai-output-utils";
+import { createCoverTitleLayout, selectCoverTitle } from "../_lib/cover-title-layout";
 import {
   createAppliedAiChange,
   extractJsonObject,
@@ -170,6 +171,39 @@ const drawWrappedText = (
   return y + lines.length * lineHeight;
 };
 
+const createCoverTitleFont = (fontSize: number) =>
+  `900 ${fontSize}px system-ui, -apple-system, BlinkMacSystemFont, 'Microsoft YaHei', sans-serif`;
+
+const drawCoverTitle = (ctx: CanvasRenderingContext2D, title: string) => {
+  const layout = createCoverTitleLayout({
+    title,
+    measureText: (text, fontSize) => {
+      ctx.font = createCoverTitleFont(fontSize);
+      return ctx.measureText(text).width;
+    },
+  });
+
+  ctx.save();
+  ctx.textBaseline = "top";
+  ctx.font = createCoverTitleFont(layout.fontSize);
+  ctx.lineJoin = "round";
+  ctx.miterLimit = 2;
+  ctx.strokeStyle = "rgba(255, 255, 255, 0.82)";
+  ctx.lineWidth = Math.max(5, Math.round(layout.fontSize * 0.1));
+  ctx.fillStyle = "#050816";
+  ctx.shadowColor = "rgba(255, 255, 255, 0.7)";
+  ctx.shadowBlur = 14;
+  ctx.shadowOffsetX = 0;
+  ctx.shadowOffsetY = 2;
+
+  layout.lines.forEach((line, index) => {
+    const y = layout.y + index * layout.lineHeight;
+    ctx.strokeText(line, layout.x, y);
+    ctx.fillText(line, layout.x, y);
+  });
+  ctx.restore();
+};
+
 const composeCoverImage = async (backgroundImageUrl: string, title: string) => {
   const canvas = document.createElement("canvas");
   canvas.width = COVER_WIDTH;
@@ -180,27 +214,15 @@ const composeCoverImage = async (backgroundImageUrl: string, title: string) => {
   const image = await loadImage(backgroundImageUrl);
   drawCoverImage(ctx, image, COVER_WIDTH, COVER_HEIGHT);
 
-  const overlay = ctx.createLinearGradient(0, 0, 720, 0);
-  overlay.addColorStop(0, "rgba(255,255,255,0.94)");
-  overlay.addColorStop(0.72, "rgba(255,255,255,0.82)");
-  overlay.addColorStop(1, "rgba(255,255,255,0)");
+  const overlay = ctx.createLinearGradient(0, 0, 880, 0);
+  overlay.addColorStop(0, "rgba(248,250,252,0.9)");
+  overlay.addColorStop(0.45, "rgba(248,250,252,0.68)");
+  overlay.addColorStop(0.78, "rgba(248,250,252,0.24)");
+  overlay.addColorStop(1, "rgba(248,250,252,0)");
   ctx.fillStyle = overlay;
-  ctx.fillRect(0, 0, 760, COVER_HEIGHT);
+  ctx.fillRect(0, 0, COVER_WIDTH, COVER_HEIGHT);
 
-  ctx.fillStyle = "rgba(255,255,255,0.88)";
-  fillRoundedRect(ctx, 58, 132, 560, 392, 28);
-
-  ctx.textBaseline = "top";
-  ctx.fillStyle = "#111827";
-  ctx.font = "900 34px system-ui, -apple-system, BlinkMacSystemFont, 'Microsoft YaHei', sans-serif";
-  ctx.fillText("公众号封面", 86, 168);
-
-  ctx.fillStyle = "#10b981";
-  fillRoundedRect(ctx, 86, 222, 94, 8, 4);
-
-  ctx.fillStyle = "#050816";
-  ctx.font = "900 64px system-ui, -apple-system, BlinkMacSystemFont, 'Microsoft YaHei', sans-serif";
-  drawWrappedText(ctx, title || "公众号文章封面", 86, 258, 476, 78, 3);
+  drawCoverTitle(ctx, title || "公众号文章封面");
 
   return canvas.toDataURL("image/png");
 };
@@ -466,7 +488,10 @@ export function useAiWorkflow({
       setRunningTask("cover");
       setCoverGenerationResult(null);
       try {
-        const coverTitle = selectedCoverTitle || optimization.titles[0] || "";
+        const coverTitle = selectCoverTitle({
+          selectedTitle: selectedCoverTitle,
+          titles: optimization.titles,
+        });
         if (!selectedCoverTitle && coverTitle) {
           setSelectedCoverTitle(coverTitle);
         }

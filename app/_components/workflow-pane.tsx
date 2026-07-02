@@ -326,7 +326,7 @@ function CoverResultCard({
       />
       <div className="rounded-lg border border-(--neo-line) bg-white p-2 text-[11px] font-bold leading-relaxed neo-text-muted">
         {coverGenerationResult.textMode === "canvas"
-          ? `标题由 WX 叠加：${coverGenerationResult.titleHint || "公众号封面"}`
+          ? `标题由 WX 融合叠加：${coverGenerationResult.titleHint || "公众号文章封面"}`
           : "标题由模型直接生成，文字准确性取决于模型能力。"}
       </div>
       <div className="grid grid-cols-2 gap-2">
@@ -1412,7 +1412,7 @@ export function WorkflowPane({
                         标题显示方式
                       </h3>
                       <p className="mt-1 text-[11px] font-bold leading-relaxed neo-text-muted">
-                        默认由 WX 叠加标题，确保中文不漏字；模型直出适合测试 Seedream、Qwen Image 等文字能力。
+                        默认由 WX 融合叠加完整标题；模型直出适合测试 Seedream、Qwen Image 等文字能力。
                       </p>
                     </div>
                     <div className="grid grid-cols-2 gap-2">
@@ -1492,7 +1492,7 @@ export function WorkflowPane({
                     </button>
                     <p className="px-1 text-[11px] font-bold leading-relaxed neo-text-muted">
                       {coverTextMode === "canvas"
-                        ? "模型负责生成背景，WX 会把选中的标题叠加到左侧留白区。"
+                        ? "模型生成背景，WX 负责叠加完整标题。"
                         : "模型会尝试直接生成带标题的封面，文字准确性取决于模型能力。"}
                     </p>
                   </section>
