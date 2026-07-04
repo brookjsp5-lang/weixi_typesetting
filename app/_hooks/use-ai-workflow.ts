@@ -191,6 +191,7 @@ const drawCoverTitle = (
   const layout = createCoverTitleLayout({
     title,
     area: createCoverTitleArea(normalizedStyle, COVER_WIDTH, COVER_HEIGHT),
+    fontScalePercent: normalizedStyle.fontScalePercent,
     measureText: (text, fontSize) => {
       ctx.font = createCoverTitleFont(fontSize);
       return ctx.measureText(text).width;

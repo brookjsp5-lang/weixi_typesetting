@@ -4,6 +4,7 @@ export const DEFAULT_COVER_TITLE_STYLE = Object.freeze({
   xPercent: 6,
   yPercent: 14.2,
   widthPercent: 73,
+  fontScalePercent: 100,
   textColor: "#050816",
   strokeColor: "#ffffff",
 });
@@ -73,6 +74,12 @@ export function normalizeCoverTitleStyle(style = {}) {
       30,
       92,
       DEFAULT_COVER_TITLE_STYLE.widthPercent,
+    ),
+    fontScalePercent: clampNumber(
+      style.fontScalePercent,
+      75,
+      120,
+      DEFAULT_COVER_TITLE_STYLE.fontScalePercent,
     ),
     textColor: normalizeHexColor(style.textColor, DEFAULT_COVER_TITLE_STYLE.textColor),
     strokeColor: normalizeHexColor(style.strokeColor, DEFAULT_COVER_TITLE_STYLE.strokeColor),
@@ -344,33 +351,43 @@ export function createCoverTitleLayout({
   title,
   measureText = fallbackMeasureText,
   area = DEFAULT_TITLE_AREA,
+  fontScalePercent = DEFAULT_COVER_TITLE_STYLE.fontScalePercent,
 } = {}) {
   const normalizedTitle = normalizeCoverTitle(title) || "\u516c\u4f17\u53f7\u6587\u7ae0\u5c01\u9762";
   const preferredLines = getPreferredLineCount(normalizedTitle);
+  const fontScale =
+    clampNumber(
+      fontScalePercent,
+      75,
+      120,
+      DEFAULT_COVER_TITLE_STYLE.fontScalePercent,
+    ) / 100;
   const layouts = TITLE_LAYOUT_CANDIDATES.map((candidate) => {
     const width = Math.min(candidate.width, area.width);
     const y = area.y + (candidate.y - DEFAULT_TITLE_AREA.y);
+    const fontSize = Math.round(candidate.fontSize * fontScale);
+    const lineHeight = Math.round(candidate.lineHeight * fontScale);
     const lines = wrapCoverTitleLines({
       title: normalizedTitle,
-      fontSize: candidate.fontSize,
+      fontSize,
       maxWidth: width,
       measureText,
       preferredLines,
     });
-    const height = lines.length * candidate.lineHeight;
+    const height = lines.length * lineHeight;
 
     return {
       x: area.x,
       y,
       width,
       lines,
-      fontSize: candidate.fontSize,
-      lineHeight: candidate.lineHeight,
+      fontSize,
+      lineHeight,
       height,
       score: scoreCoverTitleLayout({
         lines,
-        fontSize: candidate.fontSize,
-        lineHeight: candidate.lineHeight,
+        fontSize,
+        lineHeight,
         width,
         area,
         title: normalizedTitle,

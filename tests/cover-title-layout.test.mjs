@@ -99,6 +99,7 @@ test("normalizeCoverTitleStyle falls back to safe defaults", () => {
       xPercent: -20,
       yPercent: 120,
       widthPercent: 5,
+      fontScalePercent: 250,
       textColor: "red",
       strokeColor: "#fff",
       titleEnabled: "no",
@@ -108,6 +109,7 @@ test("normalizeCoverTitleStyle falls back to safe defaults", () => {
       xPercent: 0,
       yPercent: 70,
       widthPercent: 30,
+      fontScalePercent: 120,
     },
   );
 });
@@ -121,6 +123,26 @@ test("normalizeCoverTitleStyle can disable the title overlay", () => {
   assert.equal(normalizeCoverTitleStyle({ titleEnabled: false }).titleEnabled, false);
   assert.equal(isCoverTitleOverlayEnabled({ titleEnabled: false }), false);
   assert.equal(isCoverTitleOverlayEnabled({}), true);
+});
+
+test("createCoverTitleLayout scales title font size from style percentage", () => {
+  const title = "\u6211\u7528 Codex \u5f55\u5236\u56de\u653e";
+  const defaultLayout = createCoverTitleLayout({ title, measureText });
+  const largerLayout = createCoverTitleLayout({
+    title,
+    measureText,
+    fontScalePercent: 115,
+  });
+  const smallerLayout = createCoverTitleLayout({
+    title,
+    measureText,
+    fontScalePercent: 85,
+  });
+
+  assert.ok(largerLayout.fontSize > defaultLayout.fontSize);
+  assert.ok(smallerLayout.fontSize < defaultLayout.fontSize);
+  assert.equal(largerLayout.lines.join("").replace(/\s+/g, ""), title.replace(/\s+/g, ""));
+  assert.equal(smallerLayout.lines.join("").replace(/\s+/g, ""), title.replace(/\s+/g, ""));
 });
 
 test("cover canvas no longer draws a fixed label", () => {

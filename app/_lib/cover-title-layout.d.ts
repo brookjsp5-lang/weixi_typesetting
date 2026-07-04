@@ -5,6 +5,7 @@ export type CoverTitleStyle = {
   xPercent: number;
   yPercent: number;
   widthPercent: number;
+  fontScalePercent: number;
   textColor: string;
   strokeColor: string;
 };
@@ -56,6 +57,7 @@ export function wrapCoverTitleLines(input: {
 export function createCoverTitleLayout(input?: {
   title?: string;
   measureText?: MeasureCoverTitleText;
+  fontScalePercent?: number;
   area?: {
     x: number;
     y: number;

@@ -31,6 +31,7 @@ export type CoverTitleStyle = {
   xPercent: number;
   yPercent: number;
   widthPercent: number;
+  fontScalePercent: number;
   textColor: string;
   strokeColor: string;
 };

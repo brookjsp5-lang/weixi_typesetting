@@ -1504,8 +1504,8 @@ export function WorkflowPane({
                           }`}
                         >
                           <span
-                            className={`absolute top-0.5 h-5 w-5 rounded-full bg-white shadow-sm transition-transform ${
-                              isCoverTitleEnabled ? "translate-x-5" : "translate-x-0.5"
+                            className={`absolute left-0.5 top-0.5 h-5 w-5 rounded-full bg-white shadow-sm transition-transform ${
+                              isCoverTitleEnabled ? "translate-x-5" : "translate-x-0"
                             }`}
                           />
                           <span className="sr-only">
@@ -1563,6 +1563,25 @@ export function WorkflowPane({
                               value={coverTitleStyle.widthPercent}
                               onChange={(event) =>
                                 updateCoverTitleStyle({ widthPercent: Number(event.target.value) })
+                              }
+                              className="w-full accent-(--neo-green)"
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <div className="flex items-center justify-between text-[11px] font-black">
+                              <span>字体大小</span>
+                              <span>{Math.round(coverTitleStyle.fontScalePercent)}%</span>
+                            </div>
+                            <input
+                              type="range"
+                              min="75"
+                              max="120"
+                              step="1"
+                              value={coverTitleStyle.fontScalePercent}
+                              onChange={(event) =>
+                                updateCoverTitleStyle({
+                                  fontScalePercent: Number(event.target.value),
+                                })
                               }
                               className="w-full accent-(--neo-green)"
                             />
