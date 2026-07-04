@@ -1,11 +1,22 @@
 export const COVER_FIXED_LABEL_TEXT = "";
+export const DEFAULT_COVER_TITLE_STYLE = Object.freeze({
+  titleEnabled: true,
+  xPercent: 6,
+  yPercent: 14.2,
+  widthPercent: 73,
+  textColor: "#050816",
+  strokeColor: "#ffffff",
+});
 
 const DEFAULT_TITLE_AREA = {
   x: 72,
   y: 96,
-  width: 720,
+  width: 876,
   maxHeight: 520,
 };
+const DEFAULT_COVER_WIDTH = 1200;
+const DEFAULT_COVER_HEIGHT = 675;
+const DEFAULT_TITLE_BOTTOM_MARGIN = 59;
 
 const TITLE_LAYOUT_CANDIDATES = [
   { fontSize: 64, lineHeight: 76, width: 660, y: 132 },
@@ -27,6 +38,66 @@ const fallbackMeasureText = (text, fontSize) =>
     if (char.charCodeAt(0) <= 0x7f) return width + fontSize * 0.56;
     return width + fontSize;
   }, 0);
+
+const clampNumber = (value, min, max, fallback) => {
+  const number = Number(value);
+  if (!Number.isFinite(number)) return fallback;
+  return Math.min(max, Math.max(min, number));
+};
+
+const normalizeHexColor = (value, fallback) => {
+  const color = String(value || "").trim();
+  return /^#[0-9a-fA-F]{6}$/.test(color) ? color.toLowerCase() : fallback;
+};
+
+export function normalizeCoverTitleStyle(style = {}) {
+  return {
+    titleEnabled:
+      typeof style.titleEnabled === "boolean"
+        ? style.titleEnabled
+        : DEFAULT_COVER_TITLE_STYLE.titleEnabled,
+    xPercent: clampNumber(
+      style.xPercent,
+      0,
+      72,
+      DEFAULT_COVER_TITLE_STYLE.xPercent,
+    ),
+    yPercent: clampNumber(
+      style.yPercent,
+      0,
+      70,
+      DEFAULT_COVER_TITLE_STYLE.yPercent,
+    ),
+    widthPercent: clampNumber(
+      style.widthPercent,
+      30,
+      92,
+      DEFAULT_COVER_TITLE_STYLE.widthPercent,
+    ),
+    textColor: normalizeHexColor(style.textColor, DEFAULT_COVER_TITLE_STYLE.textColor),
+    strokeColor: normalizeHexColor(style.strokeColor, DEFAULT_COVER_TITLE_STYLE.strokeColor),
+  };
+}
+
+export function isCoverTitleOverlayEnabled(style = DEFAULT_COVER_TITLE_STYLE) {
+  return normalizeCoverTitleStyle(style).titleEnabled;
+}
+
+export function createCoverTitleArea(
+  style = DEFAULT_COVER_TITLE_STYLE,
+  canvasWidth = DEFAULT_COVER_WIDTH,
+  canvasHeight = DEFAULT_COVER_HEIGHT,
+) {
+  const normalizedStyle = normalizeCoverTitleStyle(style);
+  const x = Math.round((canvasWidth * normalizedStyle.xPercent) / 100);
+  const y = Math.round((canvasHeight * normalizedStyle.yPercent) / 100);
+  const requestedWidth = Math.round((canvasWidth * normalizedStyle.widthPercent) / 100);
+  const maxWidth = Math.max(240, canvasWidth - x - 32);
+  const width = Math.min(requestedWidth, maxWidth);
+  const maxHeight = Math.max(120, canvasHeight - y - DEFAULT_TITLE_BOTTOM_MARGIN);
+
+  return { x, y, width, maxHeight };
+}
 
 export function normalizeCoverTitle(title) {
   return String(title || "")
@@ -277,7 +348,8 @@ export function createCoverTitleLayout({
   const normalizedTitle = normalizeCoverTitle(title) || "\u516c\u4f17\u53f7\u6587\u7ae0\u5c01\u9762";
   const preferredLines = getPreferredLineCount(normalizedTitle);
   const layouts = TITLE_LAYOUT_CANDIDATES.map((candidate) => {
-    const width = Math.min(candidate.width, area.width + 160);
+    const width = Math.min(candidate.width, area.width);
+    const y = area.y + (candidate.y - DEFAULT_TITLE_AREA.y);
     const lines = wrapCoverTitleLines({
       title: normalizedTitle,
       fontSize: candidate.fontSize,
@@ -289,7 +361,7 @@ export function createCoverTitleLayout({
 
     return {
       x: area.x,
-      y: candidate.y,
+      y,
       width,
       lines,
       fontSize: candidate.fontSize,

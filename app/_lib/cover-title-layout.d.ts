@@ -1,5 +1,16 @@
 export const COVER_FIXED_LABEL_TEXT: "";
 
+export type CoverTitleStyle = {
+  titleEnabled: boolean;
+  xPercent: number;
+  yPercent: number;
+  widthPercent: number;
+  textColor: string;
+  strokeColor: string;
+};
+
+export const DEFAULT_COVER_TITLE_STYLE: Readonly<CoverTitleStyle>;
+
 export type MeasureCoverTitleText = (text: string, fontSize: number) => number;
 
 export type CoverTitleLayout = {
@@ -19,6 +30,21 @@ export function selectCoverTitle(input?: {
   titles?: string[];
   fallback?: string;
 }): string;
+
+export function normalizeCoverTitleStyle(style?: Partial<CoverTitleStyle>): CoverTitleStyle;
+
+export function isCoverTitleOverlayEnabled(style?: Partial<CoverTitleStyle>): boolean;
+
+export function createCoverTitleArea(
+  style?: Partial<CoverTitleStyle>,
+  canvasWidth?: number,
+  canvasHeight?: number,
+): {
+  x: number;
+  y: number;
+  width: number;
+  maxHeight: number;
+};
 
 export function wrapCoverTitleLines(input: {
   title: string;

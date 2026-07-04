@@ -4,7 +4,11 @@ import test from "node:test";
 
 import {
   COVER_FIXED_LABEL_TEXT,
+  DEFAULT_COVER_TITLE_STYLE,
+  createCoverTitleArea,
   createCoverTitleLayout,
+  isCoverTitleOverlayEnabled,
+  normalizeCoverTitleStyle,
   selectCoverTitle,
 } from "../app/_lib/cover-title-layout.js";
 
@@ -65,6 +69,58 @@ test("createCoverTitleLayout balances medium Chinese titles and avoids leading p
   ]);
   assert.ok(layout.fontSize <= 60);
   assert.ok(!layout.lines.some((line) => /^[\uFF0C\u3002\uFF01\uFF1F\u3001\uFF1B\uFF1A,.!?:;]/.test(line)));
+});
+
+test("createCoverTitleArea converts style percentages into canvas title area", () => {
+  const style = normalizeCoverTitleStyle({
+    xPercent: 12,
+    yPercent: 20,
+    widthPercent: 45,
+    textColor: "#123abc",
+    strokeColor: "#f8fafc",
+  });
+  const area = createCoverTitleArea(style);
+  const layout = createCoverTitleLayout({
+    title: "\u81ea\u5b9a\u4e49\u6807\u9898\u4f4d\u7f6e",
+    measureText,
+    area,
+  });
+
+  assert.equal(area.x, 144);
+  assert.equal(area.y, 135);
+  assert.equal(area.width, 540);
+  assert.equal(layout.x, 144);
+  assert.ok(layout.y > 132);
+});
+
+test("normalizeCoverTitleStyle falls back to safe defaults", () => {
+  assert.deepEqual(
+    normalizeCoverTitleStyle({
+      xPercent: -20,
+      yPercent: 120,
+      widthPercent: 5,
+      textColor: "red",
+      strokeColor: "#fff",
+      titleEnabled: "no",
+    }),
+    {
+      ...DEFAULT_COVER_TITLE_STYLE,
+      xPercent: 0,
+      yPercent: 70,
+      widthPercent: 30,
+    },
+  );
+});
+
+test("normalizeCoverTitleStyle keeps the title overlay enabled by default", () => {
+  assert.equal(DEFAULT_COVER_TITLE_STYLE.titleEnabled, true);
+  assert.equal(normalizeCoverTitleStyle({}).titleEnabled, true);
+});
+
+test("normalizeCoverTitleStyle can disable the title overlay", () => {
+  assert.equal(normalizeCoverTitleStyle({ titleEnabled: false }).titleEnabled, false);
+  assert.equal(isCoverTitleOverlayEnabled({ titleEnabled: false }), false);
+  assert.equal(isCoverTitleOverlayEnabled({}), true);
 });
 
 test("cover canvas no longer draws a fixed label", () => {

@@ -25,6 +25,7 @@ import type {
   ActiveTab,
   AppliedAiChange,
   CoverGenerationResult,
+  CoverTitleStyle,
   CoverPromptTemplate,
   FormatTweaks,
   ImageTextMode,
@@ -70,6 +71,9 @@ type WorkflowPaneProps = {
   coverGenerationResult: CoverGenerationResult;
   coverTextMode: ImageTextMode;
   setCoverTextMode: React.Dispatch<React.SetStateAction<ImageTextMode>>;
+  coverTitleStyle: CoverTitleStyle;
+  onCoverTitleStyleChange: (style: CoverTitleStyle) => void;
+  onResetCoverTitleStyle: () => void;
   selectedCoverTitle: string;
   onSelectCoverTitle: (title: string) => void;
   posterGenerationResult: PosterGenerationResult;
@@ -139,6 +143,9 @@ const workflowModules: Array<{
   { id: "podcast", label: "AI 播客", description: "生成口播脚本" },
   { id: "video", label: "AI 视频", description: "生成短视频分镜" },
 ];
+
+const coverTitleTextColors = ["#050816", "#111827", "#ffffff", "#f8fafc", "#e11d48", "#2563eb"];
+const coverTitleStrokeColors = ["#ffffff", "#f8fafc", "#111827", "#000000", "#dbeafe", "#fee2e2"];
 
 const workflowStepClassNames = {
   done: "border-emerald-300 bg-emerald-50 text-emerald-700",
@@ -766,6 +773,9 @@ export function WorkflowPane({
   coverGenerationResult,
   coverTextMode,
   setCoverTextMode,
+  coverTitleStyle,
+  onCoverTitleStyleChange,
+  onResetCoverTitleStyle,
   selectedCoverTitle,
   onSelectCoverTitle,
   posterGenerationResult,
@@ -819,6 +829,7 @@ export function WorkflowPane({
   const [coverPromptDraftId, setCoverPromptDraftId] = useState("");
   const [coverPromptName, setCoverPromptName] = useState("");
   const [coverPromptBody, setCoverPromptBody] = useState("");
+  const [isCoverTitleStyleOpen, setIsCoverTitleStyleOpen] = useState(false);
   const [isCoverPromptEditorOpen, setIsCoverPromptEditorOpen] = useState(false);
   const [posterPromptDraftId, setPosterPromptDraftId] = useState("");
   const [posterPromptName, setPosterPromptName] = useState("");
@@ -945,6 +956,14 @@ export function WorkflowPane({
     });
     clearPosterPromptDraft();
   };
+
+  const updateCoverTitleStyle = (patch: Partial<CoverTitleStyle>) => {
+    onCoverTitleStyleChange({
+      ...coverTitleStyle,
+      ...patch,
+    });
+  };
+  const isCoverTitleEnabled = coverTitleStyle.titleEnabled !== false;
 
   const copyPlainText = async (text: string, id = "text") => {
     if (!text.trim()) return;
@@ -1447,6 +1466,179 @@ export function WorkflowPane({
                       </div>
                     )}
                   </section>
+
+                  {coverTextMode === "canvas" && (
+                    <section className="rounded-xl border border-(--neo-line) bg-(--neo-surface) p-3 space-y-3">
+                      <button
+                        type="button"
+                        onClick={() => setIsCoverTitleStyleOpen((value) => !value)}
+                        className="flex w-full items-center justify-between text-left text-xs font-black"
+                      >
+                        <span>标题样式</span>
+                        <ChevronDown
+                          className={`h-4 w-4 transition-transform ${
+                            isCoverTitleStyleOpen ? "rotate-180" : ""
+                          }`}
+                        />
+                      </button>
+                      <p className="text-[11px] font-bold leading-relaxed neo-text-muted">
+                        调整 WX 叠字的位置和颜色，已生成封面会自动重新合成。
+                      </p>
+                      <div className="flex items-center justify-between gap-3 rounded-lg border border-(--neo-line) bg-white p-2">
+                        <div>
+                          <div className="text-[11px] font-black">叠加标题</div>
+                          <p className="mt-0.5 text-[10px] font-bold leading-relaxed neo-text-muted">
+                            关闭后只显示生图背景，不叠加标题。
+                          </p>
+                        </div>
+                        <button
+                          type="button"
+                          aria-pressed={isCoverTitleEnabled}
+                          onClick={() =>
+                            updateCoverTitleStyle({ titleEnabled: !isCoverTitleEnabled })
+                          }
+                          className={`relative h-7 w-12 shrink-0 rounded-full border transition-colors ${
+                            isCoverTitleEnabled
+                              ? "border-emerald-400 bg-emerald-400"
+                              : "border-(--neo-line) bg-slate-200"
+                          }`}
+                        >
+                          <span
+                            className={`absolute top-0.5 h-5 w-5 rounded-full bg-white shadow-sm transition-transform ${
+                              isCoverTitleEnabled ? "translate-x-5" : "translate-x-0.5"
+                            }`}
+                          />
+                          <span className="sr-only">
+                            {isCoverTitleEnabled ? "关闭工具叠字" : "开启工具叠字"}
+                          </span>
+                        </button>
+                      </div>
+                      {isCoverTitleStyleOpen && (
+                        isCoverTitleEnabled ? (
+                          <div className="space-y-4">
+                          <div className="space-y-2">
+                            <div className="flex items-center justify-between text-[11px] font-black">
+                              <span>横向位置</span>
+                              <span>{Math.round(coverTitleStyle.xPercent)}%</span>
+                            </div>
+                            <input
+                              type="range"
+                              min="0"
+                              max="72"
+                              step="1"
+                              value={coverTitleStyle.xPercent}
+                              onChange={(event) =>
+                                updateCoverTitleStyle({ xPercent: Number(event.target.value) })
+                              }
+                              className="w-full accent-(--neo-green)"
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <div className="flex items-center justify-between text-[11px] font-black">
+                              <span>纵向位置</span>
+                              <span>{Math.round(coverTitleStyle.yPercent)}%</span>
+                            </div>
+                            <input
+                              type="range"
+                              min="0"
+                              max="70"
+                              step="1"
+                              value={coverTitleStyle.yPercent}
+                              onChange={(event) =>
+                                updateCoverTitleStyle({ yPercent: Number(event.target.value) })
+                              }
+                              className="w-full accent-(--neo-green)"
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <div className="flex items-center justify-between text-[11px] font-black">
+                              <span>标题区域宽度</span>
+                              <span>{Math.round(coverTitleStyle.widthPercent)}%</span>
+                            </div>
+                            <input
+                              type="range"
+                              min="30"
+                              max="92"
+                              step="1"
+                              value={coverTitleStyle.widthPercent}
+                              onChange={(event) =>
+                                updateCoverTitleStyle({ widthPercent: Number(event.target.value) })
+                              }
+                              className="w-full accent-(--neo-green)"
+                            />
+                          </div>
+                          <div className="grid grid-cols-2 gap-3">
+                            <div className="space-y-2">
+                              <div className="text-[11px] font-black">标题颜色</div>
+                              <div className="flex flex-wrap gap-1.5">
+                                {coverTitleTextColors.map((color) => (
+                                  <button
+                                    key={color}
+                                    type="button"
+                                    aria-label={`标题颜色 ${color}`}
+                                    onClick={() => updateCoverTitleStyle({ textColor: color })}
+                                    className={`h-7 w-7 rounded-full border ${
+                                      coverTitleStyle.textColor === color
+                                        ? "border-(--neo-green) ring-2 ring-emerald-200"
+                                        : "border-(--neo-line)"
+                                    }`}
+                                    style={{ backgroundColor: color }}
+                                  />
+                                ))}
+                              </div>
+                              <input
+                                type="color"
+                                value={coverTitleStyle.textColor}
+                                onChange={(event) =>
+                                  updateCoverTitleStyle({ textColor: event.target.value })
+                                }
+                                className="h-9 w-full rounded-lg border border-(--neo-line) bg-white p-1"
+                              />
+                            </div>
+                            <div className="space-y-2">
+                              <div className="text-[11px] font-black">描边颜色</div>
+                              <div className="flex flex-wrap gap-1.5">
+                                {coverTitleStrokeColors.map((color) => (
+                                  <button
+                                    key={color}
+                                    type="button"
+                                    aria-label={`描边颜色 ${color}`}
+                                    onClick={() => updateCoverTitleStyle({ strokeColor: color })}
+                                    className={`h-7 w-7 rounded-full border ${
+                                      coverTitleStyle.strokeColor === color
+                                        ? "border-(--neo-green) ring-2 ring-emerald-200"
+                                        : "border-(--neo-line)"
+                                    }`}
+                                    style={{ backgroundColor: color }}
+                                  />
+                                ))}
+                              </div>
+                              <input
+                                type="color"
+                                value={coverTitleStyle.strokeColor}
+                                onChange={(event) =>
+                                  updateCoverTitleStyle({ strokeColor: event.target.value })
+                                }
+                                className="h-9 w-full rounded-lg border border-(--neo-line) bg-white p-1"
+                              />
+                            </div>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={onResetCoverTitleStyle}
+                            className="neo-button neo-button-ghost w-full px-3 py-2 text-xs"
+                          >
+                            恢复默认标题样式
+                          </button>
+                          </div>
+                        ) : (
+                          <div className="rounded-lg border border-dashed border-(--neo-line) bg-white p-3 text-[11px] font-bold leading-relaxed neo-text-muted">
+                            工具叠字已关闭。封面会保留模型生成的背景图，重新打开后会用当前标题样式自动合成。
+                          </div>
+                        )
+                      )}
+                    </section>
+                  )}
 
                   {publishOptimization?.titles?.length ? (
                     <section className="rounded-xl border border-(--neo-line) bg-(--neo-surface) p-3 space-y-2">

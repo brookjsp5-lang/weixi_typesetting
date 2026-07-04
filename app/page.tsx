@@ -23,6 +23,10 @@ import { useScrollSync } from "./_hooks/use-scroll-sync";
 import { useTheme } from "./_hooks/use-theme";
 import { useToast } from "./_hooks/use-toast";
 import { useWordCount } from "./_hooks/use-word-count";
+import {
+  DEFAULT_COVER_TITLE_STYLE,
+  normalizeCoverTitleStyle,
+} from "./_lib/cover-title-layout";
 import { normalizeConsecutiveImageBlocks } from "./_lib/draft-utils";
 import { aiStorageKeys, sampleText } from "./_lib/formatter-constants";
 import {
@@ -30,7 +34,13 @@ import {
   getCoverGenerationConfigStatus,
   runPublishChecks,
 } from "./_lib/workflow-utils";
-import type { ActiveTab, FormatTweaks, ImageTextMode, PublishStepId } from "./_types/formatter";
+import type {
+  ActiveTab,
+  CoverTitleStyle,
+  FormatTweaks,
+  ImageTextMode,
+  PublishStepId,
+} from "./_types/formatter";
 import { allTemplates, groupedTemplates, renderArticle } from "./template-engine";
 
 const DEFAULT_FORMAT_TWEAKS: FormatTweaks = {
@@ -78,6 +88,9 @@ export default function Home() {
   const [imageDesc, setImageDesc] = useState("");
   const [hasCopiedForPublish, setHasCopiedForPublish] = useState(false);
   const [coverTextMode, setCoverTextMode] = useState<ImageTextMode>("canvas");
+  const [coverTitleStyle, setCoverTitleStyle] = useState<CoverTitleStyle>(
+    DEFAULT_COVER_TITLE_STYLE,
+  );
 
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -145,6 +158,15 @@ export default function Home() {
     if (savedCoverTextMode === "canvas" || savedCoverTextMode === "model") {
       setCoverTextMode(savedCoverTextMode);
     }
+
+    const savedCoverTitleStyle = localStorage.getItem(aiStorageKeys.coverTitleStyle);
+    if (savedCoverTitleStyle) {
+      try {
+        setCoverTitleStyle(normalizeCoverTitleStyle(JSON.parse(savedCoverTitleStyle)));
+      } catch {
+        setCoverTitleStyle(DEFAULT_COVER_TITLE_STYLE);
+      }
+    }
   }, []);
 
   useEffect(() => {
@@ -154,6 +176,13 @@ export default function Home() {
   useEffect(() => {
     localStorage.setItem(aiStorageKeys.coverTextMode, coverTextMode);
   }, [coverTextMode]);
+
+  useEffect(() => {
+    localStorage.setItem(
+      aiStorageKeys.coverTitleStyle,
+      JSON.stringify(normalizeCoverTitleStyle(coverTitleStyle)),
+    );
+  }, [coverTitleStyle]);
 
   const aiWorkflow = useAiWorkflow({
     inputText: normalizedInputText,
@@ -166,6 +195,7 @@ export default function Home() {
     aiImageApiKey: aiSettings.aiImageApiKey,
     aiImageModel: aiSettings.aiImageModel,
     coverTextMode,
+    coverTitleStyle,
     coverPrompt: coverPromptSettings.selectedCoverPrompt?.prompt || "",
     posterPrompt: posterPromptSettings.selectedPosterPrompt?.prompt || "",
     posterPromptName: posterPromptSettings.selectedPosterPrompt?.name || "",
@@ -358,6 +388,11 @@ export default function Home() {
               coverGenerationResult={aiWorkflow.coverGenerationResult}
               coverTextMode={coverTextMode}
               setCoverTextMode={setCoverTextMode}
+              coverTitleStyle={coverTitleStyle}
+              onCoverTitleStyleChange={(style) =>
+                setCoverTitleStyle(normalizeCoverTitleStyle(style))
+              }
+              onResetCoverTitleStyle={() => setCoverTitleStyle(DEFAULT_COVER_TITLE_STYLE)}
               selectedCoverTitle={aiWorkflow.selectedCoverTitle}
               onSelectCoverTitle={aiWorkflow.recomposeCoverTitle}
               posterGenerationResult={aiWorkflow.posterGenerationResult}

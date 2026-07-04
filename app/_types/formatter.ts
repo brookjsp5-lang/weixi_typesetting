@@ -26,6 +26,15 @@ export type RunningAiTaskType = AiTaskType | "cover" | "poster" | "podcast" | "v
 
 export type ImageTextMode = "canvas" | "model";
 
+export type CoverTitleStyle = {
+  titleEnabled: boolean;
+  xPercent: number;
+  yPercent: number;
+  widthPercent: number;
+  textColor: string;
+  strokeColor: string;
+};
+
 export type ProviderPreset = {
   id: AiProviderType;
   name: string;
