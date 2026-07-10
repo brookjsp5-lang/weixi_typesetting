@@ -40,6 +40,7 @@ export function createPosterPrompt(params: {
   markdown: string;
   brief: PosterTextBrief;
   posterPrompt?: string;
+  textMode?: "canvas" | "model";
 }): string;
 
 export function extractJsonObject(text: string): unknown;

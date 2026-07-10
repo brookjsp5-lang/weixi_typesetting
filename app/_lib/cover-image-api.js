@@ -90,13 +90,17 @@ export function buildImageGenerationRequestBodies({
   prompt,
   providerType,
   textMode = "canvas",
+  imageLayout = "cover",
 }) {
+  const isPosterLayout = imageLayout === "poster";
+  const isCanvasTextMode = textMode !== "model";
+
   if (isOpenRouterImageConfig({ baseUrl, providerType })) {
     return [
       {
         model,
         prompt,
-        aspect_ratio: "16:9",
+        aspect_ratio: isPosterLayout ? "3:4" : "16:9",
         n: 1,
       },
     ];
@@ -108,14 +112,19 @@ export function buildImageGenerationRequestBodies({
         model,
         prompt,
         n: 1,
-        size: "1536x1024",
+        size: isPosterLayout ? "1024x1536" : "1536x1024",
       },
     ];
   }
 
   if (isDashScopeImageConfig({ baseUrl, providerType })) {
-    return [
-      {
+    const createDashScopePayload = (size) => {
+      const parameters = {
+        n: 1,
+        size,
+      };
+      if (isPosterLayout && isCanvasTextMode) parameters.prompt_extend = false;
+      return {
         model,
         input: {
           messages: [
@@ -125,12 +134,13 @@ export function buildImageGenerationRequestBodies({
             },
           ],
         },
-        parameters: {
-          n: 1,
-          size: "2688*1536",
-        },
-      },
-    ];
+        parameters,
+      };
+    };
+
+    return isPosterLayout
+      ? [createDashScopePayload("1728*2368"), createDashScopePayload("1104*1472")]
+      : [createDashScopePayload("2688*1536")];
   }
 
   if (isMiniMaxImageConfig({ baseUrl, providerType })) {
@@ -138,10 +148,10 @@ export function buildImageGenerationRequestBodies({
       {
         model,
         prompt: limitText(prompt, MINIMAX_PROMPT_MAX_LENGTH),
-        aspect_ratio: "16:9",
+        aspect_ratio: isPosterLayout ? "3:4" : "16:9",
         response_format: "url",
         n: 1,
-        prompt_optimizer: textMode !== "model",
+        prompt_optimizer: isPosterLayout ? !isCanvasTextMode : textMode !== "model",
       },
     ];
   }
@@ -151,7 +161,7 @@ export function buildImageGenerationRequestBodies({
       {
         model,
         prompt,
-        size: "1728x960",
+        size: isPosterLayout ? "1088x1472" : "1728x960",
         quality: "hd",
       },
     ];
@@ -171,7 +181,7 @@ export function buildImageGenerationRequestBodies({
     ];
   }
 
-  return [
+  const squarePayloads = [
     {
       model,
       prompt,
@@ -185,6 +195,25 @@ export function buildImageGenerationRequestBodies({
       n: 1,
       size: "1024x1024",
     },
+  ];
+
+  if (!isPosterLayout) return squarePayloads;
+
+  return [
+    {
+      model,
+      prompt,
+      n: 1,
+      size: "1024x1536",
+      response_format: "b64_json",
+    },
+    {
+      model,
+      prompt,
+      n: 1,
+      size: "1024x1536",
+    },
+    ...squarePayloads,
   ];
 }
 
@@ -246,6 +275,7 @@ export async function requestImageGeneration({
   prompt,
   providerType,
   textMode = "canvas",
+  imageLayout = "cover",
 }) {
   const endpoint = resolveImageGenerationEndpoint(baseUrl);
   const requestBodies = buildImageGenerationRequestBodies({
@@ -254,6 +284,7 @@ export async function requestImageGeneration({
     prompt,
     providerType,
     textMode,
+    imageLayout,
   });
 
   let lastResponse = null;

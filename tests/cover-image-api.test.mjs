@@ -230,6 +230,138 @@ test("buildImageGenerationRequestBodies uses Zhipu GLM image payload", () => {
   });
 });
 
+test("buildImageGenerationRequestBodies uses portrait OpenRouter payload for poster canvas", () => {
+  const [payload] = buildImageGenerationRequestBodies({
+    baseUrl: "https://openrouter.ai/api/v1/images",
+    model: "bytedance-seed/seedream-4.5",
+    prompt: "测试贴图背景",
+    providerType: "openrouter",
+    imageLayout: "poster",
+  });
+
+  assert.deepEqual(payload, {
+    model: "bytedance-seed/seedream-4.5",
+    prompt: "测试贴图背景",
+    aspect_ratio: "3:4",
+    n: 1,
+  });
+});
+
+test("buildImageGenerationRequestBodies uses portrait MiniMax payload for poster canvas", () => {
+  const [payload] = buildImageGenerationRequestBodies({
+    baseUrl: "https://api.minimaxi.com/v1/image_generation",
+    model: "image-01",
+    prompt: "测试贴图背景",
+    providerType: "minimax",
+    imageLayout: "poster",
+  });
+
+  assert.deepEqual(payload, {
+    model: "image-01",
+    prompt: "测试贴图背景",
+    aspect_ratio: "3:4",
+    response_format: "url",
+    n: 1,
+    prompt_optimizer: false,
+  });
+});
+
+test("buildImageGenerationRequestBodies allows MiniMax prompt optimizer for poster model text mode", () => {
+  const [payload] = buildImageGenerationRequestBodies({
+    baseUrl: "https://api.minimaxi.com/v1/image_generation",
+    model: "image-01",
+    prompt: "直接生成带字贴图",
+    providerType: "minimax",
+    imageLayout: "poster",
+    textMode: "model",
+  });
+
+  assert.equal(payload.aspect_ratio, "3:4");
+  assert.equal(payload.prompt_optimizer, true);
+});
+
+test("buildImageGenerationRequestBodies uses portrait DashScope payloads for poster canvas", () => {
+  const payloads = buildImageGenerationRequestBodies({
+    baseUrl: "https://dashscope.aliyuncs.com/api/v1/services/aigc/multimodal-generation/generation",
+    model: "qwen-image-2.0-pro",
+    prompt: "测试贴图背景",
+    providerType: "dashscope",
+    imageLayout: "poster",
+  });
+
+  assert.equal(payloads.length, 2);
+  assert.deepEqual(
+    payloads.map((payload) => payload.parameters),
+    [
+      { n: 1, size: "1728*2368", prompt_extend: false },
+      { n: 1, size: "1104*1472", prompt_extend: false },
+    ],
+  );
+});
+
+test("buildImageGenerationRequestBodies leaves DashScope prompt extension unset for poster model text mode", () => {
+  const [payload] = buildImageGenerationRequestBodies({
+    baseUrl: "https://dashscope.aliyuncs.com/api/v1/services/aigc/multimodal-generation/generation",
+    model: "qwen-image-2.0-pro",
+    prompt: "直接生成带字贴图",
+    providerType: "dashscope",
+    imageLayout: "poster",
+    textMode: "model",
+  });
+
+  assert.equal(payload.parameters.size, "1728*2368");
+  assert.equal("prompt_extend" in payload.parameters, false);
+});
+
+test("buildImageGenerationRequestBodies uses portrait OpenAI and Zhipu payloads for poster canvas", () => {
+  const [openAiPayload] = buildImageGenerationRequestBodies({
+    baseUrl: "https://api.openai.com/v1/images/generations",
+    model: "gpt-image-2",
+    prompt: "测试贴图背景",
+    providerType: "openai",
+    imageLayout: "poster",
+  });
+  const [zhipuPayload] = buildImageGenerationRequestBodies({
+    baseUrl: "https://open.bigmodel.cn/api/paas/v4/images/generations",
+    model: "glm-image",
+    prompt: "测试贴图背景",
+    providerType: "zhipu",
+    imageLayout: "poster",
+  });
+
+  assert.equal(openAiPayload.size, "1024x1536");
+  assert.equal(zhipuPayload.size, "1088x1472");
+});
+
+test("buildImageGenerationRequestBodies tries portrait before square for custom poster payloads", () => {
+  const payloads = buildImageGenerationRequestBodies({
+    baseUrl: "https://example.com/v1",
+    model: "gpt-image-1",
+    prompt: "测试贴图背景",
+    providerType: "custom",
+    imageLayout: "poster",
+  });
+
+  assert.deepEqual(
+    payloads.map((payload) => payload.size),
+    ["1024x1536", "1024x1536", "1024x1024", "1024x1024"],
+  );
+  assert.equal(payloads[0].response_format, "b64_json");
+  assert.equal(payloads[2].response_format, "b64_json");
+});
+
+test("buildImageGenerationRequestBodies keeps Volcengine poster payload on provider-native 2K", () => {
+  const [payload] = buildImageGenerationRequestBodies({
+    baseUrl: "https://ark.cn-beijing.volces.com/api/v3/images/generations",
+    model: "doubao-seedream-4-5-251128",
+    prompt: "测试贴图背景",
+    providerType: "volcengine",
+    imageLayout: "poster",
+  });
+
+  assert.equal(payload.size, "2K");
+});
+
 test("parseImageGenerationResult supports url and b64_json results", () => {
   assert.equal(
     parseImageGenerationResult({ data: [{ url: "https://example.com/cover.png" }] }),

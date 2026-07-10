@@ -36,6 +36,22 @@ export type CoverTitleStyle = {
   strokeColor: string;
 };
 
+export type PosterTextStyle = {
+  cardEnabled: boolean;
+  cardXPercent: number;
+  cardYPercent: number;
+  cardWidthPercent: number;
+  fontScalePercent: number;
+  titleColor: string;
+  quoteColor: string;
+  noteColor: string;
+  strokeColor: string;
+  cardBackgroundColor: string;
+  cardOpacity: number;
+  accentColor: string;
+  shadowEnabled: boolean;
+};
+
 export type ProviderPreset = {
   id: AiProviderType;
   name: string;
@@ -161,6 +177,9 @@ export type PosterGenerationResult = {
   rawBackgroundImageUrl?: string;
   prompt: string;
   brief: PosterTextBrief;
+  textMode: ImageTextMode;
+  titleHint: string;
+  posterTextStyle?: PosterTextStyle;
   createdAt: string;
   source?: "ai";
   warning?: string;

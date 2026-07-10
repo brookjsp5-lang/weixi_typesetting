@@ -12,6 +12,11 @@ import {
   extractJsonObject,
   resolveCoverGenerationConfig,
 } from "../_lib/workflow-utils";
+import {
+  createPosterTextCardArea,
+  isPosterTextCardEnabled,
+  normalizePosterTextStyle,
+} from "../_lib/poster-text-style";
 import type {
   AiProviderType,
   AiTaskType,
@@ -24,6 +29,7 @@ import type {
   PosterGenerationResult,
   PosterLibraryItem,
   PosterTextBrief,
+  PosterTextStyle,
   PromptTemplate,
   PublishOptimizationResult,
   RewriteDraft,
@@ -45,6 +51,8 @@ type UseAiWorkflowParams = {
   coverTextMode: ImageTextMode;
   coverTitleStyle: CoverTitleStyle;
   coverPrompt: string;
+  posterTextMode: ImageTextMode;
+  posterTextStyle: PosterTextStyle;
   posterPrompt: string;
   posterPromptName?: string;
   onPosterGenerated?: (result: PosterLibraryItem) => void;
@@ -124,6 +132,14 @@ const fillRoundedRect = (
   ctx.fill();
 };
 
+const hexToRgba = (hex: string, opacity: number) => {
+  const normalized = /^#[0-9a-fA-F]{6}$/.test(hex) ? hex : "#ffffff";
+  const red = Number.parseInt(normalized.slice(1, 3), 16);
+  const green = Number.parseInt(normalized.slice(3, 5), 16);
+  const blue = Number.parseInt(normalized.slice(5, 7), 16);
+  return `rgba(${red},${green},${blue},${opacity})`;
+};
+
 const drawCoverImage = (
   ctx: CanvasRenderingContext2D,
   image: HTMLImageElement,
@@ -147,6 +163,8 @@ const drawWrappedText = (
   maxWidth: number,
   lineHeight: number,
   maxLines: number,
+  strokeStyle = "",
+  strokeWidth = 0,
 ) => {
   const chars = Array.from(text.trim());
   const lines: string[] = [];
@@ -174,7 +192,17 @@ const drawWrappedText = (
   }
 
   lines.forEach((line, index) => {
-    ctx.fillText(line, x, y + index * lineHeight);
+    const lineY = y + index * lineHeight;
+    if (strokeStyle && strokeWidth > 0) {
+      ctx.save();
+      ctx.strokeStyle = strokeStyle;
+      ctx.lineWidth = strokeWidth;
+      ctx.lineJoin = "round";
+      ctx.miterLimit = 2;
+      ctx.strokeText(line, x, lineY);
+      ctx.restore();
+    }
+    ctx.fillText(line, x, lineY);
   });
   return y + lines.length * lineHeight;
 };
@@ -248,7 +276,11 @@ const composeCoverImage = async (
   return canvas.toDataURL("image/png");
 };
 
-const composePosterImage = async (backgroundImageUrl: string, brief: PosterTextBrief) => {
+const composePosterImage = async (
+  backgroundImageUrl: string,
+  brief: PosterTextBrief,
+  posterTextStyle: PosterTextStyle,
+) => {
   const canvas = document.createElement("canvas");
   canvas.width = POSTER_WIDTH;
   canvas.height = POSTER_HEIGHT;
@@ -265,28 +297,86 @@ const composePosterImage = async (backgroundImageUrl: string, brief: PosterTextB
   ctx.fillStyle = gradient;
   ctx.fillRect(0, 0, POSTER_WIDTH, POSTER_HEIGHT);
 
-  ctx.save();
-  ctx.shadowColor = "rgba(0,0,0,0.16)";
-  ctx.shadowBlur = 28;
-  ctx.shadowOffsetY = 14;
-  ctx.fillStyle = "rgba(255,255,255,0.92)";
-  fillRoundedRect(ctx, 76, 714, 748, 356, 34);
-  ctx.restore();
+  const normalizedStyle = normalizePosterTextStyle(posterTextStyle);
+  const cardArea = createPosterTextCardArea(normalizedStyle, POSTER_WIDTH, POSTER_HEIGHT);
+  const scale = normalizedStyle.fontScalePercent / 100;
+  const cardHeight = Math.min(
+    cardArea.maxHeight,
+    Math.max(264, Math.round(356 * scale)),
+  );
+  const cardPaddingX = Math.round(48 * scale);
+  const textX = cardArea.x + cardPaddingX;
+  const textWidth = Math.max(260, cardArea.width - cardPaddingX * 2);
+  const textY = cardArea.y + Math.round(72 * scale);
+  const strokeWidth = Math.max(3, Math.round(4 * scale));
 
-  ctx.fillStyle = "#111827";
-  ctx.font = "900 48px system-ui, -apple-system, BlinkMacSystemFont, 'Microsoft YaHei', sans-serif";
-  const titleBottom = drawWrappedText(ctx, brief.title, 124, 796, 652, 58, 2);
+  if (isPosterTextCardEnabled(normalizedStyle)) {
+    ctx.save();
+    if (normalizedStyle.shadowEnabled) {
+      ctx.shadowColor = "rgba(0,0,0,0.16)";
+      ctx.shadowBlur = 28;
+      ctx.shadowOffsetY = 14;
+    }
+    ctx.fillStyle = hexToRgba(normalizedStyle.cardBackgroundColor, normalizedStyle.cardOpacity);
+    fillRoundedRect(ctx, cardArea.x, cardArea.y, cardArea.width, cardHeight, 34);
+    ctx.restore();
+  } else if (normalizedStyle.shadowEnabled) {
+    ctx.shadowColor = "rgba(0,0,0,0.22)";
+    ctx.shadowBlur = 14;
+    ctx.shadowOffsetY = 5;
+  }
 
-  ctx.fillStyle = "#050816";
-  ctx.font = "900 58px system-ui, -apple-system, BlinkMacSystemFont, 'Microsoft YaHei', sans-serif";
-  const quoteBottom = drawWrappedText(ctx, brief.quote, 124, titleBottom + 38, 652, 72, 3);
+  ctx.fillStyle = normalizedStyle.titleColor;
+  ctx.font = `900 ${Math.round(48 * scale)}px system-ui, -apple-system, BlinkMacSystemFont, 'Microsoft YaHei', sans-serif`;
+  const titleBottom = drawWrappedText(
+    ctx,
+    brief.title,
+    textX,
+    textY,
+    textWidth,
+    Math.round(58 * scale),
+    2,
+    normalizedStyle.strokeColor,
+    strokeWidth,
+  );
 
-  ctx.fillStyle = "#4b5563";
-  ctx.font = "700 28px system-ui, -apple-system, BlinkMacSystemFont, 'Microsoft YaHei', sans-serif";
-  drawWrappedText(ctx, brief.note || "公众号贴图", 124, quoteBottom + 28, 652, 38, 1);
+  ctx.fillStyle = normalizedStyle.quoteColor;
+  ctx.font = `900 ${Math.round(58 * scale)}px system-ui, -apple-system, BlinkMacSystemFont, 'Microsoft YaHei', sans-serif`;
+  const quoteBottom = drawWrappedText(
+    ctx,
+    brief.quote,
+    textX,
+    titleBottom + Math.round(38 * scale),
+    textWidth,
+    Math.round(72 * scale),
+    3,
+    normalizedStyle.strokeColor,
+    strokeWidth,
+  );
 
-  ctx.fillStyle = "#10b981";
-  fillRoundedRect(ctx, 124, 1018, 88, 10, 5);
+  ctx.fillStyle = normalizedStyle.noteColor;
+  ctx.font = `700 ${Math.round(28 * scale)}px system-ui, -apple-system, BlinkMacSystemFont, 'Microsoft YaHei', sans-serif`;
+  const noteBottom = drawWrappedText(
+    ctx,
+    brief.note || "公众号贴图",
+    textX,
+    quoteBottom + Math.round(28 * scale),
+    textWidth,
+    Math.round(38 * scale),
+    1,
+  );
+
+  ctx.shadowColor = "transparent";
+  ctx.fillStyle = normalizedStyle.accentColor;
+  const accentY = Math.min(cardArea.y + cardHeight - 46, noteBottom + Math.round(20 * scale));
+  fillRoundedRect(
+    ctx,
+    textX,
+    accentY,
+    Math.round(88 * scale),
+    Math.max(6, Math.round(10 * scale)),
+    5,
+  );
 
   return canvas.toDataURL("image/png");
 };
@@ -304,6 +394,8 @@ export function useAiWorkflow({
   coverTextMode,
   coverTitleStyle,
   coverPrompt,
+  posterTextMode,
+  posterTextStyle,
   posterPrompt,
   posterPromptName = "",
   onPosterGenerated,
@@ -321,6 +413,8 @@ export function useAiWorkflow({
   const [selectedCoverTitle, setSelectedCoverTitle] = useState("");
   const coverStyleKeyRef = useRef(JSON.stringify(normalizeCoverTitleStyle(coverTitleStyle)));
   const coverRecomposeVersionRef = useRef(0);
+  const posterStyleKeyRef = useRef(JSON.stringify(normalizePosterTextStyle(posterTextStyle)));
+  const posterRecomposeVersionRef = useRef(0);
   const [posterGenerationResult, setPosterGenerationResult] =
     useState<PosterGenerationResult>(null);
   const [podcastScript, setPodcastScript] = useState<PodcastScriptResult>(null);
@@ -659,6 +753,45 @@ export function useAiWorkflow({
     showToast,
   ]);
 
+  useEffect(() => {
+    const normalizedStyle = normalizePosterTextStyle(posterTextStyle);
+    const nextStyleKey = JSON.stringify(normalizedStyle);
+    if (posterStyleKeyRef.current === nextStyleKey) return;
+    posterStyleKeyRef.current = nextStyleKey;
+
+    if (!posterGenerationResult || posterGenerationResult.textMode !== "canvas") return;
+    const backgroundImageUrl = posterGenerationResult.backgroundImageUrl;
+    if (!backgroundImageUrl) return;
+
+    const version = posterRecomposeVersionRef.current + 1;
+    posterRecomposeVersionRef.current = version;
+
+    composePosterImage(backgroundImageUrl, posterGenerationResult.brief, normalizedStyle)
+      .then((imageUrl) => {
+        if (posterRecomposeVersionRef.current !== version) return;
+        setPosterGenerationResult((current) =>
+          current && current.textMode === "canvas"
+            ? {
+                ...current,
+                imageUrl,
+                posterTextStyle: normalizedStyle,
+              }
+            : current,
+        );
+      })
+      .catch(() => {
+        if (posterRecomposeVersionRef.current === version) {
+          showToast("贴图文字样式更新失败，请重新生成贴图", "error");
+        }
+      });
+  }, [
+    posterGenerationResult?.backgroundImageUrl,
+    posterGenerationResult?.brief,
+    posterGenerationResult?.textMode,
+    posterTextStyle,
+    showToast,
+  ]);
+
   const runCoverGeneration = useCallback(async () => {
     if (!inputText.trim()) {
       showToast("请先填写初稿内容", "error");
@@ -754,6 +887,7 @@ export function useAiWorkflow({
           model: imageConfig.model,
           brief: briefData.result,
           posterPrompt,
+          textMode: posterTextMode,
         }),
       });
       const posterData = (await posterResponse.json().catch(() => null)) as {
@@ -761,6 +895,8 @@ export function useAiWorkflow({
           backgroundImageUrl: string;
           prompt: string;
           brief: PosterTextBrief;
+          textMode?: ImageTextMode;
+          titleHint?: string;
           createdAt: string;
           source?: "ai";
           warning?: string;
@@ -773,13 +909,21 @@ export function useAiWorkflow({
         return;
       }
 
-      const imageUrl = await composePosterImage(
-        posterData.result.backgroundImageUrl,
-        posterData.result.brief,
-      );
+      const normalizedStyle = normalizePosterTextStyle(posterTextStyle);
+      const imageUrl =
+        posterTextMode === "canvas"
+          ? await composePosterImage(
+              posterData.result.backgroundImageUrl,
+              posterData.result.brief,
+              normalizedStyle,
+            )
+          : posterData.result.backgroundImageUrl;
       const posterResult = {
         ...posterData.result,
         imageUrl,
+        textMode: posterTextMode,
+        titleHint: posterData.result.titleHint || posterData.result.brief.title,
+        posterTextStyle: posterTextMode === "canvas" ? normalizedStyle : undefined,
       };
       setPosterGenerationResult(posterResult);
       onPosterGenerated?.({
@@ -805,6 +949,8 @@ export function useAiWorkflow({
     aiImageApiKey,
     aiImageModel,
     aiProviderType,
+    posterTextMode,
+    posterTextStyle,
     posterPrompt,
     posterPromptName,
     onPosterGenerated,

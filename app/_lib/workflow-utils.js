@@ -193,7 +193,7 @@ export function createDefaultPosterPromptTemplates() {
       id: "poster-quote-card",
       name: "金句传播贴图",
       prompt:
-        "公众号贴图，突出一句有记忆点的金句，竖版 3:4 构图，背景简洁高级，适合朋友圈和公众号文末传播。",
+        "公众号贴图背景，竖版 3:4 构图，背景简洁高级，下半部分留出干净叠字空间，适合朋友圈和公众号文末传播。",
       createdAt: now,
       updatedAt: now,
     },
@@ -201,7 +201,7 @@ export function createDefaultPosterPromptTemplates() {
       id: "poster-summary-card",
       name: "总结要点贴图",
       prompt:
-        "公众号贴图，用于承载文章核心结论和总结，信息层次清晰，适合知识类、教程类、干货类内容传播。",
+        "公众号贴图背景，适合知识类、教程类、干货类内容，画面有层次但不出现文字排版，预留清晰叠字区域。",
       createdAt: now,
       updatedAt: now,
     },
@@ -209,7 +209,7 @@ export function createDefaultPosterPromptTemplates() {
       id: "poster-editorial-card",
       name: "观点编辑贴图",
       prompt:
-        "公众号贴图，编辑感强，适合观点表达和深度文章，画面克制、有留白、有主题氛围，但不要杂乱。",
+        "公众号贴图背景，编辑感强，适合观点表达和深度文章，画面克制、有留白、有主题氛围，但不要杂乱。",
       createdAt: now,
       updatedAt: now,
     },
@@ -294,19 +294,32 @@ export function createPosterBriefPrompt({ markdown, posterPrompt = "" }) {
 正文参考：${excerpt}`;
 }
 
-export function createPosterPrompt({ markdown, brief, posterPrompt = "" }) {
-  const excerpt = createMediaSourceExcerpt(markdown, 800);
+export function createPosterPrompt({ brief, posterPrompt = "", textMode = "canvas" }) {
   const normalizedBrief = normalizePosterTextBrief(brief);
   const cleanPosterPrompt = String(posterPrompt || "").trim();
+  const stylePrompt = cleanPosterPrompt || "公众号贴图背景，克制高级，留白充足。";
 
-  return `生成一张公众号贴图背景图，竖版 3:4 构图，适合后续叠加清晰中文标题和金句。
+  if (textMode === "model") {
+    return `生成一张完整的公众号贴图，竖版 3:4 构图，适合朋友圈和公众号文末传播。
+
+文字处理要求：
+必须完整显示主标题：《${normalizedBrief.title}》
+必须完整显示金句：《${normalizedBrief.quote}》
+必须完整显示辅助说明：《${normalizedBrief.note || "公众号贴图"}》
+标题、金句和辅助说明必须清晰可读，不要改字，不要漏字，不要生成乱码。
 
 画面主题：${normalizedBrief.backgroundPrompt}
-贴图风格要求：${cleanPosterPrompt || "公众号贴图，克制高级，留白充足。"}
-文章主题参考：${normalizedBrief.title}
-文章摘要参考：${excerpt}
+贴图风格要求：${stylePrompt}
 
-重要限制：不要在画面中生成任何中文或英文文字，不要生成二维码、品牌水印、真实人物肖像、UI 截图或复杂小字。`;
+重要限制：不要生成二维码、品牌水印、真实人物肖像或复杂小字。`;
+  }
+
+  return `生成一张公众号贴图背景图，竖版 3:4 构图，后续由 TypeZen 工具叠加中文标题、金句和说明。
+
+画面主题：${normalizedBrief.backgroundPrompt}
+贴图风格要求：${stylePrompt}
+
+重要限制：不要在画面中生成任何中文或英文文字、字母或数字；不要生成信息图；不要生成 UI 卡片；不要生成二维码、品牌水印、真实人物肖像、UI 截图或复杂小字。`;
 }
 
 export function extractJsonObject(text) {

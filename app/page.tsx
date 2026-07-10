@@ -30,6 +30,10 @@ import {
 import { normalizeConsecutiveImageBlocks } from "./_lib/draft-utils";
 import { aiStorageKeys, sampleText } from "./_lib/formatter-constants";
 import {
+  DEFAULT_POSTER_TEXT_STYLE,
+  normalizePosterTextStyle,
+} from "./_lib/poster-text-style";
+import {
   createPublishWorkflowSteps,
   getCoverGenerationConfigStatus,
   runPublishChecks,
@@ -39,6 +43,7 @@ import type {
   CoverTitleStyle,
   FormatTweaks,
   ImageTextMode,
+  PosterTextStyle,
   PublishStepId,
 } from "./_types/formatter";
 import { allTemplates, groupedTemplates, renderArticle } from "./template-engine";
@@ -90,6 +95,10 @@ export default function Home() {
   const [coverTextMode, setCoverTextMode] = useState<ImageTextMode>("canvas");
   const [coverTitleStyle, setCoverTitleStyle] = useState<CoverTitleStyle>(
     DEFAULT_COVER_TITLE_STYLE,
+  );
+  const [posterTextMode, setPosterTextMode] = useState<ImageTextMode>("canvas");
+  const [posterTextStyle, setPosterTextStyle] = useState<PosterTextStyle>(
+    DEFAULT_POSTER_TEXT_STYLE,
   );
 
   const inputRef = useRef<HTMLTextAreaElement>(null);
@@ -167,6 +176,20 @@ export default function Home() {
         setCoverTitleStyle(DEFAULT_COVER_TITLE_STYLE);
       }
     }
+
+    const savedPosterTextMode = localStorage.getItem(aiStorageKeys.posterTextMode);
+    if (savedPosterTextMode === "canvas" || savedPosterTextMode === "model") {
+      setPosterTextMode(savedPosterTextMode);
+    }
+
+    const savedPosterTextStyle = localStorage.getItem(aiStorageKeys.posterTextStyle);
+    if (savedPosterTextStyle) {
+      try {
+        setPosterTextStyle(normalizePosterTextStyle(JSON.parse(savedPosterTextStyle)));
+      } catch {
+        setPosterTextStyle(DEFAULT_POSTER_TEXT_STYLE);
+      }
+    }
   }, []);
 
   useEffect(() => {
@@ -184,6 +207,17 @@ export default function Home() {
     );
   }, [coverTitleStyle]);
 
+  useEffect(() => {
+    localStorage.setItem(aiStorageKeys.posterTextMode, posterTextMode);
+  }, [posterTextMode]);
+
+  useEffect(() => {
+    localStorage.setItem(
+      aiStorageKeys.posterTextStyle,
+      JSON.stringify(normalizePosterTextStyle(posterTextStyle)),
+    );
+  }, [posterTextStyle]);
+
   const aiWorkflow = useAiWorkflow({
     inputText: normalizedInputText,
     setInputText: setNormalizedInputText,
@@ -197,6 +231,8 @@ export default function Home() {
     coverTextMode,
     coverTitleStyle,
     coverPrompt: coverPromptSettings.selectedCoverPrompt?.prompt || "",
+    posterTextMode,
+    posterTextStyle,
     posterPrompt: posterPromptSettings.selectedPosterPrompt?.prompt || "",
     posterPromptName: posterPromptSettings.selectedPosterPrompt?.name || "",
     onPosterGenerated: posterLibrary.savePoster,
@@ -396,6 +432,13 @@ export default function Home() {
               selectedCoverTitle={aiWorkflow.selectedCoverTitle}
               onSelectCoverTitle={aiWorkflow.recomposeCoverTitle}
               posterGenerationResult={aiWorkflow.posterGenerationResult}
+              posterTextMode={posterTextMode}
+              setPosterTextMode={setPosterTextMode}
+              posterTextStyle={posterTextStyle}
+              onPosterTextStyleChange={(style) =>
+                setPosterTextStyle(normalizePosterTextStyle(style))
+              }
+              onResetPosterTextStyle={() => setPosterTextStyle(DEFAULT_POSTER_TEXT_STYLE)}
               coverGenerationConfigStatus={coverGenerationConfigStatus}
               onOpenAiConfig={() => aiSettings.setShowAiConfigModal(true)}
               promptTemplates={promptSettings.promptTemplates}

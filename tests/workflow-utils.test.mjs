@@ -112,6 +112,7 @@ test("default poster prompt templates are separate from cover prompts", () => {
   assert.ok(templates.length >= 3);
   assert.ok(templates.every((template) => template.id.startsWith("poster-")));
   assert.ok(templates.every((template) => template.prompt.includes("贴图")));
+  assert.ok(templates.every((template) => !/突出一句|承载文章核心结论|信息层次清晰/.test(template.prompt)));
   assert.ok(!coverTemplates.some((template) => template.id.startsWith("poster-")));
 });
 
@@ -177,6 +178,32 @@ test("createPosterPrompt keeps text overlay out of image model prompt", () => {
   assert.match(prompt, /不要在画面中生成任何中文或英文文字/);
   assert.match(prompt, /安静的书桌、便签和柔和光线/);
   assert.match(prompt, /知识类公众号贴图/);
+  assert.doesNotMatch(prompt, /先抓住重点/);
+  assert.doesNotMatch(prompt, /好内容不是写得更多/);
+  assert.doesNotMatch(prompt, /适合内容创作者收藏/);
+  assert.doesNotMatch(prompt, /公众号写作要把观点提炼成一句可传播的话/);
+  assert.match(prompt, /不要生成信息图/);
+  assert.match(prompt, /不要生成 UI 卡片/);
+});
+
+test("createPosterPrompt model text mode asks image model to render exact poster text", () => {
+  const prompt = createPosterPrompt({
+    markdown: "# 做内容要先抓住重点\n公众号写作要把观点提炼成一句可传播的话。",
+    brief: {
+      title: "先抓住重点",
+      quote: "好内容不是写得更多，而是让读者更快记住。",
+      note: "适合内容创作者收藏",
+      backgroundPrompt: "安静的书桌、便签和柔和光线",
+    },
+    posterPrompt: "知识类公众号贴图，克制高级，竖版构图。",
+    textMode: "model",
+  });
+
+  assert.match(prompt, /必须完整显示主标题：《先抓住重点》/);
+  assert.match(prompt, /必须完整显示金句：《好内容不是写得更多，而是让读者更快记住。》/);
+  assert.match(prompt, /必须完整显示辅助说明：《适合内容创作者收藏》/);
+  assert.match(prompt, /不要改字，不要漏字，不要生成乱码/);
+  assert.doesNotMatch(prompt, /后续由 TypeZen 工具叠加/);
 });
 
 test("normalizePosterTextBrief rejects invalid generated poster brief", () => {

@@ -33,6 +33,7 @@ import type {
   PosterGenerationResult,
   PosterLibraryItem,
   PosterPromptTemplate,
+  PosterTextStyle,
   PromptTemplate,
   PublishCheckItem,
   PublishOptimizationResult,
@@ -77,6 +78,11 @@ type WorkflowPaneProps = {
   selectedCoverTitle: string;
   onSelectCoverTitle: (title: string) => void;
   posterGenerationResult: PosterGenerationResult;
+  posterTextMode: ImageTextMode;
+  setPosterTextMode: React.Dispatch<React.SetStateAction<ImageTextMode>>;
+  posterTextStyle: PosterTextStyle;
+  onPosterTextStyleChange: (style: PosterTextStyle) => void;
+  onResetPosterTextStyle: () => void;
   coverGenerationConfigStatus: {
     isConfigured: boolean;
     message: string;
@@ -146,6 +152,10 @@ const workflowModules: Array<{
 
 const coverTitleTextColors = ["#050816", "#111827", "#ffffff", "#f8fafc", "#e11d48", "#2563eb"];
 const coverTitleStrokeColors = ["#ffffff", "#f8fafc", "#111827", "#000000", "#dbeafe", "#fee2e2"];
+const posterTextColors = ["#050816", "#111827", "#ffffff", "#f8fafc", "#2563eb", "#e11d48"];
+const posterMutedTextColors = ["#4b5563", "#64748b", "#ffffff", "#f8fafc", "#475569", "#7c2d12"];
+const posterAccentColors = ["#10b981", "#22c55e", "#2563eb", "#e11d48", "#f59e0b", "#111827"];
+const posterCardColors = ["#ffffff", "#f8fafc", "#fff7ed", "#ecfeff", "#111827", "#000000"];
 
 const workflowStepClassNames = {
   done: "border-emerald-300 bg-emerald-50 text-emerald-700",
@@ -226,6 +236,46 @@ function CompletionCard({ done, text }: { done: boolean; text: string }) {
       </div>
       {text}
     </section>
+  );
+}
+
+function PosterColorControl({
+  label,
+  value,
+  colors,
+  onChange,
+}: {
+  label: string;
+  value: string;
+  colors: string[];
+  onChange: (value: string) => void;
+}) {
+  return (
+    <div className="space-y-2">
+      <div className="text-[11px] font-black">{label}</div>
+      <div className="flex flex-wrap gap-1.5">
+        {colors.map((color) => (
+          <button
+            key={color}
+            type="button"
+            aria-label={`${label} ${color}`}
+            onClick={() => onChange(color)}
+            className={`h-7 w-7 rounded-full border ${
+              value === color
+                ? "border-(--neo-green) ring-2 ring-emerald-200"
+                : "border-(--neo-line)"
+            }`}
+            style={{ backgroundColor: color }}
+          />
+        ))}
+      </div>
+      <input
+        type="color"
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+        className="h-9 w-full rounded-lg border border-(--neo-line) bg-white p-1"
+      />
+    </div>
   );
 }
 
@@ -369,12 +419,14 @@ function PosterResultCard({
   posterGenerationResult,
   runningTask,
   onCopyText,
+  onCopyImage,
   copiedMaterialIds,
   onRegenerate,
 }: {
   posterGenerationResult: PosterGenerationResult;
   runningTask: RunningAiTaskType | null;
   onCopyText: (text: string, id: string) => void;
+  onCopyImage: (imageUrl: string, id: string) => void;
   copiedMaterialIds: string[];
   onRegenerate: () => void;
 }) {
@@ -435,6 +487,11 @@ function PosterResultCard({
         className="mx-auto aspect-[3/4] max-h-[520px] w-full max-w-[390px] rounded-lg border border-(--neo-line) object-cover bg-white"
       />
       <div className="rounded-lg border border-(--neo-line) bg-white p-3 text-xs font-bold leading-relaxed">
+        <div className="mb-2 neo-text-muted">
+          {posterGenerationResult.textMode === "canvas"
+            ? "中文由 TypeZen 工具叠加，可调整样式后自动重绘。"
+            : "中文由模型直接生成，文字准确性取决于模型能力。"}
+        </div>
         <div className="text-(--neo-ink)">主标题：{posterGenerationResult.brief.title}</div>
         <div className="mt-1 text-(--neo-ink)">金句：{posterGenerationResult.brief.quote}</div>
         <div className="mt-1 neo-text-muted">说明：{posterGenerationResult.brief.note}</div>
@@ -450,6 +507,13 @@ function PosterResultCard({
         </a>
         <button
           type="button"
+          onClick={() => onCopyImage(imageUrl, "poster-image")}
+          className="neo-button neo-button-secondary py-1.5 text-xs"
+        >
+          {copiedMaterialIds.includes("poster-image") ? "贴图已复制" : "复制贴图"}
+        </button>
+        <button
+          type="button"
           onClick={onRegenerate}
           className="neo-button neo-button-secondary py-1.5 text-xs"
         >
@@ -458,7 +522,7 @@ function PosterResultCard({
         <button
           type="button"
           onClick={() => onCopyText(posterGenerationResult.prompt, "poster-prompt")}
-          className="neo-button neo-button-ghost col-span-2 py-1.5 text-xs"
+          className="neo-button neo-button-ghost py-1.5 text-xs"
         >
           {copiedMaterialIds.includes("poster-prompt") ? "提示词已复制" : "复制生图提示词"}
         </button>
@@ -779,6 +843,11 @@ export function WorkflowPane({
   selectedCoverTitle,
   onSelectCoverTitle,
   posterGenerationResult,
+  posterTextMode,
+  setPosterTextMode,
+  posterTextStyle,
+  onPosterTextStyleChange,
+  onResetPosterTextStyle,
   coverGenerationConfigStatus,
   onOpenAiConfig,
   promptTemplates,
@@ -835,6 +904,7 @@ export function WorkflowPane({
   const [posterPromptName, setPosterPromptName] = useState("");
   const [posterPromptBody, setPosterPromptBody] = useState("");
   const [isPosterPromptEditorOpen, setIsPosterPromptEditorOpen] = useState(false);
+  const [isPosterTextStyleOpen, setIsPosterTextStyleOpen] = useState(false);
   const [isFormatSettingsOpen, setIsFormatSettingsOpen] = useState(true);
   const [copiedMaterialIds, setCopiedMaterialIds] = useState<string[]>([]);
   const [workflowModule, setWorkflowModule] = useState<WorkflowModuleId>("guide");
@@ -854,6 +924,10 @@ export function WorkflowPane({
   useEffect(() => {
     setCopiedMaterialIds((current) => current.filter((id) => id !== "cover-image"));
   }, [coverGenerationResult?.imageUrl]);
+
+  useEffect(() => {
+    setCopiedMaterialIds((current) => current.filter((id) => id !== "poster-image"));
+  }, [posterGenerationResult?.imageUrl]);
 
   const loadPromptForEdit = (template: PromptTemplate) => {
     setPromptDraftId(template.id);
@@ -964,6 +1038,14 @@ export function WorkflowPane({
     });
   };
   const isCoverTitleEnabled = coverTitleStyle.titleEnabled !== false;
+
+  const updatePosterTextStyle = (patch: Partial<PosterTextStyle>) => {
+    onPosterTextStyleChange({
+      ...posterTextStyle,
+      ...patch,
+    });
+  };
+  const isPosterCardEnabled = posterTextStyle.cardEnabled !== false;
 
   const copyPlainText = async (text: string, id = "text") => {
     if (!text.trim()) return;
@@ -1955,6 +2037,243 @@ export function WorkflowPane({
               </section>
 
               <section className="rounded-xl border border-(--neo-line) bg-(--neo-surface) p-3 space-y-3">
+                <div>
+                  <h3 className="text-sm font-black flex items-center gap-1.5">
+                    <PenLine className="w-4 h-4" />
+                    文字生成方式
+                  </h3>
+                  <p className="mt-1 text-[11px] font-bold leading-relaxed neo-text-muted">
+                    默认由 TypeZen 叠加中文；模型直出适合测试生图模型的海报文字能力。
+                  </p>
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setPosterTextMode("canvas")}
+                    className={`rounded-lg border px-3 py-2 text-left text-xs font-black ${
+                      posterTextMode === "canvas"
+                        ? "border-(--neo-green) bg-emerald-50 text-emerald-700"
+                        : "border-(--neo-line) bg-white text-(--neo-ink)"
+                    }`}
+                  >
+                    工具叠字
+                    <span className="mt-0.5 block text-[10px] font-bold opacity-70">推荐</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setPosterTextMode("model")}
+                    className={`rounded-lg border px-3 py-2 text-left text-xs font-black ${
+                      posterTextMode === "model"
+                        ? "border-(--neo-pink) bg-pink-50 text-pink-700"
+                        : "border-(--neo-line) bg-white text-(--neo-ink)"
+                    }`}
+                  >
+                    模型直出
+                    <span className="mt-0.5 block text-[10px] font-bold opacity-70">高级</span>
+                  </button>
+                </div>
+                {posterTextMode === "model" && (
+                  <div className="rounded-lg border border-amber-300 bg-amber-50 p-2 text-[11px] font-bold leading-relaxed text-amber-800">
+                    模型会直接生成带中文的完整贴图，可能缺字、错字或不显示。
+                  </div>
+                )}
+              </section>
+
+              {posterTextMode === "canvas" && (
+                <section className="rounded-xl border border-(--neo-line) bg-(--neo-surface) p-3 space-y-3">
+                  <button
+                    type="button"
+                    onClick={() => setIsPosterTextStyleOpen((value) => !value)}
+                    className="flex w-full items-center justify-between text-left text-xs font-black"
+                  >
+                    <span>贴图文字样式</span>
+                    <ChevronDown
+                      className={`h-4 w-4 transition-transform ${
+                        isPosterTextStyleOpen ? "rotate-180" : ""
+                      }`}
+                    />
+                  </button>
+                  <p className="text-[11px] font-bold leading-relaxed neo-text-muted">
+                    调整卡片、字号和颜色；已生成贴图会自动重新合成。
+                  </p>
+                  <div className="grid grid-cols-2 gap-2">
+                    <button
+                      type="button"
+                      aria-pressed={isPosterCardEnabled}
+                      onClick={() =>
+                        updatePosterTextStyle({ cardEnabled: !isPosterCardEnabled })
+                      }
+                      className={`rounded-lg border px-3 py-2 text-left text-xs font-black ${
+                        isPosterCardEnabled
+                          ? "border-(--neo-green) bg-emerald-50 text-emerald-700"
+                          : "border-(--neo-line) bg-white text-(--neo-ink)"
+                      }`}
+                    >
+                      文字卡片
+                      <span className="mt-0.5 block text-[10px] font-bold opacity-70">
+                        {isPosterCardEnabled ? "开启" : "关闭"}
+                      </span>
+                    </button>
+                    <button
+                      type="button"
+                      aria-pressed={posterTextStyle.shadowEnabled}
+                      onClick={() =>
+                        updatePosterTextStyle({ shadowEnabled: !posterTextStyle.shadowEnabled })
+                      }
+                      className={`rounded-lg border px-3 py-2 text-left text-xs font-black ${
+                        posterTextStyle.shadowEnabled
+                          ? "border-(--neo-green) bg-emerald-50 text-emerald-700"
+                          : "border-(--neo-line) bg-white text-(--neo-ink)"
+                      }`}
+                    >
+                      阴影
+                      <span className="mt-0.5 block text-[10px] font-bold opacity-70">
+                        {posterTextStyle.shadowEnabled ? "开启" : "关闭"}
+                      </span>
+                    </button>
+                  </div>
+                  {isPosterTextStyleOpen && (
+                    <div className="space-y-4">
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between text-[11px] font-black">
+                          <span>横向位置</span>
+                          <span>{Math.round(posterTextStyle.cardXPercent)}%</span>
+                        </div>
+                        <input
+                          type="range"
+                          min="0"
+                          max="40"
+                          step="1"
+                          value={posterTextStyle.cardXPercent}
+                          onChange={(event) =>
+                            updatePosterTextStyle({ cardXPercent: Number(event.target.value) })
+                          }
+                          className="w-full accent-(--neo-green)"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between text-[11px] font-black">
+                          <span>纵向位置</span>
+                          <span>{Math.round(posterTextStyle.cardYPercent)}%</span>
+                        </div>
+                        <input
+                          type="range"
+                          min="0"
+                          max="78"
+                          step="1"
+                          value={posterTextStyle.cardYPercent}
+                          onChange={(event) =>
+                            updatePosterTextStyle({ cardYPercent: Number(event.target.value) })
+                          }
+                          className="w-full accent-(--neo-green)"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between text-[11px] font-black">
+                          <span>卡片宽度</span>
+                          <span>{Math.round(posterTextStyle.cardWidthPercent)}%</span>
+                        </div>
+                        <input
+                          type="range"
+                          min="48"
+                          max="92"
+                          step="1"
+                          value={posterTextStyle.cardWidthPercent}
+                          onChange={(event) =>
+                            updatePosterTextStyle({ cardWidthPercent: Number(event.target.value) })
+                          }
+                          className="w-full accent-(--neo-green)"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between text-[11px] font-black">
+                          <span>整体字号</span>
+                          <span>{Math.round(posterTextStyle.fontScalePercent)}%</span>
+                        </div>
+                        <input
+                          type="range"
+                          min="75"
+                          max="125"
+                          step="1"
+                          value={posterTextStyle.fontScalePercent}
+                          onChange={(event) =>
+                            updatePosterTextStyle({ fontScalePercent: Number(event.target.value) })
+                          }
+                          className="w-full accent-(--neo-green)"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between text-[11px] font-black">
+                          <span>卡片透明度</span>
+                          <span>{Math.round(posterTextStyle.cardOpacity * 100)}%</span>
+                        </div>
+                        <input
+                          type="range"
+                          min="35"
+                          max="100"
+                          step="1"
+                          value={Math.round(posterTextStyle.cardOpacity * 100)}
+                          onChange={(event) =>
+                            updatePosterTextStyle({
+                              cardOpacity: Number(event.target.value) / 100,
+                            })
+                          }
+                          className="w-full accent-(--neo-green)"
+                        />
+                      </div>
+                      <div className="grid grid-cols-2 gap-3">
+                        <PosterColorControl
+                          label="主标题"
+                          value={posterTextStyle.titleColor}
+                          colors={posterTextColors}
+                          onChange={(value) => updatePosterTextStyle({ titleColor: value })}
+                        />
+                        <PosterColorControl
+                          label="金句"
+                          value={posterTextStyle.quoteColor}
+                          colors={posterTextColors}
+                          onChange={(value) => updatePosterTextStyle({ quoteColor: value })}
+                        />
+                        <PosterColorControl
+                          label="说明"
+                          value={posterTextStyle.noteColor}
+                          colors={posterMutedTextColors}
+                          onChange={(value) => updatePosterTextStyle({ noteColor: value })}
+                        />
+                        <PosterColorControl
+                          label="描边"
+                          value={posterTextStyle.strokeColor}
+                          colors={coverTitleStrokeColors}
+                          onChange={(value) => updatePosterTextStyle({ strokeColor: value })}
+                        />
+                        <PosterColorControl
+                          label="卡片"
+                          value={posterTextStyle.cardBackgroundColor}
+                          colors={posterCardColors}
+                          onChange={(value) =>
+                            updatePosterTextStyle({ cardBackgroundColor: value })
+                          }
+                        />
+                        <PosterColorControl
+                          label="强调色"
+                          value={posterTextStyle.accentColor}
+                          colors={posterAccentColors}
+                          onChange={(value) => updatePosterTextStyle({ accentColor: value })}
+                        />
+                      </div>
+                      <button
+                        type="button"
+                        onClick={onResetPosterTextStyle}
+                        className="neo-button neo-button-ghost w-full px-3 py-2 text-xs"
+                      >
+                        恢复默认贴图样式
+                      </button>
+                    </div>
+                  )}
+                </section>
+              )}
+
+              <section className="rounded-xl border border-(--neo-line) bg-(--neo-surface) p-3 space-y-3">
                 <button
                   type="button"
                   onClick={onGeneratePoster}
@@ -1973,7 +2292,9 @@ export function WorkflowPane({
                   {runningTask === "poster" ? "正在生成贴图..." : "生成公众号贴图"}
                 </button>
                 <p className="px-1 text-[11px] font-bold leading-relaxed neo-text-muted">
-                  中文由工具叠加，避免模型生成错字；贴图不会自动插入正文。
+                  {posterTextMode === "canvas"
+                    ? "中文由工具叠加，避免模型生成错字；贴图不会自动插入正文。"
+                    : "模型直接生成完整贴图；贴图不会自动插入正文。"}
                 </p>
               </section>
 
@@ -1981,6 +2302,7 @@ export function WorkflowPane({
                 posterGenerationResult={posterGenerationResult}
                 runningTask={runningTask}
                 onCopyText={copyPlainText}
+                onCopyImage={copyImageToClipboard}
                 copiedMaterialIds={copiedMaterialIds}
                 onRegenerate={onGeneratePoster}
               />

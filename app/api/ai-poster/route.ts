@@ -40,6 +40,7 @@ export async function POST(req: Request) {
       model,
       brief,
       posterPrompt = "",
+      textMode = "canvas",
     } = body as {
       markdown?: string;
       providerType?: AiProviderType;
@@ -48,6 +49,7 @@ export async function POST(req: Request) {
       model?: string;
       brief?: PosterTextBrief;
       posterPrompt?: string;
+      textMode?: "canvas" | "model";
     };
 
     if (!markdown || typeof markdown !== "string" || !markdown.trim()) {
@@ -60,10 +62,12 @@ export async function POST(req: Request) {
       rawBaseUrl || (selectedProvider === "openrouter" ? openRouterConfig.baseUrl : "");
     const trimmedModel = model?.trim();
     const posterBrief = normalizePosterTextBrief(brief);
+    const posterTextMode = textMode === "model" ? "model" : "canvas";
     const prompt = createPosterPrompt({
       markdown,
       brief: posterBrief,
       posterPrompt,
+      textMode: posterTextMode,
     });
 
     if (!trimmedModel) {
@@ -89,6 +93,8 @@ export async function POST(req: Request) {
       model: trimmedModel,
       prompt,
       providerType: selectedProvider,
+      textMode: posterTextMode,
+      imageLayout: "poster",
     });
 
     if (!result.response?.ok) {
@@ -133,6 +139,8 @@ export async function POST(req: Request) {
         rawBackgroundImageUrl: imageUrl,
         prompt,
         brief: posterBrief,
+        textMode: posterTextMode,
+        titleHint: posterBrief.title,
         createdAt: new Date().toISOString(),
         source: "ai",
       },

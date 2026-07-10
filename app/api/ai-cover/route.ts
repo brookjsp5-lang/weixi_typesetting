@@ -108,6 +108,7 @@ export async function POST(req: Request) {
       prompt,
       providerType: selectedProvider,
       textMode: coverTextMode,
+      imageLayout: "cover",
     });
 
     if (!result.response?.ok) {

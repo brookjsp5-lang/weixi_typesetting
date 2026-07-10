@@ -1,5 +1,7 @@
 import type { AiProviderType, ImageTextMode } from "../_types/formatter";
 
+export type ImageLayout = "cover" | "poster";
+
 export type ImageGenerationRequestInput = {
   baseUrl: string;
   apiKey?: string;
@@ -7,6 +9,7 @@ export type ImageGenerationRequestInput = {
   prompt: string;
   providerType?: AiProviderType;
   textMode?: ImageTextMode;
+  imageLayout?: ImageLayout;
 };
 
 export function resolveImageGenerationEndpoint(baseUrl: string): string;
@@ -52,6 +55,7 @@ export function buildImageGenerationRequestBodies(input: {
   prompt: string;
   providerType?: AiProviderType | string;
   textMode?: ImageTextMode;
+  imageLayout?: ImageLayout;
 }): Array<Record<string, unknown>>;
 
 export function parseImageGenerationResult(data: unknown): string;
