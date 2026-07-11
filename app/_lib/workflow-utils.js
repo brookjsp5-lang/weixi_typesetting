@@ -252,6 +252,25 @@ const trimBriefValue = (value, maxLength) =>
     .trim()
     .slice(0, maxLength);
 
+const posterCanvasFallbackPrompt =
+  "无文字抽象背景，竖版 3:4 构图，留白充足，干净背景层次，适合后续叠加中文标题、金句和说明。";
+
+const posterCanvasBlockedPattern =
+  /文字|字母|数字|标题|主标题|副标题|金句|总结|要点|信息层次|信息图|卡片|UI|界面|按钮|图标|icon|logo|水印|二维码|小字|说明|排版|清单|列表|表格|截图|功能/i;
+
+const sanitizePosterCanvasPrompt = (value, fallback = posterCanvasFallbackPrompt) => {
+  const text = String(value || "").trim();
+  if (!text) return fallback;
+
+  const safeParts = text
+    .split(/[，。；;、,.!?！？\n]+/)
+    .map((part) => part.trim())
+    .filter((part) => part && !posterCanvasBlockedPattern.test(part));
+
+  const safePrompt = safeParts.join("，").trim();
+  return safePrompt || fallback;
+};
+
 export function normalizePosterTextBrief(value) {
   const parsed = value || {};
   const brief = {
@@ -273,7 +292,7 @@ export function normalizePosterTextBrief(value) {
 
 export function createPosterBriefPrompt({ markdown, posterPrompt = "" }) {
   const excerpt = createMediaSourceExcerpt(markdown, 3500);
-  const cleanPosterPrompt = String(posterPrompt || "").trim();
+  const cleanPosterPrompt = sanitizePosterCanvasPrompt(posterPrompt);
 
   return `请根据公众号文章初稿，提炼一张可独立传播的公众号贴图文案。
 
@@ -314,12 +333,18 @@ export function createPosterPrompt({ brief, posterPrompt = "", textMode = "canva
 重要限制：不要生成二维码、品牌水印、真实人物肖像或复杂小字。`;
   }
 
+  const safeBackgroundPrompt = sanitizePosterCanvasPrompt(
+    normalizedBrief.backgroundPrompt,
+    "无文字抽象背景，依据文章主题生成克制、干净、有留白的视觉氛围。",
+  );
+  const safeStylePrompt = sanitizePosterCanvasPrompt(stylePrompt);
+
   return `生成一张公众号贴图背景图，竖版 3:4 构图，后续由 TypeZen 工具叠加中文标题、金句和说明。
 
-画面主题：${normalizedBrief.backgroundPrompt}
-贴图风格要求：${stylePrompt}
+画面主题：${safeBackgroundPrompt}
+贴图风格要求：${safeStylePrompt}
 
-重要限制：不要在画面中生成任何中文或英文文字、字母或数字；不要生成信息图；不要生成 UI 卡片；不要生成二维码、品牌水印、真实人物肖像、UI 截图或复杂小字。`;
+重要限制：只生成无文字抽象背景或安静场景背景；不要在画面中生成任何中文或英文文字、字母或数字；不要生成信息图、界面组件、按钮网格、应用截图、二维码、品牌水印、真实人物肖像或复杂小字。`;
 }
 
 export function extractJsonObject(text) {

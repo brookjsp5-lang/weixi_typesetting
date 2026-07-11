@@ -7,6 +7,7 @@ import {
   createDefaultCoverPromptTemplates,
   createDefaultPosterPromptTemplates,
   createDefaultPromptTemplates,
+  createPosterBriefPrompt,
   createPosterPrompt,
   createPublishWorkflowSteps,
   extractJsonObject,
@@ -176,14 +177,52 @@ test("createPosterPrompt keeps text overlay out of image model prompt", () => {
   assert.match(prompt, /公众号贴图背景/);
   assert.match(prompt, /竖版 3:4/);
   assert.match(prompt, /不要在画面中生成任何中文或英文文字/);
-  assert.match(prompt, /安静的书桌、便签和柔和光线/);
+  assert.match(prompt, /安静的书桌[，、]便签和柔和光线/);
   assert.match(prompt, /知识类公众号贴图/);
   assert.doesNotMatch(prompt, /先抓住重点/);
   assert.doesNotMatch(prompt, /好内容不是写得更多/);
   assert.doesNotMatch(prompt, /适合内容创作者收藏/);
   assert.doesNotMatch(prompt, /公众号写作要把观点提炼成一句可传播的话/);
   assert.match(prompt, /不要生成信息图/);
-  assert.match(prompt, /不要生成 UI 卡片/);
+  assert.match(prompt, /不要生成信息图、界面组件、按钮网格/);
+});
+
+test("createPosterPrompt sanitizes legacy canvas poster prompts that induce infographic text", () => {
+  const prompt = createPosterPrompt({
+    markdown: "# AI 功能上线\n\n生成贴图时不要让模型画错字。",
+    brief: {
+      title: "AI 功能上线",
+      quote: "用工具叠字，中文才稳定。",
+      note: "公众号贴图",
+      backgroundPrompt:
+        "顶部大标题，四个功能卡片，图标和文字说明，信息层次清晰，突出金句。",
+    },
+    posterPrompt:
+      "金句图，突出金句，信息层次清晰，4 个 UI 卡片，带图标和小字说明。",
+  });
+
+  assert.match(prompt, /无文字抽象背景/);
+  assert.match(prompt, /由 TypeZen 工具叠加中文标题、金句和说明/);
+  assert.doesNotMatch(prompt, /顶部大标题/);
+  assert.doesNotMatch(prompt, /突出金句/);
+  assert.doesNotMatch(prompt, /信息层次清晰/);
+  assert.doesNotMatch(prompt, /UI 卡片/);
+  assert.doesNotMatch(prompt, /图标和文字说明/);
+  assert.doesNotMatch(prompt, /小字说明/);
+});
+
+test("createPosterBriefPrompt sanitizes poster prompt before asking for background prompt", () => {
+  const prompt = createPosterBriefPrompt({
+    markdown: "# AI 功能上线\n\n生成贴图时不要让模型画错字。",
+    posterPrompt:
+      "金句图，突出金句，信息层次清晰，4 个 UI 卡片，带图标和小字说明。",
+  });
+
+  assert.match(prompt, /无文字抽象背景/);
+  assert.doesNotMatch(prompt, /突出金句/);
+  assert.doesNotMatch(prompt, /信息层次清晰/);
+  assert.doesNotMatch(prompt, /UI 卡片/);
+  assert.doesNotMatch(prompt, /图标和小字说明/);
 });
 
 test("createPosterPrompt model text mode asks image model to render exact poster text", () => {
