@@ -6,8 +6,7 @@
 
 TypeZen 是一款面向微信公众号创作者的在线排版工作台。你可以把 Markdown 草稿放进编辑区，使用 AI 优化排版结构，套用 72 套微信公众号兼容模板，并在发布前生成封面图、公众号贴图、播客脚本、短视频分镜和发布检查清单。
 
-- 在线体验：[https://typezen.online](https://typezen.online)
-- Vercel 部署：[https://weixi-typesetting.vercel.app](https://weixi-typesetting.vercel.app)
+- 在线体验：[https://weixi-typesetting.vercel.app](https://weixi-typesetting.vercel.app)
 - GitHub 仓库：[https://github.com/brookjsp5-lang/weixi_typesetting](https://github.com/brookjsp5-lang/weixi_typesetting)
 
 ## 核心能力
@@ -106,10 +105,7 @@ npx next build --webpack
 npx vercel --prod
 ```
 
-生产站点：
-
-- [https://typezen.online](https://typezen.online)
-- [https://weixi-typesetting.vercel.app](https://weixi-typesetting.vercel.app)
+生产站点：[https://weixi-typesetting.vercel.app](https://weixi-typesetting.vercel.app)
 
 ## 微信公众号兼容性
 
