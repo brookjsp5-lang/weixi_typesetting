@@ -1,135 +1,136 @@
-# 公众号一键排版助手 (WeChat Formatter)
+# 公众号一键排版助手 TypeZen
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![GitHub stars](https://img.shields.io/github/stars/mspringjade/wechat-formatter.svg?style=social)](https://github.com/mspringjade/wechat-formatter/stargazers)
-[![GitHub issues](https://img.shields.io/github/issues/mspringjade/wechat-formatter.svg)](https://github.com/mspringjade/wechat-formatter/issues)
+[![GitHub stars](https://img.shields.io/github/stars/brookjsp5-lang/weixi_typesetting.svg?style=social)](https://github.com/brookjsp5-lang/weixi_typesetting/stargazers)
+[![GitHub issues](https://img.shields.io/github/issues/brookjsp5-lang/weixi_typesetting.svg)](https://github.com/brookjsp5-lang/weixi_typesetting/issues)
 
-**在线体验：[https://typezen.online](https://typezen.online)**
+TypeZen 是一款面向微信公众号创作者的在线排版工作台。你可以把 Markdown 草稿放进编辑区，使用 AI 优化排版结构，套用 72 套微信公众号兼容模板，并在发布前生成封面图、公众号贴图、播客脚本、短视频分镜和发布检查清单。
 
-TypeZen 是一款专为微信公众号设计的「Markdown 转微信排版」辅助工具。写好 Markdown 文本后，可以使用 AI 一键优化排版结构，再套用 72 套不同风格的精美模板，并直接复制粘贴到微信公众平台后台。
+- 在线体验：[https://typezen.online](https://typezen.online)
+- Vercel 部署：[https://weixi-typesetting.vercel.app](https://weixi-typesetting.vercel.app)
+- GitHub 仓库：[https://github.com/brookjsp5-lang/weixi_typesetting](https://github.com/brookjsp5-lang/weixi_typesetting)
 
-## 核心特性
+## 核心能力
 
-- **AI 一键排版**：支持 OpenRouter、DeepSeek、火山方舟、阿里百炼/Qwen、MiniMax、小米 MiMo、Kimi、智谱 GLM、OpenAI、Anthropic 与自定义兼容接口，可在不改写原文内容的前提下优化标题层级、空行、列表、引用、加粗与分隔线等 Markdown 结构。
-- **全面格式支持**：原生支持所有常见的 Markdown 语法解析（由 `marked` 驱动），并针对微信公众号编辑器重新设计展示样式。
-- **丰富的主题模板**：内置 **72 套**精美模板，覆盖 6 大风格分类，并支持自定义主题色。
-- **细节自由微调**：支持调整正文字号、行高、段落间距、首行缩进、页面留白、字间距与图片圆角。
-- **响应式工作台**：Neo 风格三栏工作流，支持实时手机框预览，适应桌面、平板以及手机环境。
-- **一键无痕复制**：自动内联处理 CSS，点击「一键复制发布」即可直接粘贴进微信公众号文章编辑器并保留颜色与样式。
+- **Markdown 转微信公众号排版**：基于 `marked` 解析 Markdown，并输出微信公众号编辑器友好的内联 CSS。
+- **72 套精美模板**：覆盖新粗野、极简、商务、文艺、科技、节庆 6 大风格分类。
+- **AI 一键排版**：只优化标题层级、空行、列表、加粗、引用、分隔线等结构，不静默改写正文事实。
+- **AI 发布工作区**：从草稿出发生成发布方向、封面图、公众号贴图、播客脚本、短视频分镜和发布检查结果。
+- **AI 封面生图**：支持 `工具叠字` 与 `模型直出`，默认用 TypeZen 在封面背景上叠加中文标题，降低模型错字风险。
+- **公众号贴图生图**：支持 `工具叠字` 与 `模型直出`。`工具叠字` 让模型只生成无文字竖版背景，再由 TypeZen 合成标题、金句和说明；`模型直出` 让模型直接生成完整带字贴图。
+- **贴图文字样式面板**：在工具叠字模式下可调整卡片位置、宽度、透明度、字号、标题/金句/说明颜色、描边色、强调色和阴影开关，修改样式会基于原背景本地重绘。
+- **本地配置与素材管理**：AI 服务配置保存在当前浏览器本地；生成贴图会进入本地贴图库，方便复用。
+- **一键复制发布**：复制排版后的 HTML、封面图或贴图，贴近微信公众号后台发布流程。
 
-## AI 一键排版
+## AI 服务支持
 
-AI 排版功能用于优化 Markdown 的「结构」而不是改写文章内容，适合在文章发布前快速整理版式。
+TypeZen 支持 OpenRouter、DeepSeek、火山方舟、阿里百炼 Qwen、MiniMax、小米 MiMo、Kimi、智谱 GLM、OpenAI、Anthropic 与自定义 OpenAI 兼容接口。
 
-- **支持多种服务商**：支持 OpenRouter、DeepSeek、火山方舟、阿里百炼/Qwen、MiniMax、小米 MiMo、Kimi、智谱 GLM、OpenAI、Anthropic 与自定义兼容接口。
-- **OpenRouter 模型选择**：支持拉取 OpenRouter 文本模型列表，免费模型会优先展示，也可以手动输入模型 ID。
-- **流式输出体验**：AI 排版结果会流式写回编辑区，减少等待感。
-- **本地保存配置**：API 类型、API 地址、API Key 与模型名称仅保存在当前浏览器本地。
-- **服务端临时调用**：排版时配置会临时发送到服务端用于调用模型服务，项目本身不会持久化保存你的 API Key。
-- **内容保护约束**：系统提示词要求 AI 不删除、不增补、不润色原文，只调整 Markdown 排版结构。
+文本类能力用于排版优化、发布方向、脚本与分镜生成；图像类能力用于封面和贴图生成。API Key 只保存在当前浏览器本地，调用时会临时发送到服务端代理请求对应模型服务，项目不会持久化保存你的 API Key。
 
-## 完整支持的 Markdown 语法列表
+## 贴图生图模式
 
-本工具全面适配并重新设计了各类基础语法在微信公众号中的表现形式：
+### 工具叠字
 
-1. **基本与段落语法**：普通文本段落展示与两端对齐。
-2. **标题语法** (`#`)：支持 1~6 级标题格式，不同模板拥有各异的视觉展现（如下划线、大号引用于标题等）。
-3. **换行语法**：支持直接回车触发普通换行 (`<br>`) 不剥离空白。
-4. **强调语法** (`**加粗**` / `*斜体*`)：加粗文字结合了荧光笔高亮、彩色背景等特殊效果；斜体具有各主题独立的颜色搭配。
-5. **引用语法** (`>`)：区块引用被设计为精美的卡片式摘要或警示框款式。
-6. **列表语法** (`-` / `1.`)：有序和无序列表适配不同主题的标记符号（包括圆点、字母、花朵符或实心球等）。
-7. **代码语法** (`\``` ` 及 `\``) ：适配多行代码块环境，内联代码具备独特高亮样式包裹，专门优化避免排版越界。
-8. **分隔线语法** (`---`)：针对各个主题色系单独设置了虚线、实线、甚至阴影效果的分隔线。
-9. **链接语法** (`[]()`)：自动增加主题色下划线或破折号特效，适配手机端阅读盲区问题。
-10. **图片语法** (`![]()`)：为文章内的图片自动赋予倒角、微阴影及主题颜色描边。并且支持**多图自动并排（多排）**，只需将多张连续图片放在同一个段落即可自动触发等宽布局。同时还支持在编辑区直接粘贴截屏/复制的图片。
-11. **转义字符** (`\`) 及其它基本功能：完美兼容标准 Markdown 规范渲染。
-12. **内嵌 HTML**：支持渲染文章中混写的 HTML 标签代码，并在最外层进行样式隔离兜底。
+推荐默认模式。模型只负责生成无文字竖版背景，提示词会明确禁止文字、数字、Logo、水印、UI 卡片和信息图。TypeZen 使用 canvas 合成主标题、金句、说明和样式，适合中文标题准确性要求较高的公众号贴图。
 
-## 主题分类
+### 模型直出
 
-72 套模板主要分为以下 6 大类别：
-1. **新粗野风（12套）**：高饱和度色彩、粗黑边框与硬投影，适合更有冲击力的内容表达。
-2. **纯净极简风（12套）**：没有冗余元素的精简阅读体验。
-3. **沉稳商务风（12套）**：严控排版细节，尽显职业素养。
-4. **诗意文艺风（12套）**：细腻排版，给文字呼吸的空间。
-5. **极客科技风（12套）**：打破常规的模块化终端设计，使用前卫渐变。
-6. **欢庆节庆风（12套）**：浓烈色彩传递节日喜悦气息。
+高级模式。提示词会要求模型完整显示标题、金句和说明，并强调不要改字、漏字或生成乱码。这个模式适合用户希望模型直接完成构图和文字设计的场景，但文字准确性仍取决于模型能力。
+
+## 支持的 Markdown 语法
+
+TypeZen 针对微信公众号编辑器重新设计了常用 Markdown 元素的展示样式：
+
+1. 标题：支持 `#` 到 `######`。
+2. 段落：自动应用模板字体、行高、间距和首行缩进设置。
+3. 强调：支持 `**加粗**`、`*斜体*` 和内联高亮样式。
+4. 引用：支持 `>`，渲染为模板化摘录或提示块。
+5. 列表：支持有序列表和无序列表。
+6. 代码：支持行内代码和多行代码块。
+7. 分隔线：支持 `---`。
+8. 链接：支持 `[text](url)`。
+9. 图片：支持 `![]()`、远程图片导入、编辑区直接粘贴图片和连续图片自动分组。
+10. 表格：自动添加微信公众号兼容的固定布局和换行策略，避免溢出。
+11. 内嵌 HTML：尽量保留并隔离样式。
 
 ## 技术栈
 
-- **框架**: Next.js 16.2.0 (App Router)
-- **UI**: React 19.2.4 + Tailwind CSS 4
-- **语言**: TypeScript 5
-- **Markdown 解析**: marked 17.0.4
-- **AI 能力**: Vercel AI SDK 6，`@ai-sdk/openai`，`@ai-sdk/anthropic`
-- **图标**: lucide-react，@lobehub/icons
-- **代码检查**: Biome
+- **框架**：Next.js 16.2.0 App Router
+- **UI**：React 19.2.4 + Tailwind CSS 4
+- **语言**：TypeScript 5
+- **Markdown 解析**：marked 17.0.4
+- **AI SDK**：Vercel AI SDK 6，`@ai-sdk/openai`，`@ai-sdk/anthropic`
+- **图标**：lucide-react，@lobehub/icons
+- **代码检查**：Biome
 
-## 快速开始
+## 本地开发
 
 ### 环境要求
 
-- Node.js 20.9.0 或更高版本（Next.js 16 要求）
+- Node.js 20.9.0 或更高版本
 - npm 或 pnpm
 
-### 本地运行
+### 启动项目
 
 ```bash
-# 克隆项目
-git clone https://github.com/mspringjade/wechat-formatter.git
-
-# 进入项目目录
-cd wechat-formatter
-
-# 安装依赖
+git clone https://github.com/brookjsp5-lang/weixi_typesetting.git
+cd weixi_typesetting
 npm install
-
-# 启动开发服务器
 npm run dev
 ```
 
 打开 [http://localhost:3000](http://localhost:3000) 即可体验。
 
-### 构建部署
+### 常用命令
 
 ```bash
-# 构建生产版本
+# 运行测试
+npm test
+
+# 运行 Biome 检查
+npm run lint
+
+# 生产构建
 npm run build
 
-# 启动生产服务器
-npm run start
+# 当前 Windows 环境如遇 Turbopack/SWC native 问题，可使用 webpack 构建
+npx next build --webpack
 ```
 
-## 注意事项
+## 部署
 
-由于微信公众平台仅允许 `内联样式 (inline-css)`，本系统在转换过程中已将所有样式自动映射至 DOM 的 `style=""` 属性中，确保粘贴过程零损失。
+项目已链接到 Vercel，可通过 GitHub main 分支自动部署，也可以使用 Vercel CLI 手动生产部署：
 
-AI 一键排版需要你自行配置可用的模型服务 API Key。配置保存在当前浏览器本地，排版请求会临时经过项目服务端转发到对应模型服务，请妥善保管自己的 API Key 与服务商额度。
+```bash
+npx vercel --prod
+```
 
-## 贡献指南
+生产站点：
 
-欢迎所有形式的贡献！
+- [https://typezen.online](https://typezen.online)
+- [https://weixi-typesetting.vercel.app](https://weixi-typesetting.vercel.app)
 
-### 如何贡献
+## 微信公众号兼容性
 
-1. Fork 本仓库
-2. 创建特性分支 (`git checkout -b feature/AmazingFeature`)
-3. 提交更改 (`git commit -m 'Add some AmazingFeature'`)
-4. 推送到分支 (`git push origin feature/AmazingFeature`)
-5. 提交 Pull Request
+微信公众号编辑器对 CSS 和 HTML 支持有限，因此 TypeZen 的渲染结果会尽量满足以下原则：
 
-### 贡献方式
+- 所有关键样式写入 `style=""` 内联属性。
+- 外层使用适合公众号粘贴的结构，避免脚本和不必要的复杂语义标签。
+- 表格使用固定布局和强制换行策略，防止移动端溢出。
+- 模板明确设置背景色，降低暗黑模式对粘贴结果的影响。
+- 图片样式、圆角、边框和间距都在生成 HTML 时内联。
 
-- 提交 Bug 报告或功能建议
-- 提出新功能想法
-- 改进文档
-- 提交代码修复或新功能
+## 贡献
 
-## 访问地址
+欢迎提交 Bug 报告、功能建议、文档改进或代码 PR。
 
-- 在线体验：[https://typezen.online](https://typezen.online)
-- GitHub：[https://github.com/mspringjade/wechat-formatter](https://github.com/mspringjade/wechat-formatter)
+1. Fork 本仓库。
+2. 创建功能分支：`git checkout -b feature/my-feature`。
+3. 提交修改：`git commit -m "feat: add my feature"`。
+4. 推送分支：`git push origin feature/my-feature`。
+5. 发起 Pull Request。
 
----
+## License
 
-如果这个项目对你有帮助，欢迎 Star 支持一下！
+MIT
