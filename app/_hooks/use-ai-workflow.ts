@@ -9,6 +9,7 @@ import {
 } from "../_lib/cover-title-layout";
 import {
   createAppliedAiChange,
+  createManualPosterTextBrief,
   extractJsonObject,
   resolveCoverGenerationConfig,
 } from "../_lib/workflow-utils";
@@ -53,6 +54,7 @@ type UseAiWorkflowParams = {
   coverPrompt: string;
   posterTextMode: ImageTextMode;
   posterTextStyle: PosterTextStyle;
+  posterManualText: string;
   posterPrompt: string;
   posterPromptName?: string;
   onPosterGenerated?: (result: PosterLibraryItem) => void;
@@ -166,11 +168,23 @@ const drawWrappedText = (
   strokeStyle = "",
   strokeWidth = 0,
 ) => {
-  const chars = Array.from(text.trim());
+  const chars = Array.from(text.trim().replace(/\n{2,}/g, "\n"));
   const lines: string[] = [];
   let currentLine = "";
+  let isTruncated = false;
 
-  for (const char of chars) {
+  for (let index = 0; index < chars.length; index++) {
+    const char = chars[index] || "";
+    if (char === "\n") {
+      if (currentLine) lines.push(currentLine);
+      currentLine = "";
+      if (lines.length >= maxLines) {
+        isTruncated = index < chars.length - 1;
+        break;
+      }
+      continue;
+    }
+
     const nextLine = currentLine + char;
     if (ctx.measureText(nextLine).width <= maxWidth || !currentLine) {
       currentLine = nextLine;
@@ -178,11 +192,14 @@ const drawWrappedText = (
     }
     lines.push(currentLine);
     currentLine = char;
-    if (lines.length >= maxLines) break;
+    if (lines.length >= maxLines) {
+      isTruncated = true;
+      break;
+    }
   }
   if (currentLine && lines.length < maxLines) lines.push(currentLine);
 
-  if (lines.length === maxLines && chars.join("").length > lines.join("").length) {
+  if (isTruncated && lines.length === maxLines) {
     const lastLine = lines[maxLines - 1] || "";
     let truncated = lastLine;
     while (truncated && ctx.measureText(`${truncated}…`).width > maxWidth) {
@@ -299,15 +316,16 @@ const composePosterImage = async (
 
   const normalizedStyle = normalizePosterTextStyle(posterTextStyle);
   const cardArea = createPosterTextCardArea(normalizedStyle, POSTER_WIDTH, POSTER_HEIGHT);
+  const isManualPosterText = brief.source === "manual";
   const scale = normalizedStyle.fontScalePercent / 100;
   const cardHeight = Math.min(
     cardArea.maxHeight,
-    Math.max(264, Math.round(356 * scale)),
+    Math.max(isManualPosterText ? 320 : 264, Math.round((isManualPosterText ? 520 : 356) * scale)),
   );
   const cardPaddingX = Math.round(48 * scale);
   const textX = cardArea.x + cardPaddingX;
   const textWidth = Math.max(260, cardArea.width - cardPaddingX * 2);
-  const textY = cardArea.y + Math.round(72 * scale);
+  const textY = cardArea.y + Math.round((isManualPosterText ? 62 : 72) * scale);
   const strokeWidth = Math.max(3, Math.round(4 * scale));
 
   if (isPosterTextCardEnabled(normalizedStyle)) {
@@ -324,6 +342,41 @@ const composePosterImage = async (
     ctx.shadowColor = "rgba(0,0,0,0.22)";
     ctx.shadowBlur = 14;
     ctx.shadowOffsetY = 5;
+  }
+
+  if (isManualPosterText) {
+    const lineHeight = Math.round(50 * scale);
+    const maxLines = Math.max(
+      3,
+      Math.floor((cardHeight - Math.round(116 * scale)) / lineHeight),
+    );
+    ctx.fillStyle = normalizedStyle.quoteColor;
+    ctx.font = `800 ${Math.round(38 * scale)}px system-ui, -apple-system, BlinkMacSystemFont, 'Microsoft YaHei', sans-serif`;
+    const textBottom = drawWrappedText(
+      ctx,
+      brief.quote,
+      textX,
+      textY,
+      textWidth,
+      lineHeight,
+      maxLines,
+      normalizedStyle.strokeColor,
+      strokeWidth,
+    );
+
+    ctx.shadowColor = "transparent";
+    ctx.fillStyle = normalizedStyle.accentColor;
+    const accentY = Math.min(cardArea.y + cardHeight - 44, textBottom + Math.round(24 * scale));
+    fillRoundedRect(
+      ctx,
+      textX,
+      accentY,
+      Math.round(88 * scale),
+      Math.max(6, Math.round(10 * scale)),
+      5,
+    );
+
+    return canvas.toDataURL("image/png");
   }
 
   ctx.fillStyle = normalizedStyle.titleColor;
@@ -396,6 +449,7 @@ export function useAiWorkflow({
   coverPrompt,
   posterTextMode,
   posterTextStyle,
+  posterManualText,
   posterPrompt,
   posterPromptName = "",
   onPosterGenerated,
@@ -820,21 +874,12 @@ export function useAiWorkflow({
   ]);
 
   const runPosterGeneration = useCallback(async () => {
-    if (!inputText.trim()) {
-      showToast("请先填写初稿内容", "error");
+    if (!posterManualText.trim()) {
+      showToast("请先填写贴图文字内容", "error");
       return;
     }
 
     if (runningTask) return;
-
-    const trimmedTextBaseUrl = aiBaseUrl.trim();
-    const trimmedTextApiKey = aiApiKey.trim();
-    const trimmedTextModel = aiModel.trim();
-    if (!trimmedTextBaseUrl || !trimmedTextApiKey || !trimmedTextModel) {
-      setShowAiConfigModal(true);
-      showToast("请先配置文本模型，用于提炼贴图文案", "error");
-      return;
-    }
 
     const imageConfig = resolveCoverGenerationConfig({
       textBaseUrl: aiBaseUrl,
@@ -854,38 +899,22 @@ export function useAiWorkflow({
     setPosterGenerationResult(null);
 
     try {
-      const briefResponse = await fetch("/api/ai-poster-brief", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          markdown: inputText,
-          providerType: aiProviderType,
-          baseUrl: trimmedTextBaseUrl,
-          apiKey: trimmedTextApiKey,
-          model: trimmedTextModel,
-          posterPrompt,
-        }),
+      const manualBrief = createManualPosterTextBrief({
+        text: posterManualText,
+        posterPrompt,
       });
-      const briefData = (await briefResponse.json().catch(() => null)) as {
-        result?: PosterTextBrief;
-        error?: string;
-      } | null;
-
-      if (!briefResponse.ok || !briefData?.result) {
-        showToast(briefData?.error || "贴图文案生成失败，请重试", "error");
-        return;
-      }
+      const markdownForPoster = inputText.trim() || manualBrief.quote;
 
       const posterResponse = await fetch("/api/ai-poster", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          markdown: inputText,
+          markdown: markdownForPoster,
           providerType: aiProviderType,
           baseUrl: imageConfig.baseUrl,
           apiKey: imageConfig.apiKey,
           model: imageConfig.model,
-          brief: briefData.result,
+          brief: manualBrief,
           posterPrompt,
           textMode: posterTextMode,
         }),
@@ -928,7 +957,8 @@ export function useAiWorkflow({
       setPosterGenerationResult(posterResult);
       onPosterGenerated?.({
         ...posterResult,
-        articleTitle: inputText.match(/^#\s+(.+)$/m)?.[1]?.trim() || "未命名文章",
+        articleTitle:
+          inputText.match(/^#\s+(.+)$/m)?.[1]?.trim() || manualBrief.title || "未命名贴图",
         id: `${Date.now()}-${Math.random().toString(16).slice(2)}`,
         posterPromptName: posterPromptName || "当前贴图提示词",
       });
@@ -944,13 +974,13 @@ export function useAiWorkflow({
     runningTask,
     aiBaseUrl,
     aiApiKey,
-    aiModel,
     aiImageBaseUrl,
     aiImageApiKey,
     aiImageModel,
     aiProviderType,
     posterTextMode,
     posterTextStyle,
+    posterManualText,
     posterPrompt,
     posterPromptName,
     onPosterGenerated,

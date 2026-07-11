@@ -169,6 +169,7 @@ export type PosterTextBrief = {
   quote: string;
   note: string;
   backgroundPrompt: string;
+  source?: "ai" | "manual";
 };
 
 export type PosterGenerationResult = {

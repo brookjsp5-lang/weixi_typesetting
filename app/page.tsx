@@ -97,6 +97,7 @@ export default function Home() {
     DEFAULT_COVER_TITLE_STYLE,
   );
   const [posterTextMode, setPosterTextMode] = useState<ImageTextMode>("canvas");
+  const [posterManualText, setPosterManualText] = useState("");
   const [posterTextStyle, setPosterTextStyle] = useState<PosterTextStyle>(
     DEFAULT_POSTER_TEXT_STYLE,
   );
@@ -233,6 +234,7 @@ export default function Home() {
     coverPrompt: coverPromptSettings.selectedCoverPrompt?.prompt || "",
     posterTextMode,
     posterTextStyle,
+    posterManualText,
     posterPrompt: posterPromptSettings.selectedPosterPrompt?.prompt || "",
     posterPromptName: posterPromptSettings.selectedPosterPrompt?.name || "",
     onPosterGenerated: posterLibrary.savePoster,
@@ -434,6 +436,8 @@ export default function Home() {
               posterGenerationResult={aiWorkflow.posterGenerationResult}
               posterTextMode={posterTextMode}
               setPosterTextMode={setPosterTextMode}
+              posterManualText={posterManualText}
+              setPosterManualText={setPosterManualText}
               posterTextStyle={posterTextStyle}
               onPosterTextStyleChange={(style) =>
                 setPosterTextStyle(normalizePosterTextStyle(style))

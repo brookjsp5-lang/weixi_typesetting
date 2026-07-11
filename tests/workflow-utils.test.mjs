@@ -7,6 +7,7 @@ import {
   createDefaultCoverPromptTemplates,
   createDefaultPosterPromptTemplates,
   createDefaultPromptTemplates,
+  createManualPosterTextBrief,
   createPosterBriefPrompt,
   createPosterPrompt,
   createPublishWorkflowSteps,
@@ -115,6 +116,38 @@ test("default poster prompt templates are separate from cover prompts", () => {
   assert.ok(templates.every((template) => template.prompt.includes("贴图")));
   assert.ok(templates.every((template) => !/突出一句|承载文章核心结论|信息层次清晰/.test(template.prompt)));
   assert.ok(!coverTemplates.some((template) => template.id.startsWith("poster-")));
+});
+
+test("createManualPosterTextBrief converts free text into a poster brief", () => {
+  const text = "演示一次，永久自动\n\n你做一遍，Codex 记下。\n以后替你做。";
+  const brief = createManualPosterTextBrief({
+    text,
+    posterPrompt: "低饱和米白背景，科技工具类公众号贴图。",
+  });
+
+  assert.deepEqual(brief, {
+    title: "演示一次，永久自动",
+    quote: "演示一次，永久自动\n\n你做一遍，Codex 记下。\n以后替你做。",
+    note: "",
+    backgroundPrompt: "低饱和米白背景，科技工具类公众号贴图。",
+    source: "manual",
+  });
+});
+
+test("normalizePosterTextBrief preserves long manual poster text", () => {
+  const longText =
+    "第一行是用户输入的贴图文字\n" +
+    "第二行继续保留，不应该被压成单行或截成短金句。\n" +
+    "第三行仍然属于同一张公众号贴图。";
+  const brief = normalizePosterTextBrief({
+    source: "manual",
+    title: "第一行是用户输入的贴图文字",
+    quote: longText,
+    backgroundPrompt: "干净留白背景",
+  });
+
+  assert.equal(brief.quote, longText);
+  assert.equal(brief.source, "manual");
 });
 
 test("createCoverPrompt combines article context with selected cover prompt", () => {
@@ -243,6 +276,26 @@ test("createPosterPrompt model text mode asks image model to render exact poster
   assert.match(prompt, /必须完整显示辅助说明：《适合内容创作者收藏》/);
   assert.match(prompt, /不要改字，不要漏字，不要生成乱码/);
   assert.doesNotMatch(prompt, /后续由 TypeZen 工具叠加/);
+});
+
+test("createPosterPrompt model text mode uses manual poster text directly", () => {
+  const text = "演示一次，永久自动\n你做一遍，Codex 记下。\n以后替你做。";
+  const prompt = createPosterPrompt({
+    markdown: text,
+    brief: createManualPosterTextBrief({
+      text,
+      posterPrompt: "极简黑白扁平风，米白背景。",
+    }),
+    posterPrompt: "极简黑白扁平风，米白背景。",
+    textMode: "model",
+  });
+
+  assert.match(prompt, /必须完整显示以下贴图文字/);
+  assert.ok(prompt.includes(text));
+  assert.doesNotMatch(prompt, /必须完整显示主标题/);
+  assert.doesNotMatch(prompt, /必须完整显示金句/);
+  assert.doesNotMatch(prompt, /必须完整显示辅助说明/);
+  assert.match(prompt, /不要生成二维码、品牌水印/);
 });
 
 test("normalizePosterTextBrief rejects invalid generated poster brief", () => {

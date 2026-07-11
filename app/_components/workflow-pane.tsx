@@ -80,6 +80,8 @@ type WorkflowPaneProps = {
   posterGenerationResult: PosterGenerationResult;
   posterTextMode: ImageTextMode;
   setPosterTextMode: React.Dispatch<React.SetStateAction<ImageTextMode>>;
+  posterManualText: string;
+  setPosterManualText: React.Dispatch<React.SetStateAction<string>>;
   posterTextStyle: PosterTextStyle;
   onPosterTextStyleChange: (style: PosterTextStyle) => void;
   onResetPosterTextStyle: () => void;
@@ -145,9 +147,7 @@ const workflowModules: Array<{
   description: string;
 }> = [
   { id: "guide", label: "发布向导", description: "一步步完成正文发布" },
-  { id: "poster", label: "公众号贴图", description: "生成金句图并管理图库" },
-  { id: "podcast", label: "AI 播客", description: "生成口播脚本" },
-  { id: "video", label: "AI 视频", description: "生成短视频分镜" },
+  { id: "poster", label: "公众号贴图", description: "输入文字并生成贴图" },
 ];
 
 const coverTitleTextColors = ["#050816", "#111827", "#ffffff", "#f8fafc", "#e11d48", "#2563eb"];
@@ -432,6 +432,7 @@ function PosterResultCard({
 }) {
   const [hasImageError, setHasImageError] = useState(false);
   const imageUrl = posterGenerationResult?.imageUrl?.trim() || "";
+  const posterTextContent = posterGenerationResult?.brief.quote || posterGenerationResult?.brief.title || "";
 
   if (runningTask === "poster") {
     return (
@@ -440,7 +441,7 @@ function PosterResultCard({
           <Loader2 className="h-4 w-4 animate-spin" />
           公众号贴图结果
         </div>
-        正在提炼文案、生成背景并合成贴图，完成后会在这里显示竖版图片。
+        正在根据贴图文字生成背景并合成图片，完成后会在这里显示竖版贴图。
       </section>
     );
   }
@@ -452,7 +453,7 @@ function PosterResultCard({
           <ImageIcon className="h-4 w-4" />
           公众号贴图结果
         </div>
-        尚未生成贴图。点击上方“生成公众号贴图”后，竖版金句图会显示在这里。
+        尚未生成贴图。填写贴图文字并点击“生成公众号贴图”后，竖版图片会显示在这里。
       </section>
     );
   }
@@ -492,9 +493,8 @@ function PosterResultCard({
             ? "中文由 TypeZen 工具叠加，可调整样式后自动重绘。"
             : "中文由模型直接生成，文字准确性取决于模型能力。"}
         </div>
-        <div className="text-(--neo-ink)">主标题：{posterGenerationResult.brief.title}</div>
-        <div className="mt-1 text-(--neo-ink)">金句：{posterGenerationResult.brief.quote}</div>
-        <div className="mt-1 neo-text-muted">说明：{posterGenerationResult.brief.note}</div>
+        <div className="text-[11px] font-black neo-text-muted">贴图文字内容</div>
+        <div className="mt-1 whitespace-pre-wrap text-(--neo-ink)">{posterTextContent}</div>
       </div>
       <div className="grid grid-cols-2 gap-2">
         <a
@@ -845,6 +845,8 @@ export function WorkflowPane({
   posterGenerationResult,
   posterTextMode,
   setPosterTextMode,
+  posterManualText,
+  setPosterManualText,
   posterTextStyle,
   onPosterTextStyleChange,
   onResetPosterTextStyle,
@@ -1927,7 +1929,7 @@ export function WorkflowPane({
                 <div className="text-[11px] font-black neo-text-muted">独立模块</div>
                 <div className="mt-1 text-lg font-black text-(--neo-ink)">公众号贴图</div>
                 <p className="mt-1 text-xs font-bold leading-relaxed neo-text-muted">
-                  根据初稿提炼金句，再生成无文字背景并叠加中文文案；结果会保存到本地图库。
+                  输入希望出现在贴图上的文字，再按提示词生成最终公众号贴图；结果会保存到本地图库。
                 </p>
               </div>
 
@@ -1954,10 +1956,28 @@ export function WorkflowPane({
                 <div>
                   <h3 className="text-sm font-black flex items-center gap-1.5">
                     <PenLine className="w-4 h-4" />
+                    贴图文字内容
+                  </h3>
+                  <p className="mt-1 text-[11px] font-bold leading-relaxed neo-text-muted">
+                    输入最终想出现在贴图上的文字，可多行；系统不会再根据初稿自动总结。
+                  </p>
+                </div>
+                <textarea
+                  value={posterManualText}
+                  onChange={(event) => setPosterManualText(event.target.value)}
+                  className="neo-input w-full min-h-32 px-3 py-2 text-sm leading-relaxed resize-y"
+                  placeholder={"例如：\n你做一遍，Codex 记下，\n以后替你做。"}
+                />
+              </section>
+
+              <section className="rounded-xl border border-(--neo-line) bg-(--neo-surface) p-3 space-y-3">
+                <div>
+                  <h3 className="text-sm font-black flex items-center gap-1.5">
+                    <PenLine className="w-4 h-4" />
                     贴图提示词
                   </h3>
                   <p className="mt-1 text-[11px] font-bold leading-relaxed neo-text-muted">
-                    选择贴图风格，系统会先提炼文案，再生成适合叠字的背景图。
+                    选择贴图风格；工具叠字模式会生成无文字背景，模型直出模式会尝试直接排版上面的文字。
                   </p>
                 </div>
                 <div className="flex gap-2">
@@ -2223,19 +2243,19 @@ export function WorkflowPane({
                       </div>
                       <div className="grid grid-cols-2 gap-3">
                         <PosterColorControl
-                          label="主标题"
+                          label="标题色"
                           value={posterTextStyle.titleColor}
                           colors={posterTextColors}
                           onChange={(value) => updatePosterTextStyle({ titleColor: value })}
                         />
                         <PosterColorControl
-                          label="金句"
+                          label="正文色"
                           value={posterTextStyle.quoteColor}
                           colors={posterTextColors}
                           onChange={(value) => updatePosterTextStyle({ quoteColor: value })}
                         />
                         <PosterColorControl
-                          label="说明"
+                          label="辅助色"
                           value={posterTextStyle.noteColor}
                           colors={posterMutedTextColors}
                           onChange={(value) => updatePosterTextStyle({ noteColor: value })}
@@ -2278,7 +2298,7 @@ export function WorkflowPane({
                   type="button"
                   onClick={onGeneratePoster}
                   disabled={
-                    !inputText.trim() ||
+                    !posterManualText.trim() ||
                     Boolean(runningTask) ||
                     !coverGenerationConfigStatus.isConfigured
                   }

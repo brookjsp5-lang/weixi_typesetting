@@ -252,6 +252,24 @@ const trimBriefValue = (value, maxLength) =>
     .trim()
     .slice(0, maxLength);
 
+const trimManualPosterText = (value, maxLength = 700) =>
+  String(value || "")
+    .replace(/\r\n/g, "\n")
+    .replace(/[ \t]+\n/g, "\n")
+    .replace(/\n[ \t]+/g, "\n")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim()
+    .slice(0, maxLength);
+
+const createManualPosterTitle = (text) => {
+  const firstLine = text
+    .split("\n")
+    .map((line) => line.trim())
+    .find(Boolean);
+
+  return trimBriefValue(firstLine || text, 24);
+};
+
 const posterCanvasFallbackPrompt =
   "无文字抽象背景，竖版 3:4 构图，留白充足，干净背景层次，适合后续叠加中文标题、金句和说明。";
 
@@ -273,9 +291,11 @@ const sanitizePosterCanvasPrompt = (value, fallback = posterCanvasFallbackPrompt
 
 export function normalizePosterTextBrief(value) {
   const parsed = value || {};
+  const isManual = parsed.source === "manual";
+  const quoteSource = parsed.quote || parsed.sentence || parsed.slogan || parsed.summary;
   const brief = {
     title: trimBriefValue(parsed.title || parsed.headline || parsed.mainTitle, 24),
-    quote: trimBriefValue(parsed.quote || parsed.sentence || parsed.slogan || parsed.summary, 48),
+    quote: isManual ? trimManualPosterText(quoteSource) : trimBriefValue(quoteSource, 48),
     note: trimBriefValue(parsed.note || parsed.subtitle || parsed.description, 36),
     backgroundPrompt: trimBriefValue(
       parsed.backgroundPrompt || parsed.background_prompt || parsed.imagePrompt || parsed.visualPrompt || parsed.prompt,
@@ -287,7 +307,29 @@ export function normalizePosterTextBrief(value) {
     throw new Error("AI 贴图文案结果解析失败");
   }
 
+  if (isManual) {
+    brief.source = "manual";
+  }
+
   return brief;
+}
+
+export function createManualPosterTextBrief({ text, posterPrompt = "" }) {
+  const posterText = trimManualPosterText(text);
+
+  if (!posterText) {
+    throw new Error("请先填写贴图文字内容");
+  }
+
+  return normalizePosterTextBrief({
+    source: "manual",
+    title: createManualPosterTitle(posterText),
+    quote: posterText,
+    note: "",
+    backgroundPrompt:
+      posterPrompt ||
+      "公众号贴图背景，竖版 3:4 构图，留白充足，适合承载用户输入的中文贴图文字。",
+  });
 }
 
 export function createPosterBriefPrompt({ markdown, posterPrompt = "" }) {
@@ -319,6 +361,19 @@ export function createPosterPrompt({ brief, posterPrompt = "", textMode = "canva
   const stylePrompt = cleanPosterPrompt || "公众号贴图背景，克制高级，留白充足。";
 
   if (textMode === "model") {
+    if (normalizedBrief.source === "manual") {
+      return `生成一张完整的公众号贴图，竖版 3:4 构图，适合朋友圈和公众号文末传播。
+
+文字处理要求：
+必须完整显示以下贴图文字，不要改字，不要漏字，不要生成乱码：
+${normalizedBrief.quote}
+
+画面主题：${normalizedBrief.backgroundPrompt}
+贴图风格要求：${stylePrompt}
+
+重要限制：不要生成二维码、品牌水印、真实人物肖像、复杂小字或任何用户未提供的额外文字。`;
+    }
+
     return `生成一张完整的公众号贴图，竖版 3:4 构图，适合朋友圈和公众号文末传播。
 
 文字处理要求：

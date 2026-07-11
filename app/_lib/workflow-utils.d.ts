@@ -31,6 +31,11 @@ export function createCoverPrompt(params: {
 
 export function normalizePosterTextBrief(value: unknown): PosterTextBrief;
 
+export function createManualPosterTextBrief(params: {
+  text: string;
+  posterPrompt?: string;
+}): PosterTextBrief;
+
 export function createPosterBriefPrompt(params: {
   markdown: string;
   posterPrompt?: string;
