@@ -20,7 +20,12 @@ export type AiProviderType =
   | "anthropic"
   | "custom";
 
-export type AiTaskType = "format" | "rewrite" | "publishOptimize";
+export type AiTaskType =
+  | "format"
+  | "rewrite"
+  | "publishOptimize"
+  | "posterText"
+  | "reversePrompt";
 
 export type RunningAiTaskType = AiTaskType | "cover" | "poster" | "podcast" | "video";
 

@@ -30,6 +30,40 @@ ${rewritePrompt}
 3. 输出完整 Markdown 正文，不要解释，不要用代码块包裹整体输出。
 4. 不要输出思考过程、推理过程、<think> 标签或任何前置说明。`;
 
+const POSTER_TEXT_PROMPT = (
+  requirement: string,
+) => `你是公众号贴图文案编辑。请根据用户提供的处理要求处理当前 Markdown 初稿，输出一版可直接放入公众号贴图的文字内容。
+
+用户处理要求：
+${requirement}
+
+硬性规则：
+1. 只输出最终可放入贴图的纯文本，不要输出解释、标题前缀、改写说明、处理过程或建议。
+2. 不要使用 Markdown 代码块，不要输出 JSON，不要用表格。
+3. 可以输出多行、编号列表、短段落或要点，具体格式服从用户处理要求。
+4. 不编造原文没有的信息，不补充未经原文支持的数据、案例或结论。
+5. 不强制截短；如果用户要求较多内容，可以完整输出，前端会提示长文本可能影响贴图可读性。
+6. 不要输出思考过程、推理过程、<think> 标签或任何前置说明。`;
+
+const REVERSE_PROMPT_PROMPT = (
+  requirement: string,
+) => `你是公众号工作流提示词工程师。请根据用户提供的逆向要求和文章内容，逆向生成一条可复用提示词。
+
+逆向提示词要求：
+${requirement}
+
+目标类型说明：
+- 正文改写提示词：输出用于处理公众号正文的提示词，重点描述处理目标、保留边界、输出格式和禁止事项。
+- AI 生图提示词：输出用于公众号封面生图的视觉风格提示词，重点描述画面主体、构图、色彩、氛围、留白和禁用元素。
+- 公众号贴图提示词：输出用于公众号贴图的视觉风格提示词，重点描述竖版画面、背景、信息承载空间、氛围和禁用元素。
+
+硬性规则：
+1. 只输出提示词正文，不要输出解释、标题、前后缀、处理过程或建议。
+2. 不要使用 Markdown 代码块，不要输出 JSON，不要用表格。
+3. 不要复述原文章全文，只抽象出可复用的写法、结构、风格、约束和输出要求。
+4. 提示词必须能直接保存到对应提示词库中复用。
+5. 不要输出思考过程、推理过程、<think> 标签或任何前置说明。`;
+
 const PUBLISH_OPTIMIZE_PROMPT = `你是微信公众号发布编辑。请分析用户提供的 Markdown 文章，生成发布前优化素材。
 
 只输出一个 JSON 对象，不要解释，不要使用 Markdown 代码块，不要输出思考过程或 <think> 标签。JSON 结构必须是：
@@ -61,10 +95,16 @@ const isKnownProvider = (providerType: unknown): providerType is AiProviderType 
   providerType === "custom";
 
 const isTaskType = (taskType: unknown): taskType is AiTaskType =>
-  taskType === "format" || taskType === "rewrite" || taskType === "publishOptimize";
+  taskType === "format" ||
+  taskType === "rewrite" ||
+  taskType === "publishOptimize" ||
+  taskType === "posterText" ||
+  taskType === "reversePrompt";
 
 const getSystemPrompt = (taskType: AiTaskType, rewritePrompt: string) => {
   if (taskType === "rewrite") return createRewritePrompt(rewritePrompt);
+  if (taskType === "posterText") return POSTER_TEXT_PROMPT(rewritePrompt);
+  if (taskType === "reversePrompt") return REVERSE_PROMPT_PROMPT(rewritePrompt);
   if (taskType === "publishOptimize") return PUBLISH_OPTIMIZE_PROMPT;
   return FORMAT_PROMPT;
 };
@@ -97,6 +137,12 @@ export async function POST(req: Request) {
     const trimmedRewritePrompt = rewritePrompt?.trim() || "";
     if (selectedTask === "rewrite" && !trimmedRewritePrompt) {
       return Response.json({ error: "请先选择或填写改写提示词" }, { status: 400 });
+    }
+    if (selectedTask === "posterText" && !trimmedRewritePrompt) {
+      return Response.json({ error: "请先填写处理要求" }, { status: 400 });
+    }
+    if (selectedTask === "reversePrompt" && !trimmedRewritePrompt) {
+      return Response.json({ error: "请先填写逆向提示词要求" }, { status: 400 });
     }
 
     const trimmedApiKey = apiKey?.trim();

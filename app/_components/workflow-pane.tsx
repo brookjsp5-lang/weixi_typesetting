@@ -69,6 +69,7 @@ type WorkflowPaneProps = {
   onPublishOptimize: () => void;
   onGenerateCover: () => void;
   onGeneratePoster: () => void;
+  onGeneratePosterText: () => void;
   coverGenerationResult: CoverGenerationResult;
   coverTextMode: ImageTextMode;
   setCoverTextMode: React.Dispatch<React.SetStateAction<ImageTextMode>>;
@@ -80,6 +81,8 @@ type WorkflowPaneProps = {
   posterGenerationResult: PosterGenerationResult;
   posterTextMode: ImageTextMode;
   setPosterTextMode: React.Dispatch<React.SetStateAction<ImageTextMode>>;
+  posterTextRequirement: string;
+  setPosterTextRequirement: React.Dispatch<React.SetStateAction<string>>;
   posterManualText: string;
   setPosterManualText: React.Dispatch<React.SetStateAction<string>>;
   posterTextStyle: PosterTextStyle;
@@ -834,6 +837,7 @@ export function WorkflowPane({
   onPublishOptimize,
   onGenerateCover,
   onGeneratePoster,
+  onGeneratePosterText,
   coverGenerationResult,
   coverTextMode,
   setCoverTextMode,
@@ -845,6 +849,8 @@ export function WorkflowPane({
   posterGenerationResult,
   posterTextMode,
   setPosterTextMode,
+  posterTextRequirement,
+  setPosterTextRequirement,
   posterManualText,
   setPosterManualText,
   posterTextStyle,
@@ -1929,7 +1935,7 @@ export function WorkflowPane({
                 <div className="text-[11px] font-black neo-text-muted">独立模块</div>
                 <div className="mt-1 text-lg font-black text-(--neo-ink)">公众号贴图</div>
                 <p className="mt-1 text-xs font-bold leading-relaxed neo-text-muted">
-                  输入希望出现在贴图上的文字，再按提示词生成最终公众号贴图；结果会保存到本地图库。
+                  可手写贴图文字，也可先让 AI 按处理要求从初稿生成一版；结果会保存到本地图库。
                 </p>
               </div>
 
@@ -1955,6 +1961,37 @@ export function WorkflowPane({
               <section className="rounded-xl border border-(--neo-line) bg-(--neo-surface) p-3 space-y-3">
                 <div>
                   <h3 className="text-sm font-black flex items-center gap-1.5">
+                    <Wand2 className="w-4 h-4" />
+                    初稿处理要求
+                  </h3>
+                  <p className="mt-1 text-[11px] font-bold leading-relaxed neo-text-muted">
+                    可让 AI 先按你的要求处理初稿，再把结果填入下面的贴图文字内容。
+                  </p>
+                </div>
+                <textarea
+                  value={posterTextRequirement}
+                  onChange={(event) => setPosterTextRequirement(event.target.value)}
+                  className="neo-input w-full min-h-24 px-3 py-2 text-sm leading-relaxed resize-y"
+                  placeholder={"例如：\n总结内容，输出 3 条要点\n提取文中的工具名称，并整理为列表"}
+                />
+                <button
+                  type="button"
+                  onClick={onGeneratePosterText}
+                  disabled={!inputText.trim() || !posterTextRequirement.trim() || Boolean(runningTask)}
+                  className="neo-button neo-button-secondary w-full px-4 py-2.5 flex items-center justify-center gap-2 text-sm"
+                >
+                  {runningTask === "posterText" ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <Wand2 className="w-4 h-4" />
+                  )}
+                  {runningTask === "posterText" ? "正在生成贴图文字..." : "根据要求生成贴图文字"}
+                </button>
+              </section>
+
+              <section className="rounded-xl border border-(--neo-line) bg-(--neo-surface) p-3 space-y-3">
+                <div>
+                  <h3 className="text-sm font-black flex items-center gap-1.5">
                     <PenLine className="w-4 h-4" />
                     贴图文字内容
                   </h3>
@@ -1968,6 +2005,9 @@ export function WorkflowPane({
                   className="neo-input w-full min-h-32 px-3 py-2 text-sm leading-relaxed resize-y"
                   placeholder={"例如：\n你做一遍，Codex 记下，\n以后替你做。"}
                 />
+                <p className="text-[11px] font-bold leading-relaxed neo-text-muted">
+                  内容越长，贴图越容易拥挤；可先生成后手动删改。
+                </p>
               </section>
 
               <section className="rounded-xl border border-(--neo-line) bg-(--neo-surface) p-3 space-y-3">

@@ -55,6 +55,8 @@ type UseAiWorkflowParams = {
   posterTextMode: ImageTextMode;
   posterTextStyle: PosterTextStyle;
   posterManualText: string;
+  setPosterManualText: (value: string) => void;
+  posterTextRequirement: string;
   posterPrompt: string;
   posterPromptName?: string;
   onPosterGenerated?: (result: PosterLibraryItem) => void;
@@ -450,6 +452,8 @@ export function useAiWorkflow({
   posterTextMode,
   posterTextStyle,
   posterManualText,
+  setPosterManualText,
+  posterTextRequirement,
   posterPrompt,
   posterPromptName = "",
   onPosterGenerated,
@@ -988,6 +992,47 @@ export function useAiWorkflow({
     showToast,
   ]);
 
+  const runPosterTextGeneration = useCallback(async () => {
+    if (!inputText.trim()) {
+      showToast("请先填写初稿内容", "error");
+      return;
+    }
+
+    const trimmedRequirement = posterTextRequirement.trim();
+    if (!trimmedRequirement) {
+      showToast("请先填写处理要求", "error");
+      return;
+    }
+
+    if (runningTask) return;
+
+    const trimmedTextBaseUrl = aiBaseUrl.trim();
+    const trimmedTextApiKey = aiApiKey.trim();
+    const trimmedTextModel = aiModel.trim();
+    if (!trimmedTextBaseUrl || !trimmedTextApiKey || !trimmedTextModel) {
+      setShowAiConfigModal(true);
+      showToast("请先配置文本模型，用于生成贴图文字", "error");
+      return;
+    }
+
+    const result = await requestAiTask("posterText", trimmedRequirement);
+    if (!result) return;
+
+    setPosterManualText(result);
+    showToast("贴图文字已生成，可继续手动调整");
+  }, [
+    inputText,
+    posterTextRequirement,
+    runningTask,
+    aiBaseUrl,
+    aiApiKey,
+    aiModel,
+    requestAiTask,
+    setPosterManualText,
+    setShowAiConfigModal,
+    showToast,
+  ]);
+
   const runPodcastScript = useCallback(async () => {
     if (!inputText.trim()) {
       showToast("请先填写初稿内容", "error");
@@ -1137,6 +1182,7 @@ export function useAiWorkflow({
     restoreAppliedAiChange,
     runPublishOptimize,
     runCoverGeneration,
+    runPosterTextGeneration,
     runPosterGeneration,
     runPodcastScript,
     runVideoScript,

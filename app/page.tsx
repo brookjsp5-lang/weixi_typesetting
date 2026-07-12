@@ -8,6 +8,11 @@ import { ImageInsertModal } from "./_components/image-insert-modal";
 import { MarkdownEditorPane } from "./_components/markdown-editor-pane";
 import { PreviewPane } from "./_components/preview-pane";
 import { RewardModal } from "./_components/reward-modal";
+import {
+  ReversePromptModal,
+  reversePromptTargetLabels,
+  type ReversePromptTarget,
+} from "./_components/reverse-prompt-modal";
 import { Toast } from "./_components/toast";
 import { WorkflowPane } from "./_components/workflow-pane";
 import { useAiSettings } from "./_hooks/use-ai-settings";
@@ -79,6 +84,19 @@ const isPublishStepId = (value: string | null): value is PublishStepId =>
   value === "check" ||
   value === "publish";
 
+const createReversePromptTemplateName = (target: ReversePromptTarget, article: string) => {
+  const heading = article.match(/^#\s+(.+)$/m)?.[1]?.trim();
+  const firstLine = article
+    .split(/\r?\n/)
+    .map((line) => line.replace(/^#+\s*/, "").trim())
+    .find(Boolean);
+  const title = (heading || firstLine || `模板${Date.now()}`)
+    .replace(/[\\/:*?"<>|]/g, "")
+    .slice(0, 18);
+
+  return `逆向生成-${reversePromptTargetLabels[target]}-${title}`;
+};
+
 export default function Home() {
   const [inputText, setInputText] = useState(sampleText);
   const [activeTab, setActiveTab] = useState<ActiveTab>("input");
@@ -88,6 +106,7 @@ export default function Home() {
   const [formatTweaks, setFormatTweaks] = useState<FormatTweaks>(DEFAULT_FORMAT_TWEAKS);
   const [showReward, setShowReward] = useState(false);
   const [showImageModal, setShowImageModal] = useState(false);
+  const [showReversePromptModal, setShowReversePromptModal] = useState(false);
   const [imageMap, setImageMap] = useState<Map<string, string>>(new Map());
   const [imageUrl, setImageUrl] = useState("");
   const [imageDesc, setImageDesc] = useState("");
@@ -97,7 +116,13 @@ export default function Home() {
     DEFAULT_COVER_TITLE_STYLE,
   );
   const [posterTextMode, setPosterTextMode] = useState<ImageTextMode>("canvas");
+  const [posterTextRequirement, setPosterTextRequirement] = useState("");
   const [posterManualText, setPosterManualText] = useState("");
+  const [reversePromptRequirement, setReversePromptRequirement] = useState("");
+  const [reversePromptArticle, setReversePromptArticle] = useState("");
+  const [reversePromptTarget, setReversePromptTarget] =
+    useState<ReversePromptTarget>("rewrite");
+  const [isGeneratingReversePrompt, setIsGeneratingReversePrompt] = useState(false);
   const [posterTextStyle, setPosterTextStyle] = useState<PosterTextStyle>(
     DEFAULT_POSTER_TEXT_STYLE,
   );
@@ -235,6 +260,8 @@ export default function Home() {
     posterTextMode,
     posterTextStyle,
     posterManualText,
+    setPosterManualText,
+    posterTextRequirement,
     posterPrompt: posterPromptSettings.selectedPosterPrompt?.prompt || "",
     posterPromptName: posterPromptSettings.selectedPosterPrompt?.name || "",
     onPosterGenerated: posterLibrary.savePoster,
@@ -317,6 +344,93 @@ export default function Home() {
     if (copied) setHasCopiedForPublish(true);
   };
 
+  const openReversePromptModal = useCallback(() => {
+    setReversePromptArticle((current) => (current.trim() ? current : normalizedInputText));
+    setShowReversePromptModal(true);
+  }, [normalizedInputText]);
+
+  const runReversePromptGeneration = useCallback(async () => {
+    const requirement = reversePromptRequirement.trim();
+    const article = reversePromptArticle.trim();
+
+    if (!requirement) {
+      showToast("请先填写逆向提示词要求", "error");
+      return;
+    }
+
+    if (!article) {
+      showToast("请先填写需要逆向的文章", "error");
+      return;
+    }
+
+    const trimmedBaseUrl = aiSettings.aiBaseUrl.trim();
+    const trimmedApiKey = aiSettings.aiApiKey.trim();
+    const trimmedModel = aiSettings.aiModel.trim();
+    if (!trimmedBaseUrl || !trimmedApiKey || !trimmedModel) {
+      aiSettings.setShowAiConfigModal(true);
+      showToast("请先配置文本模型，用于逆向生成提示词", "error");
+      return;
+    }
+
+    setIsGeneratingReversePrompt(true);
+    try {
+      const response = await fetch("/api/ai-task", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          markdown: article,
+          providerType: aiSettings.aiProviderType,
+          baseUrl: trimmedBaseUrl,
+          apiKey: trimmedApiKey,
+          model: trimmedModel,
+          taskType: "reversePrompt",
+          rewritePrompt: `目标类型：${reversePromptTargetLabels[reversePromptTarget]}\n用户逆向要求：\n${requirement}`,
+        }),
+      });
+
+      if (!response.ok) {
+        const data = (await response.json().catch(() => null)) as { error?: string } | null;
+        showToast(data?.error || "逆向生成提示词失败，请重试", "error");
+        return;
+      }
+
+      const generatedPrompt = (await response.text()).trim();
+      if (!generatedPrompt) {
+        showToast("模型返回的提示词为空，请重试", "error");
+        return;
+      }
+
+      const draft = {
+        id: "",
+        name: createReversePromptTemplateName(reversePromptTarget, article),
+        prompt: generatedPrompt,
+      };
+
+      if (reversePromptTarget === "rewrite") {
+        promptSettings.savePromptTemplate(draft);
+      } else if (reversePromptTarget === "cover") {
+        coverPromptSettings.saveCoverPromptTemplate(draft);
+      } else {
+        posterPromptSettings.savePosterPromptTemplate(draft);
+      }
+
+      setShowReversePromptModal(false);
+    } catch {
+      showToast("逆向生成提示词失败，请检查配置后重试", "error");
+    } finally {
+      setIsGeneratingReversePrompt(false);
+    }
+  }, [
+    reversePromptRequirement,
+    reversePromptArticle,
+    aiSettings,
+    reversePromptTarget,
+    promptSettings,
+    coverPromptSettings,
+    posterPromptSettings,
+    showToast,
+  ]);
+
   const handleRestoreSample = () => {
     imageCounterRef.current = 0;
     setImageMap(new Map());
@@ -368,12 +482,25 @@ export default function Home() {
       />
 
       <RewardModal open={showReward} onClose={() => setShowReward(false)} />
+      <ReversePromptModal
+        open={showReversePromptModal}
+        requirement={reversePromptRequirement}
+        article={reversePromptArticle}
+        target={reversePromptTarget}
+        isGenerating={isGeneratingReversePrompt}
+        onRequirementChange={setReversePromptRequirement}
+        onArticleChange={setReversePromptArticle}
+        onTargetChange={setReversePromptTarget}
+        onGenerate={runReversePromptGeneration}
+        onClose={() => setShowReversePromptModal(false)}
+      />
 
       <div className="h-screen flex flex-col overflow-hidden shrink-0">
         <AppHeader
           isDarkMode={isDarkMode}
           toggleDarkMode={toggleDarkMode}
           onShowReward={() => setShowReward(true)}
+          onOpenReversePrompt={openReversePromptModal}
           onCopy={handleCopy}
           hasContent={Boolean(inputText.trim())}
           activeTab={activeTab}
@@ -423,6 +550,7 @@ export default function Home() {
               onPublishOptimize={aiWorkflow.runPublishOptimize}
               onGenerateCover={aiWorkflow.runCoverGeneration}
               onGeneratePoster={aiWorkflow.runPosterGeneration}
+              onGeneratePosterText={aiWorkflow.runPosterTextGeneration}
               coverGenerationResult={aiWorkflow.coverGenerationResult}
               coverTextMode={coverTextMode}
               setCoverTextMode={setCoverTextMode}
@@ -436,6 +564,8 @@ export default function Home() {
               posterGenerationResult={aiWorkflow.posterGenerationResult}
               posterTextMode={posterTextMode}
               setPosterTextMode={setPosterTextMode}
+              posterTextRequirement={posterTextRequirement}
+              setPosterTextRequirement={setPosterTextRequirement}
               posterManualText={posterManualText}
               setPosterManualText={setPosterManualText}
               posterTextStyle={posterTextStyle}

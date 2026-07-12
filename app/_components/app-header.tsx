@@ -1,4 +1,4 @@
-import { CircleDollarSign, Copy, Moon, Sun } from "lucide-react";
+import { CircleDollarSign, Copy, Moon, Sun, Wand2 } from "lucide-react";
 import type React from "react";
 import type { ActiveTab } from "../_types/formatter";
 
@@ -6,6 +6,7 @@ type AppHeaderProps = {
   isDarkMode: boolean;
   toggleDarkMode: () => void;
   onShowReward: () => void;
+  onOpenReversePrompt: () => void;
   onCopy: () => void;
   hasContent: boolean;
   activeTab: ActiveTab;
@@ -16,6 +17,7 @@ export function AppHeader({
   isDarkMode,
   toggleDarkMode,
   onShowReward,
+  onOpenReversePrompt,
   onCopy,
   hasContent,
   activeTab,
@@ -38,6 +40,14 @@ export function AppHeader({
         </div>
 
         <div className="flex items-center gap-3">
+          <button
+            onClick={onOpenReversePrompt}
+            className="neo-button neo-button-secondary px-3 py-2 inline-flex items-center gap-2 text-sm font-black"
+            title="逆向生成提示词"
+          >
+            <Wand2 className="w-5 h-5" />
+            <span className="hidden lg:inline">逆向提示词</span>
+          </button>
           <button
             onClick={toggleDarkMode}
             className="neo-button neo-button-ghost p-2"
