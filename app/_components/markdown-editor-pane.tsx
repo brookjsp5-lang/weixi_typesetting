@@ -55,11 +55,12 @@ function RichHtmlDraftEditor({
 
   useEffect(() => {
     const editor = editorRef.current;
-    if (
-      !editor ||
-      renderedValue === lastHtmlRef.current ||
-      editor.innerHTML === renderedValue
-    ) {
+    if (!editor) {
+      return;
+    }
+
+    if (editor.innerHTML === renderedValue) {
+      lastHtmlRef.current = renderedValue;
       return;
     }
 

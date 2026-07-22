@@ -110,6 +110,14 @@ test("draft pane renders imported WeChat html as visual editable content", () =>
   assert.match(editorSource, /onInput/);
 });
 
+test("rich html draft editor resyncs external imports from the actual DOM", () => {
+  assert.match(
+    editorSource,
+    /if \(editor\.innerHTML === renderedValue\) {\s+lastHtmlRef\.current = renderedValue;\s+return;\s+}\s+editor\.innerHTML = renderedValue;/,
+  );
+  assert.doesNotMatch(editorSource, /renderedValue === lastHtmlRef\.current/);
+});
+
 test("markdown tools import WeChat html as layout-preserving raw html", () => {
   assert.match(markdownToolsSource, /importWechatArticle/);
   assert.match(markdownToolsSource, /\/api\/import-wechat-article/);
