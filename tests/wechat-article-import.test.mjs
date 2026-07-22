@@ -22,6 +22,7 @@ const markdownToolsSource = readFileSync(
   resolve(testDir, "../app/_hooks/use-markdown-tools.ts"),
   "utf8",
 );
+const pageSource = readFileSync(resolve(testDir, "../app/page.tsx"), "utf8");
 
 test("normalizeWechatArticleUrl accepts only public WeChat article urls", () => {
   assert.equal(
@@ -39,9 +40,9 @@ test("extractWechatArticleHtml keeps WeChat title body images and inline formatt
       <head><meta property="og:title" content="公众号标题"></head>
       <body>
         <h1 id="activity-name">页面标题</h1>
-        <div id="js_content" class="rich_media_content">
-          <p>第一段 <strong>重点</strong></p>
-          <section><img data-src="https://mmbiz.qpic.cn/mmbiz_png/demo/0" alt="配图"></section>
+        <div id="js_content" class="rich_media_content" style="background-color:#f7f4ef">
+          <p style="text-align:center">第一段 <strong>重点</strong></p>
+          <section style="border-top:1px solid #f4b26b"><img data-src="https://mmbiz.qpic.cn/mmbiz_png/demo/0" alt="配图"></section>
           <blockquote>引用内容</blockquote>
         </div>
       </body>
@@ -49,7 +50,11 @@ test("extractWechatArticleHtml keeps WeChat title body images and inline formatt
   );
 
   assert.equal(result.title, "页面标题");
-  assert.match(result.html, /<h1>页面标题<\/h1>/);
+  assert.match(result.html, /<h1 id="activity-name">页面标题<\/h1>/);
+  assert.match(result.html, /id="js_content"/);
+  assert.match(result.html, /background-color:#f7f4ef/);
+  assert.match(result.html, /text-align:center/);
+  assert.match(result.html, /border-top:1px solid #f4b26b/);
   assert.match(result.html, /第一段/);
   assert.match(result.html, /<strong>重点<\/strong>/);
   assert.match(result.html, /data-src="https:\/\/mmbiz\.qpic\.cn\/mmbiz_png\/demo\/0"/);
@@ -71,10 +76,15 @@ test("draft pane exposes WeChat article link import controls", () => {
   assert.match(editorSource, /onImportWechatArticle/);
 });
 
-test("markdown tools import WeChat html through existing draft conversion pipeline", () => {
+test("markdown tools import WeChat html as layout-preserving raw html", () => {
   assert.match(markdownToolsSource, /importWechatArticle/);
   assert.match(markdownToolsSource, /\/api\/import-wechat-article/);
-  assert.match(markdownToolsSource, /htmlToMarkdownDraft/);
-  assert.match(markdownToolsSource, /localizeRemoteMarkdownImages/);
-  assert.match(markdownToolsSource, /setInputText\(markdownToImport\)/);
+  assert.match(markdownToolsSource, /localizeRemoteHtmlImages/);
+  assert.match(markdownToolsSource, /setInputText\(htmlToImport\)/);
+  assert.doesNotMatch(markdownToolsSource, /const result = htmlToMarkdownDraft\(article\.html/);
+});
+
+test("page resolves local image refs inside imported raw html", () => {
+  assert.match(pageSource, /replaceLocalImageRefs/);
+  assert.match(pageSource, /<img\\b\[\^>\]\*\\bsrc=/);
 });

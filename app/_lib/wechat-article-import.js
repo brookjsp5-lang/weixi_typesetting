@@ -73,10 +73,11 @@ function findOpeningTagById(html, id) {
   };
 }
 
-function extractElementById(html, id) {
+function extractElementById(html, id, options = {}) {
   const source = String(html || "");
   const opening = findOpeningTagById(source, id);
   if (!opening) return "";
+  const start = options.includeOuter ? opening.start : opening.openEnd;
 
   const tagPattern = new RegExp(`</?${opening.tagName}\\b[^>]*>`, "gi");
   let depth = 1;
@@ -87,13 +88,16 @@ function extractElementById(html, id) {
 
     if (fullMatch.startsWith("</")) {
       depth -= 1;
-      if (depth === 0) return source.slice(opening.openEnd, absoluteIndex);
+      if (depth === 0) {
+        const end = options.includeOuter ? absoluteIndex + fullMatch.length : absoluteIndex;
+        return source.slice(start, end);
+      }
     } else if (!fullMatch.endsWith("/>")) {
       depth += 1;
     }
   }
 
-  return source.slice(opening.openEnd);
+  return source.slice(start);
 }
 
 function extractMetaContent(html, property) {
@@ -116,16 +120,31 @@ function extractWechatTitle(html) {
   return stripTags(titleMatch?.[1] || "");
 }
 
+function sanitizeImportedArticleHtml(html) {
+  return String(html || "")
+    .replace(/<script\b[\s\S]*?<\/script>/gi, "")
+    .replace(/<style\b[\s\S]*?<\/style>/gi, "")
+    .replace(/<iframe\b[\s\S]*?<\/iframe>/gi, "")
+    .replace(/\s+on[a-z]+\s*=\s*"[^"]*"/gi, "")
+    .replace(/\s+on[a-z]+\s*=\s*'[^']*'/gi, "")
+    .replace(/\s+href\s*=\s*(["'])\s*javascript:[\s\S]*?\1/gi, ' href="#"');
+}
+
 export function extractWechatArticleHtml(html) {
   const source = String(html || "");
   const title = extractWechatTitle(source);
+  const titleHtml = extractElementById(source, "activity-name", { includeOuter: true });
   const content =
-    extractElementById(source, "js_content") ||
-    extractElementById(source, "img-content") ||
-    extractElementById(source, "page-content");
+    extractElementById(source, "js_content", { includeOuter: true }) ||
+    extractElementById(source, "img-content", { includeOuter: true }) ||
+    extractElementById(source, "page-content", { includeOuter: true });
   const fallbackBody = source.match(/<body[^>]*>([\s\S]*?)<\/body>/i)?.[1] || source;
-  const articleHtml = (content || fallbackBody).trim();
-  const htmlWithTitle = title ? `<h1>${escapeHtml(title)}</h1>\n${articleHtml}` : articleHtml;
+  const articleHtml = sanitizeImportedArticleHtml(content || fallbackBody).trim();
+  const titleBlock = sanitizeImportedArticleHtml(
+    titleHtml || (title ? `<h1>${escapeHtml(title)}</h1>` : ""),
+  ).trim();
+  const htmlWithTitle =
+    titleBlock && !articleHtml.includes(titleBlock) ? `${titleBlock}\n${articleHtml}` : articleHtml;
 
   return {
     title,

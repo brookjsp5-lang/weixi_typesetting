@@ -97,6 +97,27 @@ const createReversePromptTemplateName = (target: ReversePromptTarget, article: s
   return `逆向生成-${reversePromptTargetLabels[target]}-${title}`;
 };
 
+const replaceLocalImageRefs = (content: string, imageMap: Map<string, string>) =>
+  content
+    .replace(/!\[(.*?)\]\(#([A-Za-z0-9_-]+)\)/g, (match, alt, imageId) => {
+      const base64 = imageMap.get(imageId);
+      return base64 ? `![${alt}](${base64})` : match;
+    })
+    .replace(
+      /(<img\b[^>]*\bsrc=["'])#([A-Za-z0-9_-]+)(["'][^>]*>)/gi,
+      (match, beforeSrc, imageId, afterSrc) => {
+        const base64 = imageMap.get(imageId);
+        return base64 ? `${beforeSrc}${base64}${afterSrc}` : match;
+      },
+    )
+    .replace(
+      /(<img\b[^>]*\bdata-src=["'])#([A-Za-z0-9_-]+)(["'][^>]*>)/gi,
+      (match, beforeSrc, imageId, afterSrc) => {
+        const base64 = imageMap.get(imageId);
+        return base64 ? `${beforeSrc}${base64}${afterSrc}` : match;
+      },
+    );
+
 export default function Home() {
   const [inputText, setInputText] = useState(sampleText);
   const [activeTab, setActiveTab] = useState<ActiveTab>("input");
@@ -277,13 +298,7 @@ export default function Home() {
   const outputHtml = useMemo(() => {
     if (!normalizedInputText.trim()) return "";
 
-    const processedText = normalizedInputText.replace(
-      /!\[(.*?)\]\(#(img-\d+)\)/g,
-      (match, alt, imageId) => {
-        const base64 = imageMap.get(imageId);
-        return base64 ? `![${alt}](${base64})` : match;
-      },
-    );
+    const processedText = replaceLocalImageRefs(normalizedInputText, imageMap);
 
     return renderArticle(processedText, currentTemplate, formatTweaks);
   }, [normalizedInputText, currentTemplate, formatTweaks, imageMap]);

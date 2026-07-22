@@ -14,6 +14,12 @@ export type LocalizedMarkdownImagesResult = {
   failedCount: number;
 };
 
+export type LocalizedHtmlImagesResult = {
+  html: string;
+  localizedCount: number;
+  failedCount: number;
+};
+
 export function extractImageSource(element: {
   getAttribute: (name: string) => string | null | undefined;
 }): string;
@@ -30,6 +36,12 @@ export function localizeRemoteMarkdownImages(
   importRemoteImage: (url: string) => Promise<string>,
   createImageRef: (dataUrl: string) => string,
 ): Promise<LocalizedMarkdownImagesResult>;
+
+export function localizeRemoteHtmlImages(
+  html: string,
+  importRemoteImage: (url: string) => Promise<string>,
+  createImageRef: (dataUrl: string) => string,
+): Promise<LocalizedHtmlImagesResult>;
 
 export function serializeImageMap(imageMap: Map<string, string>): SerializedImageItem[];
 

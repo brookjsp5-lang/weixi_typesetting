@@ -1,6 +1,9 @@
 const IMAGE_ATTRIBUTE_CANDIDATES = ["src", "data-src", "data-original", "data-actualsrc"];
+const HTML_IMAGE_PATTERN = /<img\b[^>]*>/gi;
 const MARKDOWN_IMAGE_PATTERN = /!\[[^\]\n]*\]\((?:\\.|[^)\n])+\)/g;
 const LOCAL_IMAGE_REF_PATTERN = /!\[[^\]\n]*\]\(#([A-Za-z0-9_-]+)\)/g;
+const LOCAL_HTML_IMAGE_REF_PATTERN =
+  /<img\b[^>]*\b(?:src|data-src)\s*=\s*["']#([A-Za-z0-9_-]+)["'][^>]*>/gi;
 const DEFAULT_AUTOSAVE_IMAGE_MAX_BYTES = 12 * 1024 * 1024;
 
 const blockTags = new Set([
@@ -103,10 +106,56 @@ function absoluteUrl(url) {
   return value;
 }
 
+function decodeHtmlAttribute(value) {
+  return String(value || "")
+    .replace(/&amp;/g, "&")
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">");
+}
+
+function escapeHtmlAttribute(value) {
+  return String(value || "")
+    .replace(/&/g, "&amp;")
+    .replace(/"/g, "&quot;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
+}
+
+function getHtmlAttribute(tag, name) {
+  const pattern = new RegExp(`\\s${name}\\s*=\\s*("([^"]*)"|'([^']*)')`, "i");
+  const match = String(tag || "").match(pattern);
+  return decodeHtmlAttribute(match?.[2] ?? match?.[3] ?? "");
+}
+
+function setHtmlAttribute(tag, name, value) {
+  const source = String(tag || "");
+  const nextAttribute = `${name}="${escapeHtmlAttribute(value)}"`;
+  const pattern = new RegExp(`(\\s)${name}\\s*=\\s*("[^"]*"|'[^']*')`, "i");
+
+  if (pattern.test(source)) {
+    return source.replace(pattern, `$1${nextAttribute}`);
+  }
+
+  const closing = source.match(/\s*\/?>$/)?.[0] || ">";
+  return `${source.slice(0, source.length - closing.length)} ${nextAttribute}${closing}`;
+}
+
 export function extractImageSource(element) {
   for (const attribute of IMAGE_ATTRIBUTE_CANDIDATES) {
     const value = element?.getAttribute?.(attribute);
     if (typeof value === "string" && value.trim()) {
+      return absoluteUrl(value);
+    }
+  }
+  return "";
+}
+
+function extractHtmlImageSource(tag) {
+  for (const attribute of IMAGE_ATTRIBUTE_CANDIDATES) {
+    const value = getHtmlAttribute(tag, attribute);
+    if (value.trim()) {
       return absoluteUrl(value);
     }
   }
@@ -367,6 +416,66 @@ export async function localizeRemoteMarkdownImages(markdown, importRemoteImage, 
   };
 }
 
+export async function localizeRemoteHtmlImages(html, importRemoteImage, createImageRef) {
+  const source = String(html || "");
+  let nextHtml = "";
+  let lastIndex = 0;
+  let localizedCount = 0;
+  let failedCount = 0;
+
+  for (const match of source.matchAll(HTML_IMAGE_PATTERN)) {
+    const fullMatch = match[0];
+    const index = match.index ?? 0;
+    const src = extractHtmlImageSource(fullMatch);
+    let nextImageTag = fullMatch;
+
+    nextHtml += source.slice(lastIndex, index);
+
+    if (!src || /^blob:/i.test(src)) {
+      if (src) failedCount += 1;
+      nextHtml += nextImageTag;
+      lastIndex = index + fullMatch.length;
+      continue;
+    }
+
+    if (/^data:image\//i.test(src)) {
+      nextImageTag = setHtmlAttribute(nextImageTag, "src", createImageRef(src));
+      localizedCount += 1;
+    } else if (/^https?:\/\//i.test(src)) {
+      try {
+        const dataUrl = await importRemoteImage(src);
+        if (typeof dataUrl === "string" && /^data:image\//i.test(dataUrl)) {
+          nextImageTag = setHtmlAttribute(nextImageTag, "src", createImageRef(dataUrl));
+          localizedCount += 1;
+        } else {
+          if (!getHtmlAttribute(nextImageTag, "src")) {
+            nextImageTag = setHtmlAttribute(nextImageTag, "src", src);
+          }
+          failedCount += 1;
+        }
+      } catch {
+        if (!getHtmlAttribute(nextImageTag, "src")) {
+          nextImageTag = setHtmlAttribute(nextImageTag, "src", src);
+        }
+        failedCount += 1;
+      }
+    } else {
+      failedCount += 1;
+    }
+
+    nextHtml += nextImageTag;
+    lastIndex = index + fullMatch.length;
+  }
+
+  nextHtml += source.slice(lastIndex);
+
+  return {
+    html: nextHtml,
+    localizedCount,
+    failedCount,
+  };
+}
+
 export function serializeImageMap(imageMap) {
   return Array.from(imageMap || []).map(([id, dataUrl]) => ({ id, dataUrl }));
 }
@@ -374,13 +483,21 @@ export function serializeImageMap(imageMap) {
 function getReferencedLocalImageIds(markdown) {
   const ids = [];
   const seen = new Set();
+  const source = String(markdown || "");
 
-  for (const match of String(markdown || "").matchAll(LOCAL_IMAGE_REF_PATTERN)) {
-    const id = match[1];
+  const addId = (id) => {
     if (!seen.has(id)) {
       ids.push(id);
       seen.add(id);
     }
+  };
+
+  for (const match of source.matchAll(LOCAL_IMAGE_REF_PATTERN)) {
+    addId(match[1]);
+  }
+
+  for (const match of source.matchAll(LOCAL_HTML_IMAGE_REF_PATTERN)) {
+    addId(match[1]);
   }
 
   return ids;

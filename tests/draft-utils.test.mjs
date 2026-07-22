@@ -5,6 +5,7 @@ import {
   deserializeImageMap,
   extractImageSource,
   htmlToMarkdownDraft,
+  localizeRemoteHtmlImages,
   localizeRemoteMarkdownImages,
   normalizeConsecutiveImageBlocks,
   serializeAutosaveImageMap,
@@ -129,6 +130,24 @@ test("serializeAutosaveImageMap only keeps images referenced by markdown", () =>
   ]);
 });
 
+test("serializeAutosaveImageMap keeps images referenced by imported raw html", () => {
+  const imageMap = new Map([
+    ["img-1", "data:image/png;base64,one"],
+    ["img-2", "data:image/png;base64,two"],
+  ]);
+
+  assert.deepEqual(
+    serializeAutosaveImageMap(
+      imageMap,
+      '<section><img src="#img-1"><img data-src="#img-2"></section>',
+    ),
+    [
+      { id: "img-1", dataUrl: "data:image/png;base64,one" },
+      { id: "img-2", dataUrl: "data:image/png;base64,two" },
+    ],
+  );
+});
+
 test("serializeAutosaveImageMap drops oversized images instead of exceeding the save budget", () => {
   const imageMap = new Map([
     ["img-1", `data:image/png;base64,${"a".repeat(80)}`],
@@ -200,4 +219,25 @@ test("localizeRemoteMarkdownImages keeps original image when import fails", asyn
   assert.equal(localized.markdown, "![图片](https://cdn.nlark.com/yuque/image.png)");
   assert.equal(localized.localizedCount, 0);
   assert.equal(localized.failedCount, 1);
+});
+
+test("localizeRemoteHtmlImages preserves html layout while localizing image sources", async () => {
+  const localized = await localizeRemoteHtmlImages(
+    '<section style="background-color:#f7f4ef;text-align:center"><p><strong>原文重点</strong></p><img data-src="https://mmbiz.qpic.cn/demo.png" style="width:120px" alt="书"></section>',
+    async (url) => {
+      assert.equal(url, "https://mmbiz.qpic.cn/demo.png");
+      return "data:image/png;base64,abc123";
+    },
+    (dataUrl) => {
+      assert.equal(dataUrl, "data:image/png;base64,abc123");
+      return "#img-9";
+    },
+  );
+
+  assert.match(localized.html, /background-color:#f7f4ef/);
+  assert.match(localized.html, /<strong>原文重点<\/strong>/);
+  assert.match(localized.html, /src="#img-9"/);
+  assert.match(localized.html, /style="width:120px"/);
+  assert.equal(localized.localizedCount, 1);
+  assert.equal(localized.failedCount, 0);
 });

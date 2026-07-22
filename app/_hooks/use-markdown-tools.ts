@@ -2,6 +2,7 @@ import type React from "react";
 import { useCallback, useState } from "react";
 import {
   htmlToMarkdownDraft,
+  localizeRemoteHtmlImages,
   localizeRemoteMarkdownImages,
   normalizeConsecutiveImageBlocks,
 } from "../_lib/draft-utils";
@@ -287,19 +288,8 @@ export function useMarkdownTools({
 
         const article = (await response.json()) as { html?: string; title?: string };
         const localImages = new Map<string, string>();
-        const result = htmlToMarkdownDraft(article.html || "", (dataUrl) => {
-          const imageId = `img-${++imageCounterRef.current}`;
-          localImages.set(imageId, dataUrl);
-          return `#${imageId}`;
-        });
-
-        if (!result.markdown.trim()) {
-          showToast("未识别到公众号正文内容", "error");
-          return;
-        }
-
-        const localized = await localizeRemoteMarkdownImages(
-          result.markdown,
+        const localized = await localizeRemoteHtmlImages(
+          article.html || "",
           importRemoteImage,
           (dataUrl) => {
             const imageId = `img-${++imageCounterRef.current}`;
@@ -307,7 +297,12 @@ export function useMarkdownTools({
             return `#${imageId}`;
           },
         );
-        const markdownToImport = normalizeConsecutiveImageBlocks(localized.markdown);
+        const htmlToImport = localized.html.trim();
+
+        if (!htmlToImport) {
+          showToast("未识别到公众号正文内容", "error");
+          return;
+        }
 
         setImageMap(() => {
           const next = new Map<string, string>();
@@ -316,15 +311,14 @@ export function useMarkdownTools({
           });
           return next;
         });
-        setInputText(markdownToImport);
+        setInputText(htmlToImport);
 
         const imageMessage =
           localized.localizedCount > 0 ? `，已导入 ${localized.localizedCount} 张图片` : "";
         showToast(`公众号文章已导入初稿${imageMessage}`);
 
-        const failedImages = result.skippedImages + localized.failedCount;
-        if (failedImages > 0) {
-          showToast(`已导入正文，${failedImages} 张图片因权限或地址不可用未本地化`, "error");
+        if (localized.failedCount > 0) {
+          showToast(`已导入原文，${localized.failedCount} 张图片因权限或地址不可用未本地化`, "error");
         }
       } catch {
         showToast("公众号文章导入失败，请稍后重试", "error");
