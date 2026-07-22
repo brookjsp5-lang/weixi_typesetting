@@ -120,6 +120,7 @@ test("markdown tools import WeChat html as layout-preserving raw html", () => {
 
 test("page resolves local image refs inside imported raw html", () => {
   assert.match(pageSource, /replaceLocalImageRefs/);
+  assert.match(pageSource, /makeImportedHtmlDraftVisible/);
   assert.match(pageSource, /renderedInputText/);
   assert.match(pageSource, /onRenderedHtmlDraftChange/);
   assert.match(pageSource, /restoreLocalImageRefs/);
@@ -129,5 +130,8 @@ test("page resolves local image refs inside imported raw html", () => {
 test("page bypasses markdown templates for imported WeChat html drafts", () => {
   assert.match(pageSource, /isWechatImportedHtmlDraft/);
   assert.match(pageSource, /processedText/);
-  assert.match(pageSource, /return `<section style="width: 100%; max-width: 100%; box-sizing: border-box;">\$\{processedText\}<\/section>`/);
+  assert.match(
+    pageSource,
+    /return `<section style="width: 100%; max-width: 100%; box-sizing: border-box;">\$\{makeImportedHtmlDraftVisible\(processedText\)\}<\/section>`/,
+  );
 });

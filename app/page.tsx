@@ -35,6 +35,7 @@ import {
 } from "./_lib/cover-title-layout";
 import {
   isWechatImportedHtmlDraft,
+  makeImportedHtmlDraftVisible,
   normalizeConsecutiveImageBlocks,
   replaceLocalImageRefs,
   restoreLocalImageRefs,
@@ -160,12 +161,12 @@ export default function Home() {
   const { syncScroll, setSyncScroll, previewRef, handleInputScroll, handlePreviewScroll } =
     useScrollSync(inputRef);
   const renderedInputText = useMemo(
-    () => replaceLocalImageRefs(inputText, imageMap),
+    () => makeImportedHtmlDraftVisible(replaceLocalImageRefs(inputText, imageMap)),
     [inputText, imageMap],
   );
   const handleRenderedHtmlDraftChange = useCallback(
     (html: string) => {
-      setInputText(restoreLocalImageRefs(html, imageMap));
+      setInputText(makeImportedHtmlDraftVisible(restoreLocalImageRefs(html, imageMap)));
     },
     [imageMap],
   );
@@ -295,7 +296,7 @@ export default function Home() {
     const processedText = replaceLocalImageRefs(normalizedInputText, imageMap);
 
     if (isWechatImportedHtmlDraft(processedText)) {
-      return `<section style="width: 100%; max-width: 100%; box-sizing: border-box;">${processedText}</section>`;
+      return `<section style="width: 100%; max-width: 100%; box-sizing: border-box;">${makeImportedHtmlDraftVisible(processedText)}</section>`;
     }
 
     return renderArticle(processedText, currentTemplate, formatTweaks);

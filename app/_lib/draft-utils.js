@@ -402,6 +402,32 @@ export function getDraftPlainText(content) {
     .trim();
 }
 
+export function makeImportedHtmlDraftVisible(content) {
+  const source = String(content || "");
+  if (!isWechatImportedHtmlDraft(source)) return source;
+
+  return source.replace(
+    /<([a-z][a-z0-9:-]*)\b[^>]*\sstyle\s*=\s*(["'])([\s\S]*?)\2[^>]*>/gi,
+    (tag) =>
+      tag.replace(/\sstyle\s*=\s*(["'])([\s\S]*?)\1/i, (_match, quote, style) => {
+        const rawStyle = String(style || "");
+        const hadHiddenVisibility = /visibility\s*:\s*hidden\b/i.test(rawStyle);
+        const hadZeroOpacity = /opacity\s*:\s*0(?:\.0+)?\b/i.test(rawStyle);
+        const hadDisplayNone = /display\s*:\s*none\b/i.test(rawStyle);
+        let nextStyle = rawStyle
+          .replace(/visibility\s*:\s*hidden\s*(?:!important)?\s*;?/gi, "")
+          .replace(/opacity\s*:\s*0(?:\.0+)?\s*(?:!important)?\s*;?/gi, "")
+          .replace(/display\s*:\s*none\s*(?:!important)?\s*;?/gi, "")
+          .trim();
+        nextStyle = nextStyle ? `${nextStyle}; ` : "";
+        if (hadHiddenVisibility) nextStyle += "visibility: visible !important; ";
+        if (hadZeroOpacity) nextStyle += "opacity: 1 !important; ";
+        if (hadDisplayNone) nextStyle += "display: block !important; ";
+        return ` style=${quote}${nextStyle.trim()}${quote}`;
+      }),
+  );
+}
+
 export function replaceLocalImageRefs(content, imageMap) {
   return String(content || "")
     .replace(/!\[(.*?)\]\(#([A-Za-z0-9_-]+)\)/g, (match, alt, imageId) => {

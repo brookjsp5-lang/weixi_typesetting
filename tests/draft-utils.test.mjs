@@ -9,6 +9,7 @@ import {
   isWechatImportedHtmlDraft,
   localizeRemoteHtmlImages,
   localizeRemoteMarkdownImages,
+  makeImportedHtmlDraftVisible,
   normalizeConsecutiveImageBlocks,
   replaceLocalImageRefs,
   restoreLocalImageRefs,
@@ -131,6 +132,25 @@ test("getDraftPlainText strips imported html for stats and editing labels", () =
     "标题 第一段 重点",
   );
   assert.equal(getDraftPlainText("# 标题\n\n正文"), "# 标题\n\n正文");
+});
+
+test("makeImportedHtmlDraftVisible repairs old hidden WeChat import drafts", () => {
+  const result = makeImportedHtmlDraftVisible(
+    '<div id="js_content" style="visibility: hidden; opacity: 0;"><section style="display:none"><img src="#img-1" style="visibility:hidden !important; opacity:0 !important"></section><p>正文</p></div>',
+  );
+
+  assert.doesNotMatch(result, /visibility:\s*hidden/i);
+  assert.doesNotMatch(result, /opacity:\s*0\b/i);
+  assert.doesNotMatch(result, /display:\s*none/i);
+  assert.match(result, /visibility:\s*visible/i);
+  assert.match(result, /opacity:\s*1/i);
+  assert.match(result, /display:\s*block/i);
+  assert.match(result, /正文/);
+});
+
+test("makeImportedHtmlDraftVisible leaves regular markdown unchanged", () => {
+  const markdown = "# 标题\n\n正文";
+  assert.equal(makeImportedHtmlDraftVisible(markdown), markdown);
 });
 
 test("replaceLocalImageRefs resolves markdown and html image refs for rendering", () => {
