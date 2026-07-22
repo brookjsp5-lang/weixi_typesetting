@@ -24,6 +24,10 @@ export function extractImageSource(element: {
   getAttribute: (name: string) => string | null | undefined;
 }): string;
 
+export function isWechatImportedHtmlDraft(content: string): boolean;
+
+export function getDraftPlainText(content: string): string;
+
 export function htmlToMarkdownDraft(
   html: string,
   createImageRef: (dataUrl: string) => string,

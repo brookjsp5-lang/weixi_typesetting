@@ -76,6 +76,13 @@ test("draft pane exposes WeChat article link import controls", () => {
   assert.match(editorSource, /onImportWechatArticle/);
 });
 
+test("draft pane renders imported WeChat html as visual editable content", () => {
+  assert.match(editorSource, /isWechatImportedHtmlDraft/);
+  assert.match(editorSource, /contentEditable/);
+  assert.match(editorSource, /dangerouslySetInnerHTML/);
+  assert.match(editorSource, /onInput/);
+});
+
 test("markdown tools import WeChat html as layout-preserving raw html", () => {
   assert.match(markdownToolsSource, /importWechatArticle/);
   assert.match(markdownToolsSource, /\/api\/import-wechat-article/);
@@ -87,4 +94,10 @@ test("markdown tools import WeChat html as layout-preserving raw html", () => {
 test("page resolves local image refs inside imported raw html", () => {
   assert.match(pageSource, /replaceLocalImageRefs/);
   assert.match(pageSource, /<img\\b\[\^>\]\*\\bsrc=/);
+});
+
+test("page bypasses markdown templates for imported WeChat html drafts", () => {
+  assert.match(pageSource, /isWechatImportedHtmlDraft/);
+  assert.match(pageSource, /processedText/);
+  assert.match(pageSource, /return `<section style="width: 100%; max-width: 100%; box-sizing: border-box;">\$\{processedText\}<\/section>`/);
 });

@@ -4,7 +4,9 @@ import test from "node:test";
 import {
   deserializeImageMap,
   extractImageSource,
+  getDraftPlainText,
   htmlToMarkdownDraft,
+  isWechatImportedHtmlDraft,
   localizeRemoteHtmlImages,
   localizeRemoteMarkdownImages,
   normalizeConsecutiveImageBlocks,
@@ -106,6 +108,27 @@ test("htmlToMarkdownDraft normalizes image-only HTML paragraphs", () => {
     result.markdown,
     "![one](https://example.com/one.png)\n\n![two](https://example.com/two.png)",
   );
+});
+
+test("isWechatImportedHtmlDraft detects imported WeChat raw html", () => {
+  assert.equal(
+    isWechatImportedHtmlDraft(
+      '<h1 id="activity-name">Title</h1><section id="js_content"><p>Body</p></section>',
+    ),
+    true,
+  );
+  assert.equal(isWechatImportedHtmlDraft("<!-- typezen-wechat-html --><section>Body</section>"), true);
+  assert.equal(isWechatImportedHtmlDraft("# Markdown title\n\nBody"), false);
+});
+
+test("getDraftPlainText strips imported html for stats and editing labels", () => {
+  assert.equal(
+    getDraftPlainText(
+      '<h1 id="activity-name"><span>标题</span></h1><section id="js_content"><p>第一段&nbsp;<strong>重点</strong></p></section>',
+    ),
+    "标题 第一段 重点",
+  );
+  assert.equal(getDraftPlainText("# 标题\n\n正文"), "# 标题\n\n正文");
 });
 
 test("image map serialization round trips draft images", () => {

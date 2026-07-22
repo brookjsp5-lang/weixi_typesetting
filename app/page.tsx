@@ -33,7 +33,7 @@ import {
   DEFAULT_COVER_TITLE_STYLE,
   normalizeCoverTitleStyle,
 } from "./_lib/cover-title-layout";
-import { normalizeConsecutiveImageBlocks } from "./_lib/draft-utils";
+import { isWechatImportedHtmlDraft, normalizeConsecutiveImageBlocks } from "./_lib/draft-utils";
 import { aiStorageKeys, sampleText } from "./_lib/formatter-constants";
 import {
   DEFAULT_POSTER_TEXT_STYLE,
@@ -299,6 +299,10 @@ export default function Home() {
     if (!normalizedInputText.trim()) return "";
 
     const processedText = replaceLocalImageRefs(normalizedInputText, imageMap);
+
+    if (isWechatImportedHtmlDraft(processedText)) {
+      return `<section style="width: 100%; max-width: 100%; box-sizing: border-box;">${processedText}</section>`;
+    }
 
     return renderArticle(processedText, currentTemplate, formatTweaks);
   }, [normalizedInputText, currentTemplate, formatTweaks, imageMap]);

@@ -371,6 +371,37 @@ function stripHtml(html) {
     .trim();
 }
 
+export function isWechatImportedHtmlDraft(content) {
+  const source = String(content || "").trim();
+  if (!source) return false;
+
+  return (
+    /<!--\s*typezen-wechat-html\s*-->/i.test(source) ||
+    /\bid=["'](?:activity-name|js_content|img-content|page-content)["']/i.test(source)
+  );
+}
+
+export function getDraftPlainText(content) {
+  const source = String(content || "");
+  if (!isWechatImportedHtmlDraft(source)) return source;
+
+  return source
+    .replace(/<!--[\s\S]*?-->/g, " ")
+    .replace(/<script\b[\s\S]*?<\/script>/gi, " ")
+    .replace(/<style\b[\s\S]*?<\/style>/gi, " ")
+    .replace(/<br\s*\/?>/gi, "\n")
+    .replace(/<\/(p|div|section|article|blockquote|h[1-6]|li|ul|ol|table|tr)>/gi, " ")
+    .replace(/<[^>]+>/g, " ")
+    .replace(/&nbsp;/g, " ")
+    .replace(/&amp;/g, "&")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
 export function htmlToMarkdownDraft(html, createImageRef) {
   if (typeof DOMParser !== "undefined") {
     return htmlToMarkdownWithDom(html, createImageRef);

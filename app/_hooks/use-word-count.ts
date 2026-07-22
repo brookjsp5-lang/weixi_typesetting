@@ -1,9 +1,10 @@
 import { useMemo } from "react";
+import { getDraftPlainText } from "../_lib/draft-utils";
 import type { WordCount } from "../_types/formatter";
 
 export function useWordCount(inputText: string): WordCount {
   return useMemo(() => {
-    const text = inputText.trim();
+    const text = getDraftPlainText(inputText).trim();
     if (!text) return { chars: 0, words: 0, lines: 0, readTime: 0 };
 
     const chars = text.length;
