@@ -121,6 +121,14 @@ export type PosterPromptTemplate = {
   updatedAt: string;
 };
 
+export type ReversePromptRequirementTemplate = {
+  id: string;
+  name: string;
+  requirement: string;
+  createdAt: string;
+  updatedAt: string;
+};
+
 export type RewriteDraft = {
   original: string;
   rewritten: string;

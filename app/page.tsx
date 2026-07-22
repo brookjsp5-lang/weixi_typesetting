@@ -24,6 +24,7 @@ import { useMarkdownTools } from "./_hooks/use-markdown-tools";
 import { usePosterPromptTemplates } from "./_hooks/use-poster-prompt-templates";
 import { usePosterLibrary } from "./_hooks/use-poster-library";
 import { usePromptTemplates } from "./_hooks/use-prompt-templates";
+import { useReversePromptRequirements } from "./_hooks/use-reverse-prompt-requirements";
 import { useScrollSync } from "./_hooks/use-scroll-sync";
 import { useTheme } from "./_hooks/use-theme";
 import { useToast } from "./_hooks/use-toast";
@@ -118,7 +119,6 @@ export default function Home() {
   const [posterTextMode, setPosterTextMode] = useState<ImageTextMode>("canvas");
   const [posterTextRequirement, setPosterTextRequirement] = useState("");
   const [posterManualText, setPosterManualText] = useState("");
-  const [reversePromptRequirement, setReversePromptRequirement] = useState("");
   const [reversePromptArticle, setReversePromptArticle] = useState("");
   const [reversePromptTarget, setReversePromptTarget] =
     useState<ReversePromptTarget>("rewrite");
@@ -147,6 +147,8 @@ export default function Home() {
   const promptSettings = usePromptTemplates(showToast);
   const coverPromptSettings = useCoverPromptTemplates(showToast);
   const posterPromptSettings = usePosterPromptTemplates(showToast);
+  const reversePromptRequirementSettings = useReversePromptRequirements(showToast);
+  const reversePromptRequirement = reversePromptRequirementSettings.requirement;
   const posterLibrary = usePosterLibrary(showToast);
   const wordCount = useWordCount(inputText);
   const copyToClipboard = useClipboardCopy(showToast);
@@ -484,11 +486,18 @@ export default function Home() {
       <RewardModal open={showReward} onClose={() => setShowReward(false)} />
       <ReversePromptModal
         open={showReversePromptModal}
-        requirement={reversePromptRequirement}
+        requirement={reversePromptRequirementSettings.requirement}
+        requirementTemplates={reversePromptRequirementSettings.requirementTemplates}
+        selectedRequirementId={reversePromptRequirementSettings.selectedRequirementId}
         article={reversePromptArticle}
         target={reversePromptTarget}
         isGenerating={isGeneratingReversePrompt}
-        onRequirementChange={setReversePromptRequirement}
+        onRequirementChange={reversePromptRequirementSettings.setRequirement}
+        onRequirementTemplateChange={
+          reversePromptRequirementSettings.selectRequirementTemplate
+        }
+        onSaveRequirement={reversePromptRequirementSettings.saveCurrentRequirement}
+        onDeleteRequirement={reversePromptRequirementSettings.deleteCurrentRequirement}
         onArticleChange={setReversePromptArticle}
         onTargetChange={setReversePromptTarget}
         onGenerate={runReversePromptGeneration}

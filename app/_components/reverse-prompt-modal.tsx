@@ -1,4 +1,5 @@
-import { Loader2, Wand2, X } from "lucide-react";
+import { Loader2, Save, Trash2, Wand2, X } from "lucide-react";
+import type { ReversePromptRequirementTemplate } from "../_types/formatter";
 
 export type ReversePromptTarget = "rewrite" | "cover" | "poster";
 
@@ -11,10 +12,15 @@ export const reversePromptTargetLabels: Record<ReversePromptTarget, string> = {
 type ReversePromptModalProps = {
   open: boolean;
   requirement: string;
+  requirementTemplates: ReversePromptRequirementTemplate[];
+  selectedRequirementId: string;
   article: string;
   target: ReversePromptTarget;
   isGenerating: boolean;
   onRequirementChange: (value: string) => void;
+  onRequirementTemplateChange: (id: string) => void;
+  onSaveRequirement: () => void;
+  onDeleteRequirement: () => void;
   onArticleChange: (value: string) => void;
   onTargetChange: (value: ReversePromptTarget) => void;
   onGenerate: () => void;
@@ -24,10 +30,15 @@ type ReversePromptModalProps = {
 export function ReversePromptModal({
   open,
   requirement,
+  requirementTemplates,
+  selectedRequirementId,
   article,
   target,
   isGenerating,
   onRequirementChange,
+  onRequirementTemplateChange,
+  onSaveRequirement,
+  onDeleteRequirement,
   onArticleChange,
   onTargetChange,
   onGenerate,
@@ -77,12 +88,47 @@ export function ReversePromptModal({
 
           <label className="block space-y-2">
             <span className="text-sm font-black text-(--neo-ink)">逆向提示词要求</span>
+            <div className="grid gap-2 sm:grid-cols-[1fr_auto_auto]">
+              <select
+                value={selectedRequirementId}
+                onChange={(event) => onRequirementTemplateChange(event.target.value)}
+                className="neo-input min-w-0 px-3 py-2 text-sm"
+                aria-label="已保存要求"
+              >
+                <option value="">已保存要求</option>
+                {requirementTemplates.map((template) => (
+                  <option key={template.id} value={template.id}>
+                    {template.name}
+                  </option>
+                ))}
+              </select>
+              <button
+                type="button"
+                onClick={onSaveRequirement}
+                className="neo-button neo-button-secondary inline-flex items-center justify-center gap-2 px-3 py-2 text-sm"
+              >
+                <Save className="h-4 w-4" />
+                保存/更新
+              </button>
+              <button
+                type="button"
+                onClick={onDeleteRequirement}
+                disabled={!selectedRequirementId}
+                className="neo-button neo-button-ghost inline-flex items-center justify-center gap-2 px-3 py-2 text-sm"
+              >
+                <Trash2 className="h-4 w-4" />
+                删除
+              </button>
+            </div>
             <textarea
               value={requirement}
               onChange={(event) => onRequirementChange(event.target.value)}
               className="neo-input min-h-28 w-full resize-y px-3 py-2 text-sm leading-relaxed"
               placeholder="例如：提炼这篇文章的写作方法，生成可复用的正文改写提示词；或提炼封面视觉风格，生成 AI 生图提示词。"
             />
+            <span className="block text-xs font-bold leading-relaxed neo-text-muted">
+              当前输入会自动保存在本机；常用要求可保存到列表后随时修改或删除。
+            </span>
           </label>
 
           <label className="block space-y-2">
