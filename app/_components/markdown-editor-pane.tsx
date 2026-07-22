@@ -17,7 +17,9 @@ import type { ActiveTab, WordCount } from "../_types/formatter";
 type MarkdownEditorPaneProps = {
   activeTab: ActiveTab;
   inputText: string;
+  renderedInputText: string;
   setInputText: React.Dispatch<React.SetStateAction<string>>;
+  onRenderedHtmlDraftChange: (value: string) => void;
   inputRef: React.RefObject<HTMLTextAreaElement | null>;
   onInputScroll: (e: React.UIEvent<HTMLTextAreaElement>) => void;
   onPaste: (e: React.ClipboardEvent<HTMLTextAreaElement>) => void;
@@ -37,23 +39,33 @@ type MarkdownEditorPaneProps = {
 };
 
 type RichHtmlDraftEditorProps = {
-  value: string;
+  renderedValue: string;
   onChange: (value: string) => void;
   onScroll: (event: React.UIEvent<HTMLDivElement>) => void;
 };
 
-function RichHtmlDraftEditor({ value, onChange, onScroll }: RichHtmlDraftEditorProps) {
+function RichHtmlDraftEditor({
+  renderedValue,
+  onChange,
+  onScroll,
+}: RichHtmlDraftEditorProps) {
   const editorRef = useRef<HTMLDivElement>(null);
-  const lastHtmlRef = useRef(value);
-  const initialHtmlRef = useRef(value);
+  const lastHtmlRef = useRef(renderedValue);
+  const initialHtmlRef = useRef(renderedValue);
 
   useEffect(() => {
     const editor = editorRef.current;
-    if (!editor || value === lastHtmlRef.current || editor.innerHTML === value) return;
+    if (
+      !editor ||
+      renderedValue === lastHtmlRef.current ||
+      editor.innerHTML === renderedValue
+    ) {
+      return;
+    }
 
-    editor.innerHTML = value;
-    lastHtmlRef.current = value;
-  }, [value]);
+    editor.innerHTML = renderedValue;
+    lastHtmlRef.current = renderedValue;
+  }, [renderedValue]);
 
   return (
     <div
@@ -75,7 +87,9 @@ function RichHtmlDraftEditor({ value, onChange, onScroll }: RichHtmlDraftEditorP
 export function MarkdownEditorPane({
   activeTab,
   inputText,
+  renderedInputText,
   setInputText,
+  onRenderedHtmlDraftChange,
   inputRef,
   onInputScroll,
   onPaste,
@@ -158,8 +172,8 @@ export function MarkdownEditorPane({
             <span>可直接点击正文修改文字，原排版会随内容一起保存。</span>
           </div>
           <RichHtmlDraftEditor
-            value={inputText}
-            onChange={(value) => setInputText(value)}
+            renderedValue={renderedInputText}
+            onChange={onRenderedHtmlDraftChange}
             onScroll={(event) =>
               onInputScroll(event as unknown as React.UIEvent<HTMLTextAreaElement>)
             }

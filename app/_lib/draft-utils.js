@@ -402,6 +402,39 @@ export function getDraftPlainText(content) {
     .trim();
 }
 
+export function replaceLocalImageRefs(content, imageMap) {
+  return String(content || "")
+    .replace(/!\[(.*?)\]\(#([A-Za-z0-9_-]+)\)/g, (match, alt, imageId) => {
+      const base64 = imageMap?.get?.(imageId);
+      return base64 ? `![${alt}](${base64})` : match;
+    })
+    .replace(
+      /(<img\b[^>]*\bsrc=["'])#([A-Za-z0-9_-]+)(["'][^>]*>)/gi,
+      (match, beforeSrc, imageId, afterSrc) => {
+        const base64 = imageMap?.get?.(imageId);
+        return base64 ? `${beforeSrc}${base64}${afterSrc}` : match;
+      },
+    )
+    .replace(
+      /(<img\b[^>]*\bdata-src=["'])#([A-Za-z0-9_-]+)(["'][^>]*>)/gi,
+      (match, beforeSrc, imageId, afterSrc) => {
+        const base64 = imageMap?.get?.(imageId);
+        return base64 ? `${beforeSrc}${base64}${afterSrc}` : match;
+      },
+    );
+}
+
+export function restoreLocalImageRefs(content, imageMap) {
+  let nextContent = String(content || "");
+
+  for (const [imageId, dataUrl] of imageMap || []) {
+    if (typeof imageId !== "string" || typeof dataUrl !== "string" || !dataUrl) continue;
+    nextContent = nextContent.split(dataUrl).join(`#${imageId}`);
+  }
+
+  return nextContent;
+}
+
 export function htmlToMarkdownDraft(html, createImageRef) {
   if (typeof DOMParser !== "undefined") {
     return htmlToMarkdownWithDom(html, createImageRef);

@@ -28,6 +28,10 @@ export function isWechatImportedHtmlDraft(content: string): boolean;
 
 export function getDraftPlainText(content: string): string;
 
+export function replaceLocalImageRefs(content: string, imageMap: Map<string, string>): string;
+
+export function restoreLocalImageRefs(content: string, imageMap: Map<string, string>): string;
+
 export function htmlToMarkdownDraft(
   html: string,
   createImageRef: (dataUrl: string) => string,

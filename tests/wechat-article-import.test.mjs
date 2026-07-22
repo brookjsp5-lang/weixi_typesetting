@@ -23,6 +23,10 @@ const markdownToolsSource = readFileSync(
   "utf8",
 );
 const pageSource = readFileSync(resolve(testDir, "../app/page.tsx"), "utf8");
+const draftUtilsSource = readFileSync(
+  resolve(testDir, "../app/_lib/draft-utils.js"),
+  "utf8",
+);
 
 test("normalizeWechatArticleUrl accepts only public WeChat article urls", () => {
   assert.equal(
@@ -116,7 +120,10 @@ test("markdown tools import WeChat html as layout-preserving raw html", () => {
 
 test("page resolves local image refs inside imported raw html", () => {
   assert.match(pageSource, /replaceLocalImageRefs/);
-  assert.match(pageSource, /<img\\b\[\^>\]\*\\bsrc=/);
+  assert.match(pageSource, /renderedInputText/);
+  assert.match(pageSource, /onRenderedHtmlDraftChange/);
+  assert.match(pageSource, /restoreLocalImageRefs/);
+  assert.match(draftUtilsSource, /<img\\b\[\^>\]\*\\bsrc=/);
 });
 
 test("page bypasses markdown templates for imported WeChat html drafts", () => {

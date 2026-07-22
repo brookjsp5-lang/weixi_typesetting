@@ -10,6 +10,8 @@ import {
   localizeRemoteHtmlImages,
   localizeRemoteMarkdownImages,
   normalizeConsecutiveImageBlocks,
+  replaceLocalImageRefs,
+  restoreLocalImageRefs,
   serializeAutosaveImageMap,
   serializeImageMap,
 } from "../app/_lib/draft-utils.js";
@@ -129,6 +131,37 @@ test("getDraftPlainText strips imported html for stats and editing labels", () =
     "标题 第一段 重点",
   );
   assert.equal(getDraftPlainText("# 标题\n\n正文"), "# 标题\n\n正文");
+});
+
+test("replaceLocalImageRefs resolves markdown and html image refs for rendering", () => {
+  const imageMap = new Map([
+    ["img-1", "data:image/png;base64,one"],
+    ["img-2", "data:image/png;base64,two"],
+    ["img-3", "data:image/png;base64,three"],
+  ]);
+
+  assert.equal(
+    replaceLocalImageRefs(
+      '![cover](#img-1)<section><img src="#img-2"><img data-src="#img-3"></section>',
+      imageMap,
+    ),
+    '![cover](data:image/png;base64,one)<section><img src="data:image/png;base64,two"><img data-src="data:image/png;base64,three"></section>',
+  );
+});
+
+test("restoreLocalImageRefs keeps edited rich html drafts lightweight", () => {
+  const imageMap = new Map([
+    ["img-1", "data:image/png;base64,one"],
+    ["img-2", "data:image/png;base64,two"],
+  ]);
+
+  assert.equal(
+    restoreLocalImageRefs(
+      '<section><p>Edited text</p><img src="data:image/png;base64,one"><img data-src="data:image/png;base64,two"></section>',
+      imageMap,
+    ),
+    '<section><p>Edited text</p><img src="#img-1"><img data-src="#img-2"></section>',
+  );
 });
 
 test("image map serialization round trips draft images", () => {

@@ -33,7 +33,12 @@ import {
   DEFAULT_COVER_TITLE_STYLE,
   normalizeCoverTitleStyle,
 } from "./_lib/cover-title-layout";
-import { isWechatImportedHtmlDraft, normalizeConsecutiveImageBlocks } from "./_lib/draft-utils";
+import {
+  isWechatImportedHtmlDraft,
+  normalizeConsecutiveImageBlocks,
+  replaceLocalImageRefs,
+  restoreLocalImageRefs,
+} from "./_lib/draft-utils";
 import { aiStorageKeys, sampleText } from "./_lib/formatter-constants";
 import {
   DEFAULT_POSTER_TEXT_STYLE,
@@ -97,27 +102,6 @@ const createReversePromptTemplateName = (target: ReversePromptTarget, article: s
   return `逆向生成-${reversePromptTargetLabels[target]}-${title}`;
 };
 
-const replaceLocalImageRefs = (content: string, imageMap: Map<string, string>) =>
-  content
-    .replace(/!\[(.*?)\]\(#([A-Za-z0-9_-]+)\)/g, (match, alt, imageId) => {
-      const base64 = imageMap.get(imageId);
-      return base64 ? `![${alt}](${base64})` : match;
-    })
-    .replace(
-      /(<img\b[^>]*\bsrc=["'])#([A-Za-z0-9_-]+)(["'][^>]*>)/gi,
-      (match, beforeSrc, imageId, afterSrc) => {
-        const base64 = imageMap.get(imageId);
-        return base64 ? `${beforeSrc}${base64}${afterSrc}` : match;
-      },
-    )
-    .replace(
-      /(<img\b[^>]*\bdata-src=["'])#([A-Za-z0-9_-]+)(["'][^>]*>)/gi,
-      (match, beforeSrc, imageId, afterSrc) => {
-        const base64 = imageMap.get(imageId);
-        return base64 ? `${beforeSrc}${base64}${afterSrc}` : match;
-      },
-    );
-
 export default function Home() {
   const [inputText, setInputText] = useState(sampleText);
   const [activeTab, setActiveTab] = useState<ActiveTab>("input");
@@ -175,6 +159,16 @@ export default function Home() {
   const copyToClipboard = useClipboardCopy(showToast);
   const { syncScroll, setSyncScroll, previewRef, handleInputScroll, handlePreviewScroll } =
     useScrollSync(inputRef);
+  const renderedInputText = useMemo(
+    () => replaceLocalImageRefs(inputText, imageMap),
+    [inputText, imageMap],
+  );
+  const handleRenderedHtmlDraftChange = useCallback(
+    (html: string) => {
+      setInputText(restoreLocalImageRefs(html, imageMap));
+    },
+    [imageMap],
+  );
   const draftAutosave = useDraftAutosave({
     inputText,
     setInputText: setNormalizedInputText,
@@ -540,7 +534,9 @@ export default function Home() {
             <MarkdownEditorPane
               activeTab={activeTab}
               inputText={inputText}
+              renderedInputText={renderedInputText}
               setInputText={setInputText}
+              onRenderedHtmlDraftChange={handleRenderedHtmlDraftChange}
               inputRef={inputRef}
               onInputScroll={handleInputScroll}
               onPaste={markdownTools.handlePaste}
