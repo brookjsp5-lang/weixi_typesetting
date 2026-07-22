@@ -61,11 +61,34 @@ test("extractWechatArticleHtml keeps WeChat title body images and inline formatt
   assert.match(result.html, /引用内容/);
 });
 
+test("extractWechatArticleHtml makes WeChat js-hidden content visible after import", () => {
+  const result = extractWechatArticleHtml(
+    `<!doctype html>
+    <html>
+      <body>
+        <h1 id="activity-name">页面标题</h1>
+        <div id="js_content" style="visibility: hidden; opacity: 0;">
+          <p>正文应该可见</p>
+        </div>
+      </body>
+    </html>`,
+  );
+
+  assert.match(result.html, /id="js_content"/);
+  assert.match(result.html, /正文应该可见/);
+  assert.doesNotMatch(result.html, /visibility:\s*hidden/i);
+  assert.doesNotMatch(result.html, /opacity:\s*0\b/i);
+  assert.match(result.html, /visibility:\s*visible/i);
+  assert.match(result.html, /opacity:\s*1/i);
+});
+
 test("import WeChat article route fetches html without caching", () => {
   assert.match(routeSource, /export async function POST/);
   assert.match(routeSource, /normalizeWechatArticleUrl/);
   assert.match(routeSource, /fetch\(articleUrl/);
   assert.match(routeSource, /cache:\s*"no-store"/);
+  assert.match(routeSource, /Mozilla\/5\.0 \(Windows NT 10\.0; Win64; x64\)/);
+  assert.match(routeSource, /Referer:\s*"https:\/\/mp\.weixin\.qq\.com\/"/);
   assert.match(routeSource, /extractWechatArticleHtml/);
 });
 

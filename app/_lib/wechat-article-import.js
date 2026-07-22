@@ -130,6 +130,30 @@ function sanitizeImportedArticleHtml(html) {
     .replace(/\s+href\s*=\s*(["'])\s*javascript:[\s\S]*?\1/gi, ' href="#"');
 }
 
+function ensureImportedContentVisible(html) {
+  return String(html || "").replace(
+    /<([a-z][a-z0-9:-]*)\b(?=[^>]*\bid=["'](?:js_content|img-content|page-content)["'])[^>]*>/gi,
+    (tag) => {
+      if (/\sstyle\s*=/i.test(tag)) {
+        return tag.replace(/\sstyle\s*=\s*(["'])([\s\S]*?)\1/i, (_match, quote, style) => {
+          let nextStyle = String(style || "")
+            .replace(/visibility\s*:\s*hidden\s*;?/gi, "")
+            .replace(/opacity\s*:\s*0(?:\.0+)?\s*;?/gi, "")
+            .replace(/display\s*:\s*none\s*;?/gi, "")
+            .trim();
+          nextStyle = nextStyle ? `${nextStyle}; ` : "";
+          return ` style=${quote}${nextStyle}visibility: visible; opacity: 1;${quote}`;
+        });
+      }
+
+      return tag.replace(/\/?>$/, (ending) => {
+        const spacing = ending.startsWith(" ") ? "" : " ";
+        return `${spacing}style="visibility: visible; opacity: 1;"${ending}`;
+      });
+    },
+  );
+}
+
 export function extractWechatArticleHtml(html) {
   const source = String(html || "");
   const title = extractWechatTitle(source);
@@ -139,7 +163,9 @@ export function extractWechatArticleHtml(html) {
     extractElementById(source, "img-content", { includeOuter: true }) ||
     extractElementById(source, "page-content", { includeOuter: true });
   const fallbackBody = source.match(/<body[^>]*>([\s\S]*?)<\/body>/i)?.[1] || source;
-  const articleHtml = sanitizeImportedArticleHtml(content || fallbackBody).trim();
+  const articleHtml = ensureImportedContentVisible(
+    sanitizeImportedArticleHtml(content || fallbackBody),
+  ).trim();
   const titleBlock = sanitizeImportedArticleHtml(
     titleHtml || (title ? `<h1>${escapeHtml(title)}</h1>` : ""),
   ).trim();

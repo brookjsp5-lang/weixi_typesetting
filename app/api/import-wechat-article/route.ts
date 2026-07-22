@@ -20,8 +20,9 @@ export async function POST(req: Request) {
       headers: {
         Accept: "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
         "Accept-Language": "zh-CN,zh;q=0.9,en;q=0.6",
+        Referer: "https://mp.weixin.qq.com/",
         "User-Agent":
-          "Mozilla/5.0 (compatible; TypeZenWechatImporter/1.0; +https://weixi-typesetting.vercel.app)",
+          "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36",
       },
       redirect: "follow",
       signal: AbortSignal.timeout(15000),
