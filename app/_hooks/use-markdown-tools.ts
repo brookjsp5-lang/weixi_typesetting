@@ -1,5 +1,5 @@
 import type React from "react";
-import { useCallback } from "react";
+import { useCallback, useState } from "react";
 import {
   htmlToMarkdownDraft,
   localizeRemoteMarkdownImages,
@@ -36,6 +36,8 @@ export function useMarkdownTools({
   setShowImageModal,
   showToast,
 }: UseMarkdownToolsParams) {
+  const [isImportingWechatArticle, setIsImportingWechatArticle] = useState(false);
+
   const importRemoteImage = useCallback(async (url: string) => {
     const response = await fetch("/api/import-image", {
       method: "POST",
@@ -259,6 +261,80 @@ export function useMarkdownTools({
     setShowImageModal(false);
   }, [imageDesc, imageUrl, inputRef, inputText, setInputText, setShowImageModal]);
 
+  const importWechatArticle = useCallback(
+    async (rawUrl: string) => {
+      const url = rawUrl.trim();
+      if (!url) {
+        showToast("请先填写微信公众号文章链接", "error");
+        return;
+      }
+
+      setIsImportingWechatArticle(true);
+      try {
+        const response = await fetch("/api/import-wechat-article", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ url }),
+        });
+
+        if (!response.ok) {
+          const data = (await response.json().catch(() => null)) as { error?: string } | null;
+          showToast(data?.error || "公众号文章导入失败，请重试", "error");
+          return;
+        }
+
+        const article = (await response.json()) as { html?: string; title?: string };
+        const localImages = new Map<string, string>();
+        const result = htmlToMarkdownDraft(article.html || "", (dataUrl) => {
+          const imageId = `img-${++imageCounterRef.current}`;
+          localImages.set(imageId, dataUrl);
+          return `#${imageId}`;
+        });
+
+        if (!result.markdown.trim()) {
+          showToast("未识别到公众号正文内容", "error");
+          return;
+        }
+
+        const localized = await localizeRemoteMarkdownImages(
+          result.markdown,
+          importRemoteImage,
+          (dataUrl) => {
+            const imageId = `img-${++imageCounterRef.current}`;
+            localImages.set(imageId, dataUrl);
+            return `#${imageId}`;
+          },
+        );
+        const markdownToImport = normalizeConsecutiveImageBlocks(localized.markdown);
+
+        setImageMap(() => {
+          const next = new Map<string, string>();
+          localImages.forEach((value, key) => {
+            next.set(key, value);
+          });
+          return next;
+        });
+        setInputText(markdownToImport);
+
+        const imageMessage =
+          localized.localizedCount > 0 ? `，已导入 ${localized.localizedCount} 张图片` : "";
+        showToast(`公众号文章已导入初稿${imageMessage}`);
+
+        const failedImages = result.skippedImages + localized.failedCount;
+        if (failedImages > 0) {
+          showToast(`已导入正文，${failedImages} 张图片因权限或地址不可用未本地化`, "error");
+        }
+      } catch {
+        showToast("公众号文章导入失败，请稍后重试", "error");
+      } finally {
+        setIsImportingWechatArticle(false);
+      }
+    },
+    [imageCounterRef, importRemoteImage, setImageMap, setInputText, showToast],
+  );
+
   const handlePaste = useCallback(
     async (e: React.ClipboardEvent<HTMLTextAreaElement>) => {
       const html = e.clipboardData?.getData("text/html");
@@ -416,6 +492,8 @@ export function useMarkdownTools({
     insertCodeBlock,
     insertLink,
     insertImage,
+    importWechatArticle,
+    isImportingWechatArticle,
     handleLocalImage,
     handleFileChange,
     handleOnlineImage,

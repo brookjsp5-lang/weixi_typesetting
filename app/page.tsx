@@ -65,7 +65,6 @@ const DEFAULT_FORMAT_TWEAKS: FormatTweaks = {
   pagePaddingLeft: 16,
   letterSpacing: 0,
   imageRadius: 8,
-  themeColor: "#ff6f9f",
   h1Layout: "center",
   h2Layout: "left",
 };
@@ -111,6 +110,7 @@ export default function Home() {
   const [imageMap, setImageMap] = useState<Map<string, string>>(new Map());
   const [imageUrl, setImageUrl] = useState("");
   const [imageDesc, setImageDesc] = useState("");
+  const [wechatArticleUrl, setWechatArticleUrl] = useState("");
   const [hasCopiedForPublish, setHasCopiedForPublish] = useState(false);
   const [coverTextMode, setCoverTextMode] = useState<ImageTextMode>("canvas");
   const [coverTitleStyle, setCoverTitleStyle] = useState<CoverTitleStyle>(
@@ -527,6 +527,10 @@ export default function Home() {
               onPaste={markdownTools.handlePaste}
               wordCount={wordCount}
               draftSaveStatusText={draftAutosave.draftSaveStatusText}
+              wechatArticleUrl={wechatArticleUrl}
+              setWechatArticleUrl={setWechatArticleUrl}
+              isImportingWechatArticle={markdownTools.isImportingWechatArticle}
+              onImportWechatArticle={markdownTools.importWechatArticle}
               insertMarkdown={markdownTools.insertMarkdown}
               insertHeading={markdownTools.insertHeading}
               insertList={markdownTools.insertList}

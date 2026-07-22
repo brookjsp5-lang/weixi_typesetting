@@ -225,8 +225,8 @@ export function SettingsPane({
                       key={template.id}
                       onClick={() => {
                         setCurrentTemplateId(template.id);
-                        // 同步颜色到调色板
-                        updateFormatTweaks("themeColor", template.themeColor);
+                        // Clear custom color so the selected template can use its own palette.
+                        updateFormatTweaks("themeColor", undefined);
                         // 同步二级标题排版到模板默认值
                         updateFormatTweaks("h2Layout", template.defaultH2Layout);
                       }}
@@ -262,9 +262,10 @@ export function SettingsPane({
                     <Palette className="w-3.5 h-3.5" />
                     自定义主题色
                   </div>
-                  {formatTweaks.themeColor !== currentTemplate?.themeColor && (
+                  {formatTweaks.themeColor &&
+                    formatTweaks.themeColor !== currentTemplate?.themeColor && (
                     <button
-                      onClick={() => updateFormatTweaks("themeColor", currentTemplate?.themeColor)}
+                      onClick={() => updateFormatTweaks("themeColor", undefined)}
                       className="text-[10px] font-black underline hover:text-(--neo-cyan)"
                     >
                       重置默认

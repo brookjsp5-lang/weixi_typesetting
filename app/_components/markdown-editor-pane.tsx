@@ -5,6 +5,7 @@ import {
   Link as LinkIcon,
   List,
   ListOrdered,
+  Loader2,
   Minus,
   Quote,
 } from "lucide-react";
@@ -20,6 +21,10 @@ type MarkdownEditorPaneProps = {
   onPaste: (e: React.ClipboardEvent<HTMLTextAreaElement>) => void;
   wordCount: WordCount;
   draftSaveStatusText: string;
+  wechatArticleUrl: string;
+  setWechatArticleUrl: React.Dispatch<React.SetStateAction<string>>;
+  isImportingWechatArticle: boolean;
+  onImportWechatArticle: (url: string) => void;
   insertMarkdown: (prefix: string, suffix?: string, placeholder?: string) => void;
   insertHeading: (level: number) => void;
   insertList: (type: "ul" | "ol") => void;
@@ -38,6 +43,10 @@ export function MarkdownEditorPane({
   onPaste,
   wordCount,
   draftSaveStatusText,
+  wechatArticleUrl,
+  setWechatArticleUrl,
+  isImportingWechatArticle,
+  onImportWechatArticle,
   insertMarkdown,
   insertHeading,
   insertList,
@@ -63,6 +72,41 @@ export function MarkdownEditorPane({
           >
             <span className="hidden max-[340px]:inline">恢复示例</span>
             <span className="inline max-[340px]:hidden">恢复示例内容</span>
+          </button>
+        </div>
+      </div>
+
+      <div className="bg-(--neo-surface) px-3 py-2 border-b border-(--neo-line) shrink-0">
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+          <label className="flex min-w-0 flex-1 items-center gap-2">
+            <LinkIcon className="h-4 w-4 shrink-0 text-(--neo-ink)" />
+            <span className="shrink-0 text-xs font-black text-(--neo-ink)">公众号链接</span>
+            <input
+              type="url"
+              value={wechatArticleUrl}
+              onChange={(event) => setWechatArticleUrl(event.target.value)}
+              onKeyDown={(event) => {
+                if (event.key === "Enter" && !isImportingWechatArticle) {
+                  onImportWechatArticle(wechatArticleUrl);
+                }
+              }}
+              className="neo-input h-9 min-w-0 flex-1 px-3 py-1.5 text-xs"
+              placeholder="https://mp.weixin.qq.com/s/..."
+            />
+          </label>
+          <button
+            type="button"
+            onClick={() => onImportWechatArticle(wechatArticleUrl)}
+            disabled={isImportingWechatArticle}
+            className="neo-button neo-button-secondary inline-flex h-9 shrink-0 items-center justify-center gap-2 px-3 text-xs"
+            title="导入公众号文章到初稿"
+          >
+            {isImportingWechatArticle ? (
+              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+            ) : (
+              <LinkIcon className="h-3.5 w-3.5" />
+            )}
+            {isImportingWechatArticle ? "导入中..." : "导入公众号"}
           </button>
         </div>
       </div>
