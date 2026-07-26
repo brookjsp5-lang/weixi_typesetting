@@ -306,6 +306,7 @@ function RichHtmlDraftEditor({
   const initialHtmlRef = useRef(renderedValue);
   const selectedElementRef = useRef<HTMLElement | null>(null);
   const deletedHtmlStackRef = useRef<string[]>([]);
+  const pendingLocalHtmlRef = useRef("");
 
   const clearSelectedElement = useCallback(() => {
     selectedElementRef.current?.removeAttribute(RICH_SELECTED_ATTR);
@@ -324,6 +325,7 @@ function RichHtmlDraftEditor({
   const commitEditorHtml = useCallback(
     (editor: HTMLElement) => {
       const nextHtml = serializeRichEditorHtml(editor);
+      pendingLocalHtmlRef.current = nextHtml;
       lastHtmlRef.current = nextHtml;
       onChange(nextHtml);
       window.requestAnimationFrame(() => {
@@ -343,6 +345,7 @@ function RichHtmlDraftEditor({
 
       clearSelectedElement();
       editor.innerHTML = previousHtml;
+      pendingLocalHtmlRef.current = previousHtml;
       lastHtmlRef.current = previousHtml;
       onChange(previousHtml);
       return true;
@@ -370,7 +373,18 @@ function RichHtmlDraftEditor({
       return;
     }
 
-    if (lastHtmlRef.current === renderedValue && serializeRichEditorHtml(editor) === renderedValue) {
+    const currentHtml = serializeRichEditorHtml(editor);
+    const pendingLocalHtml = pendingLocalHtmlRef.current;
+
+    if (pendingLocalHtml && currentHtml === pendingLocalHtml && renderedValue !== pendingLocalHtml) {
+      return;
+    }
+
+    if (pendingLocalHtml && renderedValue === pendingLocalHtml) {
+      pendingLocalHtmlRef.current = "";
+    }
+
+    if (lastHtmlRef.current === renderedValue && currentHtml === renderedValue) {
       lastHtmlRef.current = renderedValue;
       return;
     }

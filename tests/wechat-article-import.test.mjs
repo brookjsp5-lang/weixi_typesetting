@@ -179,7 +179,7 @@ test("imported WeChat html text selections can be deleted and synced", () => {
 test("rich html draft editor resyncs external imports from the actual DOM", () => {
   assert.match(
     editorSource,
-    /if \(lastHtmlRef\.current === renderedValue && serializeRichEditorHtml\(editor\) === renderedValue\) {\s+lastHtmlRef\.current = renderedValue;\s+return;\s+}\s+clearSelectedElement\(\);\s+editor\.innerHTML = renderedValue;/,
+    /const currentHtml = serializeRichEditorHtml\(editor\);[\s\S]*?if \(lastHtmlRef\.current === renderedValue && currentHtml === renderedValue\) {\s+lastHtmlRef\.current = renderedValue;\s+return;\s+}\s+clearSelectedElement\(\);\s+editor\.innerHTML = renderedValue;/,
   );
   assert.doesNotMatch(editorSource, /renderedValue === lastHtmlRef\.current/);
 });
@@ -199,9 +199,22 @@ test("rich html draft editor rewrites stale local dom after deletions", () => {
   assert.match(editorSource, /lastHtmlRef\.current === renderedValue/);
   assert.match(
     editorSource,
-    /if \(lastHtmlRef\.current === renderedValue && serializeRichEditorHtml\(editor\) === renderedValue\) {[\s\S]*?return;[\s\S]*?}/,
+    /if \(lastHtmlRef\.current === renderedValue && currentHtml === renderedValue\) {[\s\S]*?return;[\s\S]*?}/,
   );
   assert.doesNotMatch(editorSource, /if \(serializeRichEditorHtml\(editor\) === renderedValue\) {/);
+});
+
+test("rich html draft editor ignores stale props after local deletions", () => {
+  assert.match(editorSource, /pendingLocalHtmlRef/);
+  assert.match(editorSource, /pendingLocalHtmlRef\.current = nextHtml;/);
+  assert.match(
+    editorSource,
+    /if \(pendingLocalHtml && currentHtml === pendingLocalHtml && renderedValue !== pendingLocalHtml\) {[\s\S]*?return;[\s\S]*?}/,
+  );
+  assert.match(
+    editorSource,
+    /if \(pendingLocalHtml && renderedValue === pendingLocalHtml\) {[\s\S]*?pendingLocalHtmlRef\.current = "";[\s\S]*?}/,
+  );
 });
 
 test("markdown tools import WeChat html as layout-preserving raw html", () => {
