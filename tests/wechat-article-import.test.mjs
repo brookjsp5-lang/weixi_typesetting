@@ -147,22 +147,34 @@ test("clicking imported visual elements keeps delete key in the editor", () => {
 test("selected imported visual elements can be deleted from document keydown", () => {
   assert.match(editorSource, /function isDeleteKey/);
   assert.match(editorSource, /function isUndoKey/);
-  assert.match(editorSource, /document\.addEventListener\("keydown", handleDocumentKeyDown\);/);
-  assert.match(editorSource, /document\.removeEventListener\("keydown", handleDocumentKeyDown\);/);
+  assert.match(editorSource, /document\.addEventListener\("keydown", handleDocumentKeyDown, true\);/);
+  assert.match(editorSource, /document\.removeEventListener\("keydown", handleDocumentKeyDown, true\);/);
   assert.match(
     editorSource,
     /selectedElementRef\.current && isDeleteKey\(event\)/,
   );
 });
 
+test("selected imported visual deletion is handled before native contenteditable input", () => {
+  assert.match(editorSource, /onKeyDownCapture=\{handleVisualElementDelete\}/);
+  assert.match(editorSource, /document\.addEventListener\("keydown", handleDocumentKeyDown, true\);/);
+  assert.match(editorSource, /document\.removeEventListener\("keydown", handleDocumentKeyDown, true\);/);
+  assert.match(
+    editorSource,
+    /selection\.deleteFromDocument\(\);\s+event\.stopPropagation\(\);\s+commitEditorHtml\(editor\);/,
+  );
+});
+
 test("imported visual deletions can be restored with keyboard undo", () => {
   assert.match(editorSource, /deletedHtmlStackRef/);
-  assert.match(editorSource, /deletedHtmlStackRef\.current\.push\(serializeRichEditorHtml\(editor\)\);/);
+  assert.match(editorSource, /html: serializeRichEditorHtml\(editor\)/);
+  assert.match(editorSource, /targets: \[createDeletedVisualTarget\(editor, selectedElement\)\]/);
   assert.match(editorSource, /isUndoKey\(event\)/);
   assert.match(editorSource, /const previousHtml = deletedHtmlStackRef\.current\.pop\(\);/);
-  assert.match(editorSource, /editor\.innerHTML = previousHtml;/);
-  assert.match(editorSource, /lastHtmlRef\.current = previousHtml;/);
-  assert.match(editorSource, /onChange\(previousHtml\);/);
+  assert.match(editorSource, /refreshActiveDeletedVisualTargets\(\);/);
+  assert.match(editorSource, /editor\.innerHTML = previousHtml\.html;/);
+  assert.match(editorSource, /lastHtmlRef\.current = previousHtml\.html;/);
+  assert.match(editorSource, /onChange\(previousHtml\.html\);/);
 });
 
 test("imported WeChat html text selections can be deleted and synced", () => {
@@ -172,7 +184,7 @@ test("imported WeChat html text selections can be deleted and synced", () => {
   assert.match(editorSource, /selection\.deleteFromDocument\(\);/);
   assert.match(
     editorSource,
-    /selection\.deleteFromDocument\(\);\s+commitEditorHtml\(editor\);/,
+    /selection\.deleteFromDocument\(\);\s+event\.stopPropagation\(\);\s+commitEditorHtml\(editor\);/,
   );
 });
 
@@ -214,6 +226,18 @@ test("rich html draft editor ignores stale props after local deletions", () => {
   assert.match(
     editorSource,
     /if \(pendingLocalHtml && renderedValue === pendingLocalHtml\) {[\s\S]*?pendingLocalHtmlRef\.current = "";[\s\S]*?}/,
+  );
+});
+
+test("rich html draft editor prunes deleted visual targets from rehydrated stale html", () => {
+  assert.match(editorSource, /type DeletedVisualTarget/);
+  assert.match(editorSource, /activeDeletedVisualTargetsRef/);
+  assert.match(editorSource, /function createDeletedVisualTarget/);
+  assert.match(editorSource, /function removeDeletedVisualTargets/);
+  assert.match(editorSource, /removeDeletedVisualTargets\(editor, activeDeletedVisualTargetsRef\.current\)/);
+  assert.match(
+    editorSource,
+    /editor\.innerHTML = renderedValue;[\s\S]*?if \(pruneDeletedVisualTargets\(editor\)\) {[\s\S]*?return;[\s\S]*?}/,
   );
 });
 

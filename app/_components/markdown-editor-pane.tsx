@@ -234,6 +234,16 @@ const escapeHtml = (value: string) =>
 const RICH_SELECTED_ATTR = "data-typezen-selected";
 const VISUAL_ELEMENT_SELECTOR = "img, video, table, blockquote, pre, hr";
 
+type DeletedVisualTarget = {
+  path: number[];
+  signatures: string[];
+};
+
+type DeletedVisualHistory = {
+  html: string;
+  targets: DeletedVisualTarget[];
+};
+
 function isDeleteKey(event: Pick<KeyboardEvent | React.KeyboardEvent, "key">) {
   return event.key === "Backspace" || event.key === "Delete";
 }
@@ -289,6 +299,108 @@ function findRichDeletableElement(target: EventTarget | null, editor: HTMLElemen
   return deletableElement;
 }
 
+function getElementPath(root: HTMLElement, element: HTMLElement) {
+  const path: number[] = [];
+  let current: HTMLElement | null = element;
+
+  while (current && current !== root) {
+    const parent: HTMLElement | null = current.parentElement;
+    if (!parent) return [];
+
+    const index = Array.prototype.indexOf.call(parent.children, current);
+    if (index < 0) return [];
+    path.unshift(index);
+    current = parent;
+  }
+
+  return current === root ? path : [];
+}
+
+function findElementByPath(root: HTMLElement, path: number[]) {
+  let current: Element = root;
+
+  for (const index of path) {
+    const next = current.children.item(index);
+    if (!(next instanceof HTMLElement)) return null;
+    current = next;
+  }
+
+  return current instanceof HTMLElement && current !== root ? current : null;
+}
+
+function getImageSignatures(element: HTMLElement) {
+  const signatures = new Set<string>();
+  const addSignature = (name: string, value: string | null) => {
+    const normalizedValue = value?.trim();
+    if (normalizedValue) signatures.add(`${name}:${normalizedValue}`);
+  };
+  const addImage = (image: HTMLImageElement) => {
+    addSignature("src", image.getAttribute("src"));
+    addSignature("data-src", image.getAttribute("data-src"));
+    addSignature("current-src", image.currentSrc);
+  };
+
+  if (element instanceof HTMLImageElement) {
+    addImage(element);
+  }
+  element.querySelectorAll("img").forEach((image) => {
+    addImage(image);
+  });
+
+  return Array.from(signatures);
+}
+
+function elementHasImageSignature(element: HTMLElement, signatures: string[]) {
+  if (signatures.length === 0) return true;
+
+  return Array.from(element.querySelectorAll("img"))
+    .concat(element instanceof HTMLImageElement ? [element] : [])
+    .some((image) => {
+      const values = [
+        `src:${image.getAttribute("src") || ""}`,
+        `data-src:${image.getAttribute("data-src") || ""}`,
+        `current-src:${image.currentSrc || ""}`,
+      ];
+      return values.some((value) => signatures.includes(value));
+    });
+}
+
+function createDeletedVisualTarget(editor: HTMLElement, element: HTMLElement): DeletedVisualTarget {
+  return {
+    path: getElementPath(editor, element),
+    signatures: getImageSignatures(element),
+  };
+}
+
+function findDeletedVisualTargetElement(editor: HTMLElement, target: DeletedVisualTarget) {
+  const pathElement = findElementByPath(editor, target.path);
+  if (pathElement && elementHasImageSignature(pathElement, target.signatures)) {
+    return pathElement;
+  }
+
+  if (target.signatures.length === 0) return null;
+
+  for (const image of Array.from(editor.querySelectorAll("img"))) {
+    if (!elementHasImageSignature(image, target.signatures)) continue;
+    return findRichDeletableElement(image, editor) || image;
+  }
+
+  return null;
+}
+
+function removeDeletedVisualTargets(editor: HTMLElement, targets: DeletedVisualTarget[]) {
+  let removed = false;
+
+  for (const target of targets) {
+    const element = findDeletedVisualTargetElement(editor, target);
+    if (!element || !editor.contains(element) || element === editor) continue;
+    element.remove();
+    removed = true;
+  }
+
+  return removed;
+}
+
 type RichHtmlDraftEditorProps = {
   editorRef: React.RefObject<HTMLDivElement | null>;
   renderedValue: string;
@@ -305,7 +417,8 @@ function RichHtmlDraftEditor({
   const lastHtmlRef = useRef(renderedValue);
   const initialHtmlRef = useRef(renderedValue);
   const selectedElementRef = useRef<HTMLElement | null>(null);
-  const deletedHtmlStackRef = useRef<string[]>([]);
+  const deletedHtmlStackRef = useRef<DeletedVisualHistory[]>([]);
+  const activeDeletedVisualTargetsRef = useRef<DeletedVisualTarget[]>([]);
   const pendingLocalHtmlRef = useRef("");
 
   const clearSelectedElement = useCallback(() => {
@@ -322,8 +435,19 @@ function RichHtmlDraftEditor({
     [clearSelectedElement],
   );
 
+  const refreshActiveDeletedVisualTargets = useCallback(() => {
+    activeDeletedVisualTargetsRef.current = deletedHtmlStackRef.current.flatMap(
+      (history) => history.targets,
+    );
+  }, []);
+
+  const pruneDeletedVisualTargets = useCallback((editor: HTMLElement) => {
+    return removeDeletedVisualTargets(editor, activeDeletedVisualTargetsRef.current);
+  }, []);
+
   const commitEditorHtml = useCallback(
     (editor: HTMLElement) => {
+      pruneDeletedVisualTargets(editor);
       const nextHtml = serializeRichEditorHtml(editor);
       pendingLocalHtmlRef.current = nextHtml;
       lastHtmlRef.current = nextHtml;
@@ -335,22 +459,23 @@ function RichHtmlDraftEditor({
         }
       });
     },
-    [clearSelectedElement, onChange],
+    [clearSelectedElement, onChange, pruneDeletedVisualTargets],
   );
 
   const restoreDeletedHtml = useCallback(
     (editor: HTMLElement) => {
       const previousHtml = deletedHtmlStackRef.current.pop();
       if (!previousHtml) return false;
+      refreshActiveDeletedVisualTargets();
 
       clearSelectedElement();
-      editor.innerHTML = previousHtml;
-      pendingLocalHtmlRef.current = previousHtml;
-      lastHtmlRef.current = previousHtml;
-      onChange(previousHtml);
+      editor.innerHTML = previousHtml.html;
+      pendingLocalHtmlRef.current = previousHtml.html;
+      lastHtmlRef.current = previousHtml.html;
+      onChange(previousHtml.html);
       return true;
     },
-    [clearSelectedElement, onChange],
+    [clearSelectedElement, onChange, refreshActiveDeletedVisualTargets],
   );
 
   const deleteSelectedElement = useCallback(
@@ -358,13 +483,17 @@ function RichHtmlDraftEditor({
       const selectedElement = selectedElementRef.current;
       if (!selectedElement || !editor.contains(selectedElement)) return false;
 
-      deletedHtmlStackRef.current.push(serializeRichEditorHtml(editor));
+      deletedHtmlStackRef.current.push({
+        html: serializeRichEditorHtml(editor),
+        targets: [createDeletedVisualTarget(editor, selectedElement)],
+      });
+      refreshActiveDeletedVisualTargets();
       selectedElement.remove();
       selectedElementRef.current = null;
       commitEditorHtml(editor);
       return true;
     },
-    [commitEditorHtml],
+    [commitEditorHtml, refreshActiveDeletedVisualTargets],
   );
 
   useEffect(() => {
@@ -391,8 +520,12 @@ function RichHtmlDraftEditor({
 
     clearSelectedElement();
     editor.innerHTML = renderedValue;
+    if (pruneDeletedVisualTargets(editor)) {
+      commitEditorHtml(editor);
+      return;
+    }
     lastHtmlRef.current = renderedValue;
-  }, [clearSelectedElement, editorRef, renderedValue]);
+  }, [clearSelectedElement, commitEditorHtml, editorRef, pruneDeletedVisualTargets, renderedValue]);
 
   const handleVisualElementClick = useCallback(
     (event: React.MouseEvent<HTMLDivElement>) => {
@@ -441,6 +574,7 @@ function RichHtmlDraftEditor({
 
       event.preventDefault();
       selection.deleteFromDocument();
+      event.stopPropagation();
       commitEditorHtml(editor);
     },
     [commitEditorHtml, deleteSelectedElement, editorRef, restoreDeletedHtml],
@@ -464,7 +598,7 @@ function RichHtmlDraftEditor({
       }
     };
 
-    document.addEventListener("keydown", handleDocumentKeyDown);
+    document.addEventListener("keydown", handleDocumentKeyDown, true);
     const handleDocumentPointerDown = (event: PointerEvent) => {
       const editor = editorRef.current;
       if (!editor || !(event.target instanceof Node) || editor.contains(event.target)) return;
@@ -473,7 +607,7 @@ function RichHtmlDraftEditor({
 
     document.addEventListener("pointerdown", handleDocumentPointerDown);
     return () => {
-      document.removeEventListener("keydown", handleDocumentKeyDown);
+      document.removeEventListener("keydown", handleDocumentKeyDown, true);
       document.removeEventListener("pointerdown", handleDocumentPointerDown);
     };
   }, [clearSelectedElement, deleteSelectedElement, editorRef, restoreDeletedHtml]);
@@ -487,6 +621,7 @@ function RichHtmlDraftEditor({
         commitEditorHtml(event.currentTarget);
       }}
       onClick={handleVisualElementClick}
+      onKeyDownCapture={handleVisualElementDelete}
       onKeyDown={handleVisualElementDelete}
       onScroll={onScroll}
       className="rich-html-draft-editor flex-1 w-full overflow-y-auto custom-scrollbar bg-white p-4 lg:p-6 text-(--neo-ink) focus:outline-none [&_*]:max-w-full [&_img]:h-auto [&_img]:max-w-full"
