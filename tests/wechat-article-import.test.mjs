@@ -132,7 +132,7 @@ test("imported WeChat html visual elements can be deleted and synced", () => {
   assert.match(editorSource, /onKeyDown=\{handleVisualElementDelete\}/);
   assert.match(
     editorSource,
-    /selectedElement\.remove\(\);\s+selectedElementRef\.current = null;\s+const nextHtml = serializeRichEditorHtml\(editor\);\s+lastHtmlRef\.current = nextHtml;\s+onChange\(nextHtml\);/,
+    /selectedElement\.remove\(\);\s+selectedElementRef\.current = null;\s+commitEditorHtml\(editor\);/,
   );
 });
 
@@ -151,14 +151,14 @@ test("imported WeChat html text selections can be deleted and synced", () => {
   assert.match(editorSource, /selection\.deleteFromDocument\(\);/);
   assert.match(
     editorSource,
-    /const nextHtml = serializeRichEditorHtml\(editor\);\s+lastHtmlRef\.current = nextHtml;\s+onChange\(nextHtml\);/,
+    /selection\.deleteFromDocument\(\);\s+commitEditorHtml\(editor\);/,
   );
 });
 
 test("rich html draft editor resyncs external imports from the actual DOM", () => {
   assert.match(
     editorSource,
-    /if \(serializeRichEditorHtml\(editor\) === renderedValue\) {\s+lastHtmlRef\.current = renderedValue;\s+return;\s+}\s+clearSelectedElement\(\);\s+editor\.innerHTML = renderedValue;/,
+    /if \(lastHtmlRef\.current === renderedValue && serializeRichEditorHtml\(editor\) === renderedValue\) {\s+lastHtmlRef\.current = renderedValue;\s+return;\s+}\s+clearSelectedElement\(\);\s+editor\.innerHTML = renderedValue;/,
   );
   assert.doesNotMatch(editorSource, /renderedValue === lastHtmlRef\.current/);
 });
@@ -169,6 +169,18 @@ test("rich html draft editor does not persist transient selection markers", () =
     /onRenderedHtmlDraftChange\(serializeRichEditorHtml\(editor\)\);/,
   );
   assert.doesNotMatch(editorSource, /onRenderedHtmlDraftChange\(editor\.innerHTML\)/);
+});
+
+test("rich html draft editor rewrites stale local dom after deletions", () => {
+  assert.match(editorSource, /const commitEditorHtml = useCallback/);
+  assert.match(editorSource, /window\.requestAnimationFrame\(\(\) => {/);
+  assert.match(editorSource, /editor\.innerHTML = nextHtml;/);
+  assert.match(editorSource, /lastHtmlRef\.current === renderedValue/);
+  assert.match(
+    editorSource,
+    /if \(lastHtmlRef\.current === renderedValue && serializeRichEditorHtml\(editor\) === renderedValue\) {[\s\S]*?return;[\s\S]*?}/,
+  );
+  assert.doesNotMatch(editorSource, /if \(serializeRichEditorHtml\(editor\) === renderedValue\) {/);
 });
 
 test("markdown tools import WeChat html as layout-preserving raw html", () => {

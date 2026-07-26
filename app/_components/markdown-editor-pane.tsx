@@ -305,13 +305,28 @@ function RichHtmlDraftEditor({
     [clearSelectedElement],
   );
 
+  const commitEditorHtml = useCallback(
+    (editor: HTMLElement) => {
+      const nextHtml = serializeRichEditorHtml(editor);
+      lastHtmlRef.current = nextHtml;
+      onChange(nextHtml);
+      window.requestAnimationFrame(() => {
+        if (serializeRichEditorHtml(editor) !== nextHtml) {
+          clearSelectedElement();
+          editor.innerHTML = nextHtml;
+        }
+      });
+    },
+    [clearSelectedElement, onChange],
+  );
+
   useEffect(() => {
     const editor = editorRef.current;
     if (!editor) {
       return;
     }
 
-    if (serializeRichEditorHtml(editor) === renderedValue) {
+    if (lastHtmlRef.current === renderedValue && serializeRichEditorHtml(editor) === renderedValue) {
       lastHtmlRef.current = renderedValue;
       return;
     }
@@ -351,9 +366,7 @@ function RichHtmlDraftEditor({
         event.preventDefault();
         selectedElement.remove();
         selectedElementRef.current = null;
-        const nextHtml = serializeRichEditorHtml(editor);
-        lastHtmlRef.current = nextHtml;
-        onChange(nextHtml);
+        commitEditorHtml(editor);
         return;
       }
 
@@ -365,11 +378,9 @@ function RichHtmlDraftEditor({
 
       event.preventDefault();
       selection.deleteFromDocument();
-      const nextHtml = serializeRichEditorHtml(editor);
-      lastHtmlRef.current = nextHtml;
-      onChange(nextHtml);
+      commitEditorHtml(editor);
     },
-    [editorRef, onChange],
+    [commitEditorHtml, editorRef],
   );
 
   return (
@@ -378,9 +389,7 @@ function RichHtmlDraftEditor({
       contentEditable
       suppressContentEditableWarning
       onInput={(event) => {
-        const nextHtml = serializeRichEditorHtml(event.currentTarget);
-        lastHtmlRef.current = nextHtml;
-        onChange(nextHtml);
+        commitEditorHtml(event.currentTarget);
       }}
       onClick={handleVisualElementClick}
       onKeyDown={handleVisualElementDelete}
