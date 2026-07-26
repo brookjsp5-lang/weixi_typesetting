@@ -106,8 +106,14 @@ test("draft pane exposes WeChat article link import controls", () => {
 test("draft pane renders imported WeChat html as visual editable content", () => {
   assert.match(editorSource, /isWechatImportedHtmlDraft/);
   assert.match(editorSource, /contentEditable/);
-  assert.match(editorSource, /dangerouslySetInnerHTML/);
+  assert.match(editorSource, /useLayoutEffect/);
   assert.match(editorSource, /onInput/);
+});
+
+test("rich html draft editor does not let React rehydrate stale initial html after edits", () => {
+  assert.match(editorSource, /useLayoutEffect/);
+  assert.doesNotMatch(editorSource, /dangerouslySetInnerHTML=\{\{ __html: initialHtmlRef\.current \}\}/);
+  assert.doesNotMatch(editorSource, /const initialHtmlRef = useRef\(renderedValue\);/);
 });
 
 test("imported WeChat html drafts keep the editing toolbar visible", () => {
@@ -132,7 +138,7 @@ test("imported WeChat html visual elements can be deleted and synced", () => {
   assert.match(editorSource, /onKeyDown=\{handleVisualElementDelete\}/);
   assert.match(
     editorSource,
-    /selectedElement\.remove\(\);\s+selectedElementRef\.current = null;\s+commitEditorHtml\(editor\);/,
+    /selectedElement\.remove\(\);\s+selectedElementRef\.current = null;\s+commitEditorHtml\(editor, \{ detectDeletedVisuals: false \}\);/,
   );
 });
 
@@ -239,6 +245,13 @@ test("rich html draft editor prunes deleted visual targets from rehydrated stale
     editorSource,
     /editor\.innerHTML = renderedValue;[\s\S]*?if \(pruneDeletedVisualTargets\(editor\)\) {[\s\S]*?return;[\s\S]*?}/,
   );
+});
+
+test("rich html draft editor remembers visuals removed by native contenteditable input", () => {
+  assert.match(editorSource, /function collectDeletedVisualTargets/);
+  assert.match(editorSource, /const deletedTargets = collectDeletedVisualTargets\(previousHtml, nextHtml\);/);
+  assert.match(editorSource, /deletedHtmlStackRef\.current\.push\(\{\s+html: previousHtml,\s+targets: deletedTargets,\s+\}\);/);
+  assert.match(editorSource, /commitEditorHtml\(editor, \{ detectDeletedVisuals: false \}\);/);
 });
 
 test("markdown tools import WeChat html as layout-preserving raw html", () => {
