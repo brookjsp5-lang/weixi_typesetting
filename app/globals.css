@@ -278,6 +278,13 @@ body {
   box-shadow: none;
 }
 
+.rich-html-draft-editor [data-typezen-selected="true"] {
+  cursor: pointer;
+  outline: 2px solid var(--neo-green);
+  outline-offset: 3px;
+  box-shadow: 0 0 0 4px rgb(7 193 96 / 14%);
+}
+
 .neo-modal-backdrop {
   background-color: rgba(17, 17, 17, 0.72);
 }

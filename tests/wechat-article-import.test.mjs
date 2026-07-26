@@ -122,10 +122,23 @@ test("imported WeChat html drafts keep the editing toolbar visible", () => {
   );
 });
 
+test("imported WeChat html visual elements can be deleted and synced", () => {
+  assert.match(editorSource, /const RICH_SELECTED_ATTR = "data-typezen-selected"/);
+  assert.match(editorSource, /function serializeRichEditorHtml/);
+  assert.match(editorSource, /function findRichDeletableElement/);
+  assert.match(editorSource, /selectedElementRef/);
+  assert.match(editorSource, /onClick=\{handleVisualElementClick\}/);
+  assert.match(editorSource, /onKeyDown=\{handleVisualElementDelete\}/);
+  assert.match(
+    editorSource,
+    /selectedElement\.remove\(\);\s+selectedElementRef\.current = null;\s+const nextHtml = serializeRichEditorHtml\(editor\);\s+lastHtmlRef\.current = nextHtml;\s+onChange\(nextHtml\);/,
+  );
+});
+
 test("rich html draft editor resyncs external imports from the actual DOM", () => {
   assert.match(
     editorSource,
-    /if \(editor\.innerHTML === renderedValue\) {\s+lastHtmlRef\.current = renderedValue;\s+return;\s+}\s+editor\.innerHTML = renderedValue;/,
+    /if \(editor\.innerHTML === renderedValue\) {\s+lastHtmlRef\.current = renderedValue;\s+return;\s+}\s+clearSelectedElement\(\);\s+editor\.innerHTML = renderedValue;/,
   );
   assert.doesNotMatch(editorSource, /renderedValue === lastHtmlRef\.current/);
 });

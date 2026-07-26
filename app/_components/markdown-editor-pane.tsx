@@ -231,6 +231,41 @@ const escapeHtml = (value: string) =>
     .replace(/>/g, "&gt;")
     .replace(/"/g, "&quot;");
 
+const RICH_SELECTED_ATTR = "data-typezen-selected";
+const VISUAL_ELEMENT_SELECTOR = "img, video, table, blockquote, pre, hr";
+
+function serializeRichEditorHtml(editor: HTMLElement) {
+  const clone = editor.cloneNode(true) as HTMLElement;
+  clone.querySelectorAll(`[${RICH_SELECTED_ATTR}]`).forEach((element) => {
+    element.removeAttribute(RICH_SELECTED_ATTR);
+  });
+  return clone.innerHTML;
+}
+
+function isImageOnlyWrapper(element: HTMLElement) {
+  return !element.textContent?.trim() && Boolean(element.querySelector("img"));
+}
+
+function findRichDeletableElement(target: EventTarget | null, editor: HTMLElement) {
+  if (!(target instanceof HTMLElement)) return null;
+
+  const visualTarget = target.closest(VISUAL_ELEMENT_SELECTOR);
+  if (!(visualTarget instanceof HTMLElement) || !editor.contains(visualTarget)) return null;
+
+  if (visualTarget.tagName.toLowerCase() !== "img") {
+    return visualTarget;
+  }
+
+  let deletableElement = visualTarget;
+  let parent = deletableElement.parentElement;
+  while (parent && parent !== editor && editor.contains(parent) && isImageOnlyWrapper(parent)) {
+    deletableElement = parent;
+    parent = parent.parentElement;
+  }
+
+  return deletableElement;
+}
+
 type RichHtmlDraftEditorProps = {
   editorRef: React.RefObject<HTMLDivElement | null>;
   renderedValue: string;
@@ -246,6 +281,21 @@ function RichHtmlDraftEditor({
 }: RichHtmlDraftEditorProps) {
   const lastHtmlRef = useRef(renderedValue);
   const initialHtmlRef = useRef(renderedValue);
+  const selectedElementRef = useRef<HTMLElement | null>(null);
+
+  const clearSelectedElement = useCallback(() => {
+    selectedElementRef.current?.removeAttribute(RICH_SELECTED_ATTR);
+    selectedElementRef.current = null;
+  }, []);
+
+  const selectVisualElement = useCallback(
+    (element: HTMLElement) => {
+      clearSelectedElement();
+      element.setAttribute(RICH_SELECTED_ATTR, "true");
+      selectedElementRef.current = element;
+    },
+    [clearSelectedElement],
+  );
 
   useEffect(() => {
     const editor = editorRef.current;
@@ -258,9 +308,45 @@ function RichHtmlDraftEditor({
       return;
     }
 
+    clearSelectedElement();
     editor.innerHTML = renderedValue;
     lastHtmlRef.current = renderedValue;
-  }, [renderedValue]);
+  }, [clearSelectedElement, editorRef, renderedValue]);
+
+  const handleVisualElementClick = useCallback(
+    (event: React.MouseEvent<HTMLDivElement>) => {
+      const editor = editorRef.current;
+      if (!editor) return;
+
+      const deletableElement = findRichDeletableElement(event.target, editor);
+      if (!deletableElement) {
+        clearSelectedElement();
+        return;
+      }
+
+      event.preventDefault();
+      selectVisualElement(deletableElement);
+    },
+    [clearSelectedElement, editorRef, selectVisualElement],
+  );
+
+  const handleVisualElementDelete = useCallback(
+    (event: React.KeyboardEvent<HTMLDivElement>) => {
+      if (event.key !== "Backspace" && event.key !== "Delete") return;
+
+      const editor = editorRef.current;
+      const selectedElement = selectedElementRef.current;
+      if (!editor || !selectedElement || !editor.contains(selectedElement)) return;
+
+      event.preventDefault();
+      selectedElement.remove();
+      selectedElementRef.current = null;
+      const nextHtml = serializeRichEditorHtml(editor);
+      lastHtmlRef.current = nextHtml;
+      onChange(nextHtml);
+    },
+    [editorRef, onChange],
+  );
 
   return (
     <div
@@ -268,12 +354,14 @@ function RichHtmlDraftEditor({
       contentEditable
       suppressContentEditableWarning
       onInput={(event) => {
-        const nextHtml = event.currentTarget.innerHTML;
+        const nextHtml = serializeRichEditorHtml(event.currentTarget);
         lastHtmlRef.current = nextHtml;
         onChange(nextHtml);
       }}
+      onClick={handleVisualElementClick}
+      onKeyDown={handleVisualElementDelete}
       onScroll={onScroll}
-      className="flex-1 w-full overflow-y-auto custom-scrollbar bg-white p-4 lg:p-6 text-(--neo-ink) focus:outline-none [&_*]:max-w-full [&_img]:h-auto [&_img]:max-w-full"
+      className="rich-html-draft-editor flex-1 w-full overflow-y-auto custom-scrollbar bg-white p-4 lg:p-6 text-(--neo-ink) focus:outline-none [&_*]:max-w-full [&_img]:h-auto [&_img]:max-w-full"
       dangerouslySetInnerHTML={{ __html: initialHtmlRef.current }}
     />
   );
