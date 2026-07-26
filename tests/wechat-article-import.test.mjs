@@ -136,6 +136,14 @@ test("imported WeChat html visual elements can be deleted and synced", () => {
   );
 });
 
+test("clicking imported visual elements keeps delete key in the editor", () => {
+  assert.match(editorSource, /editor\.focus\(\{ preventScroll: true \}\);/);
+  assert.match(
+    editorSource,
+    /selectVisualElement\(deletableElement\);\s+editor\.focus\(\{ preventScroll: true \}\);/,
+  );
+});
+
 test("imported WeChat html text selections can be deleted and synced", () => {
   assert.match(editorSource, /const selection = window\.getSelection\(\);/);
   assert.match(editorSource, /selection && !selection\.isCollapsed/);

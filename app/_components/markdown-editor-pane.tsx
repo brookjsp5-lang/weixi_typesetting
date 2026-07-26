@@ -334,6 +334,7 @@ function RichHtmlDraftEditor({
 
       event.preventDefault();
       selectVisualElement(deletableElement);
+      editor.focus({ preventScroll: true });
     },
     [clearSelectedElement, editorRef, selectVisualElement],
   );
