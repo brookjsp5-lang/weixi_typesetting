@@ -246,6 +246,14 @@ function isImageOnlyWrapper(element: HTMLElement) {
   return !element.textContent?.trim() && Boolean(element.querySelector("img"));
 }
 
+function isSelectionInsideRichEditor(selection: Selection, editor: HTMLElement) {
+  if (selection.rangeCount === 0) return false;
+
+  const anchorNode = selection.anchorNode;
+  const focusNode = selection.focusNode;
+  return Boolean(anchorNode && focusNode && editor.contains(anchorNode) && editor.contains(focusNode));
+}
+
 function findRichDeletableElement(target: EventTarget | null, editor: HTMLElement) {
   if (!(target instanceof HTMLElement)) return null;
 
@@ -303,7 +311,7 @@ function RichHtmlDraftEditor({
       return;
     }
 
-    if (editor.innerHTML === renderedValue) {
+    if (serializeRichEditorHtml(editor) === renderedValue) {
       lastHtmlRef.current = renderedValue;
       return;
     }
@@ -335,12 +343,27 @@ function RichHtmlDraftEditor({
       if (event.key !== "Backspace" && event.key !== "Delete") return;
 
       const editor = editorRef.current;
+      if (!editor) return;
+
       const selectedElement = selectedElementRef.current;
-      if (!editor || !selectedElement || !editor.contains(selectedElement)) return;
+      if (selectedElement && editor.contains(selectedElement)) {
+        event.preventDefault();
+        selectedElement.remove();
+        selectedElementRef.current = null;
+        const nextHtml = serializeRichEditorHtml(editor);
+        lastHtmlRef.current = nextHtml;
+        onChange(nextHtml);
+        return;
+      }
+
+      selectedElementRef.current = null;
+      const selection = window.getSelection();
+      if (!(selection && !selection.isCollapsed && isSelectionInsideRichEditor(selection, editor))) {
+        return;
+      }
 
       event.preventDefault();
-      selectedElement.remove();
-      selectedElementRef.current = null;
+      selection.deleteFromDocument();
       const nextHtml = serializeRichEditorHtml(editor);
       lastHtmlRef.current = nextHtml;
       onChange(nextHtml);
@@ -398,7 +421,7 @@ export function MarkdownEditorPane({
     const editor = richEditorRef.current;
     if (!editor) return;
 
-    onRenderedHtmlDraftChange(editor.innerHTML);
+    onRenderedHtmlDraftChange(serializeRichEditorHtml(editor));
   }, [onRenderedHtmlDraftChange]);
 
   const runRichEditorCommand = useCallback(

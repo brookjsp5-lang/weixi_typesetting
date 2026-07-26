@@ -125,6 +125,7 @@ test("imported WeChat html drafts keep the editing toolbar visible", () => {
 test("imported WeChat html visual elements can be deleted and synced", () => {
   assert.match(editorSource, /const RICH_SELECTED_ATTR = "data-typezen-selected"/);
   assert.match(editorSource, /function serializeRichEditorHtml/);
+  assert.match(editorSource, /function isSelectionInsideRichEditor/);
   assert.match(editorSource, /function findRichDeletableElement/);
   assert.match(editorSource, /selectedElementRef/);
   assert.match(editorSource, /onClick=\{handleVisualElementClick\}/);
@@ -135,12 +136,31 @@ test("imported WeChat html visual elements can be deleted and synced", () => {
   );
 });
 
+test("imported WeChat html text selections can be deleted and synced", () => {
+  assert.match(editorSource, /const selection = window\.getSelection\(\);/);
+  assert.match(editorSource, /selection && !selection\.isCollapsed/);
+  assert.match(editorSource, /isSelectionInsideRichEditor\(selection, editor\)/);
+  assert.match(editorSource, /selection\.deleteFromDocument\(\);/);
+  assert.match(
+    editorSource,
+    /const nextHtml = serializeRichEditorHtml\(editor\);\s+lastHtmlRef\.current = nextHtml;\s+onChange\(nextHtml\);/,
+  );
+});
+
 test("rich html draft editor resyncs external imports from the actual DOM", () => {
   assert.match(
     editorSource,
-    /if \(editor\.innerHTML === renderedValue\) {\s+lastHtmlRef\.current = renderedValue;\s+return;\s+}\s+clearSelectedElement\(\);\s+editor\.innerHTML = renderedValue;/,
+    /if \(serializeRichEditorHtml\(editor\) === renderedValue\) {\s+lastHtmlRef\.current = renderedValue;\s+return;\s+}\s+clearSelectedElement\(\);\s+editor\.innerHTML = renderedValue;/,
   );
   assert.doesNotMatch(editorSource, /renderedValue === lastHtmlRef\.current/);
+});
+
+test("rich html draft editor does not persist transient selection markers", () => {
+  assert.match(
+    editorSource,
+    /onRenderedHtmlDraftChange\(serializeRichEditorHtml\(editor\)\);/,
+  );
+  assert.doesNotMatch(editorSource, /onRenderedHtmlDraftChange\(editor\.innerHTML\)/);
 });
 
 test("markdown tools import WeChat html as layout-preserving raw html", () => {
