@@ -126,6 +126,14 @@ test("markdown tools import WeChat html as layout-preserving raw html", () => {
   assert.doesNotMatch(markdownToolsSource, /const result = htmlToMarkdownDraft\(article\.html/);
 });
 
+test("successful WeChat imports remount the rich html draft editor", () => {
+  assert.match(markdownToolsSource, /const \[wechatImportRevision, setWechatImportRevision\] = useState\(0\)/);
+  assert.match(markdownToolsSource, /setWechatImportRevision\(\(revision\) => revision \+ 1\)/);
+  assert.match(pageSource, /htmlDraftRevision=\{markdownTools\.wechatImportRevision\}/);
+  assert.match(editorSource, /htmlDraftRevision: number/);
+  assert.match(editorSource, /key=\{`wechat-html-\$\{htmlDraftRevision\}`\}/);
+});
+
 test("page resolves local image refs inside imported raw html", () => {
   assert.match(pageSource, /replaceLocalImageRefs/);
   assert.match(pageSource, /makeImportedHtmlDraftVisible/);

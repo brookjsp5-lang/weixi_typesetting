@@ -543,6 +543,7 @@ export default function Home() {
               onPaste={markdownTools.handlePaste}
               wordCount={wordCount}
               draftSaveStatusText={draftAutosave.draftSaveStatusText}
+              htmlDraftRevision={markdownTools.wechatImportRevision}
               wechatArticleUrl={wechatArticleUrl}
               setWechatArticleUrl={setWechatArticleUrl}
               isImportingWechatArticle={markdownTools.isImportingWechatArticle}

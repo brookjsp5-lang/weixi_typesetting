@@ -38,6 +38,7 @@ export function useMarkdownTools({
   showToast,
 }: UseMarkdownToolsParams) {
   const [isImportingWechatArticle, setIsImportingWechatArticle] = useState(false);
+  const [wechatImportRevision, setWechatImportRevision] = useState(0);
 
   const importRemoteImage = useCallback(async (url: string) => {
     const response = await fetch("/api/import-image", {
@@ -312,6 +313,7 @@ export function useMarkdownTools({
           return next;
         });
         setInputText(htmlToImport);
+        setWechatImportRevision((revision) => revision + 1);
 
         const imageMessage =
           localized.localizedCount > 0 ? `，已导入 ${localized.localizedCount} 张图片` : "";
@@ -488,6 +490,7 @@ export function useMarkdownTools({
     insertImage,
     importWechatArticle,
     isImportingWechatArticle,
+    wechatImportRevision,
     handleLocalImage,
     handleFileChange,
     handleOnlineImage,

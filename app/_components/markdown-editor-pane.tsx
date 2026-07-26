@@ -25,6 +25,7 @@ type MarkdownEditorPaneProps = {
   onPaste: (e: React.ClipboardEvent<HTMLTextAreaElement>) => void;
   wordCount: WordCount;
   draftSaveStatusText: string;
+  htmlDraftRevision: number;
   wechatArticleUrl: string;
   setWechatArticleUrl: React.Dispatch<React.SetStateAction<string>>;
   isImportingWechatArticle: boolean;
@@ -96,6 +97,7 @@ export function MarkdownEditorPane({
   onPaste,
   wordCount,
   draftSaveStatusText,
+  htmlDraftRevision,
   wechatArticleUrl,
   setWechatArticleUrl,
   isImportingWechatArticle,
@@ -173,6 +175,7 @@ export function MarkdownEditorPane({
             <span>可直接点击正文修改文字，原排版会随内容一起保存。</span>
           </div>
           <RichHtmlDraftEditor
+            key={`wechat-html-${htmlDraftRevision}`}
             renderedValue={renderedInputText}
             onChange={onRenderedHtmlDraftChange}
             onScroll={(event) =>
