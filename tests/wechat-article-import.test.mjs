@@ -110,6 +110,18 @@ test("draft pane renders imported WeChat html as visual editable content", () =>
   assert.match(editorSource, /onInput/);
 });
 
+test("imported WeChat html drafts keep the editing toolbar visible", () => {
+  assert.match(editorSource, /function DraftToolbar/);
+  assert.match(
+    editorSource,
+    /isImportedHtmlDraft \? \(\s*<>\s*<DraftToolbar[\s\S]*?<RichHtmlDraftEditor/,
+  );
+  assert.match(
+    editorSource,
+    /<DraftToolbar[\s\S]*?onHeading=\{handleRichHeading\}[\s\S]*?onBold=\{handleRichBold\}[\s\S]*?onImage=\{insertImage\}/,
+  );
+});
+
 test("rich html draft editor resyncs external imports from the actual DOM", () => {
   assert.match(
     editorSource,

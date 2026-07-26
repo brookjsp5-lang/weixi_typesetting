@@ -9,7 +9,7 @@ import {
   Minus,
   Quote,
 } from "lucide-react";
-import { useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef } from "react";
 import type React from "react";
 import { isWechatImportedHtmlDraft } from "../_lib/draft-utils";
 import type { ActiveTab, WordCount } from "../_types/formatter";
@@ -39,18 +39,211 @@ type MarkdownEditorPaneProps = {
   onRestoreSample: () => void;
 };
 
+type DraftToolbarProps = {
+  onHeading: (level: number) => void;
+  onBold: () => void;
+  onItalic: () => void;
+  onStrike: () => void;
+  onUnorderedList: () => void;
+  onOrderedList: () => void;
+  onQuote: () => void;
+  onInlineCode: () => void;
+  onCodeBlock: () => void;
+  onLink: () => void;
+  onImage: () => void;
+  onDivider: () => void;
+};
+
+const keepEditorSelection = (event: React.MouseEvent<HTMLButtonElement>) => {
+  event.preventDefault();
+};
+
+function DraftToolbar({
+  onHeading,
+  onBold,
+  onItalic,
+  onStrike,
+  onUnorderedList,
+  onOrderedList,
+  onQuote,
+  onInlineCode,
+  onCodeBlock,
+  onLink,
+  onImage,
+  onDivider,
+}: DraftToolbarProps) {
+  return (
+    <div className="bg-(--neo-surface) px-3 py-2 border-b border-(--neo-line) flex flex-wrap items-center gap-2 shrink-0">
+      <div className="flex items-center gap-1 mr-2">
+        <button
+          type="button"
+          onMouseDown={keepEditorSelection}
+          onClick={() => onHeading(1)}
+          className="neo-toolbar-button p-1.5 text-sm"
+          data-tooltip="一级标题"
+          title="一级标题"
+        >
+          H1
+        </button>
+        <button
+          type="button"
+          onMouseDown={keepEditorSelection}
+          onClick={() => onHeading(2)}
+          className="neo-toolbar-button p-1.5 text-sm"
+          data-tooltip="二级标题"
+          title="二级标题"
+        >
+          H2
+        </button>
+        <button
+          type="button"
+          onMouseDown={keepEditorSelection}
+          onClick={() => onHeading(3)}
+          className="neo-toolbar-button p-1.5 text-sm"
+          data-tooltip="三级标题"
+          title="三级标题"
+        >
+          H3
+        </button>
+      </div>
+      <div className="w-px h-6 bg-(--neo-line) mx-1" />
+      <button
+        type="button"
+        onMouseDown={keepEditorSelection}
+        onClick={onBold}
+        className="neo-toolbar-button p-1.5"
+        data-tooltip="加粗"
+        title="加粗 (Ctrl+B)"
+      >
+        B
+      </button>
+      <button
+        type="button"
+        onMouseDown={keepEditorSelection}
+        onClick={onItalic}
+        className="neo-toolbar-button p-1.5 italic"
+        data-tooltip="斜体"
+        title="斜体 (Ctrl+I)"
+      >
+        I
+      </button>
+      <button
+        type="button"
+        onMouseDown={keepEditorSelection}
+        onClick={onStrike}
+        className="neo-toolbar-button p-1.5 line-through"
+        data-tooltip="删除线"
+        title="删除线"
+      >
+        S
+      </button>
+      <div className="w-px h-6 bg-(--neo-line) mx-1" />
+      <button
+        type="button"
+        onMouseDown={keepEditorSelection}
+        onClick={onUnorderedList}
+        className="neo-toolbar-button p-1.5"
+        data-tooltip="无序列表"
+        title="无序列表"
+      >
+        <List className="w-4 h-4" />
+      </button>
+      <button
+        type="button"
+        onMouseDown={keepEditorSelection}
+        onClick={onOrderedList}
+        className="neo-toolbar-button p-1.5"
+        data-tooltip="有序列表"
+        title="有序列表"
+      >
+        <ListOrdered className="w-4 h-4" />
+      </button>
+      <button
+        type="button"
+        onMouseDown={keepEditorSelection}
+        onClick={onQuote}
+        className="neo-toolbar-button p-1.5"
+        data-tooltip="引用"
+        title="引用"
+      >
+        <Quote className="w-4 h-4" />
+      </button>
+      <div className="w-px h-6 bg-(--neo-line) mx-1" />
+      <button
+        type="button"
+        onMouseDown={keepEditorSelection}
+        onClick={onInlineCode}
+        className="neo-toolbar-button p-1.5 font-mono text-sm"
+        data-tooltip="行内代码"
+        title="行内代码"
+      >
+        {"</>"}
+      </button>
+      <button
+        type="button"
+        onMouseDown={keepEditorSelection}
+        onClick={onCodeBlock}
+        className="neo-toolbar-button p-1.5"
+        data-tooltip="代码块"
+        title="代码块"
+      >
+        <Code2 className="w-4 h-4" />
+      </button>
+      <div className="w-px h-6 bg-(--neo-line) mx-1" />
+      <button
+        type="button"
+        onMouseDown={keepEditorSelection}
+        onClick={onLink}
+        className="neo-toolbar-button p-1.5"
+        data-tooltip="链接"
+        title="链接"
+      >
+        <LinkIcon className="w-4 h-4" />
+      </button>
+      <button
+        type="button"
+        onMouseDown={keepEditorSelection}
+        onClick={onImage}
+        className="neo-toolbar-button p-1.5"
+        data-tooltip="图片"
+        title="图片"
+      >
+        <ImageIcon className="w-4 h-4" />
+      </button>
+      <button
+        type="button"
+        onMouseDown={keepEditorSelection}
+        onClick={onDivider}
+        className="neo-toolbar-button p-1.5"
+        data-tooltip="分隔线"
+        title="分隔线"
+      >
+        <Minus className="w-4 h-4" />
+      </button>
+    </div>
+  );
+}
+
+const escapeHtml = (value: string) =>
+  value
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+
 type RichHtmlDraftEditorProps = {
+  editorRef: React.RefObject<HTMLDivElement | null>;
   renderedValue: string;
   onChange: (value: string) => void;
   onScroll: (event: React.UIEvent<HTMLDivElement>) => void;
 };
 
 function RichHtmlDraftEditor({
+  editorRef,
   renderedValue,
   onChange,
   onScroll,
 }: RichHtmlDraftEditorProps) {
-  const editorRef = useRef<HTMLDivElement>(null);
   const lastHtmlRef = useRef(renderedValue);
   const initialHtmlRef = useRef(renderedValue);
 
@@ -111,6 +304,111 @@ export function MarkdownEditorPane({
   onRestoreSample,
 }: MarkdownEditorPaneProps) {
   const isImportedHtmlDraft = isWechatImportedHtmlDraft(inputText);
+  const richEditorRef = useRef<HTMLDivElement>(null);
+
+  const syncRichEditorHtml = useCallback(() => {
+    const editor = richEditorRef.current;
+    if (!editor) return;
+
+    onRenderedHtmlDraftChange(editor.innerHTML);
+  }, [onRenderedHtmlDraftChange]);
+
+  const runRichEditorCommand = useCallback(
+    (command: string, value?: string) => {
+      const editor = richEditorRef.current;
+      if (!editor) return;
+
+      editor.focus();
+      document.execCommand(command, false, value);
+      syncRichEditorHtml();
+    },
+    [syncRichEditorHtml],
+  );
+
+  const getRichSelectedText = useCallback((fallback: string) => {
+    const editor = richEditorRef.current;
+    const selection = window.getSelection();
+    if (!editor || !selection || selection.rangeCount === 0) return fallback;
+
+    const anchorNode = selection.anchorNode;
+    const focusNode = selection.focusNode;
+    if (
+      anchorNode &&
+      focusNode &&
+      editor.contains(anchorNode) &&
+      editor.contains(focusNode)
+    ) {
+      return selection.toString() || fallback;
+    }
+
+    return fallback;
+  }, []);
+
+  const insertRichEditorHtml = useCallback(
+    (html: string) => {
+      const editor = richEditorRef.current;
+      if (!editor) return;
+
+      editor.focus();
+      document.execCommand("insertHTML", false, html);
+      syncRichEditorHtml();
+    },
+    [syncRichEditorHtml],
+  );
+
+  const handleRichHeading = useCallback(
+    (level: number) => runRichEditorCommand("formatBlock", `H${level}`),
+    [runRichEditorCommand],
+  );
+
+  const handleRichBold = useCallback(
+    () => runRichEditorCommand("bold"),
+    [runRichEditorCommand],
+  );
+
+  const handleRichItalic = useCallback(
+    () => runRichEditorCommand("italic"),
+    [runRichEditorCommand],
+  );
+
+  const handleRichStrike = useCallback(
+    () => runRichEditorCommand("strikeThrough"),
+    [runRichEditorCommand],
+  );
+
+  const handleRichUnorderedList = useCallback(
+    () => runRichEditorCommand("insertUnorderedList"),
+    [runRichEditorCommand],
+  );
+
+  const handleRichOrderedList = useCallback(
+    () => runRichEditorCommand("insertOrderedList"),
+    [runRichEditorCommand],
+  );
+
+  const handleRichQuote = useCallback(
+    () => runRichEditorCommand("formatBlock", "BLOCKQUOTE"),
+    [runRichEditorCommand],
+  );
+
+  const handleRichInlineCode = useCallback(() => {
+    const text = escapeHtml(getRichSelectedText("代码"));
+    insertRichEditorHtml(`<code>${text}</code>`);
+  }, [getRichSelectedText, insertRichEditorHtml]);
+
+  const handleRichCodeBlock = useCallback(() => {
+    const text = escapeHtml(getRichSelectedText("代码"));
+    insertRichEditorHtml(`<pre><code>${text}</code></pre>`);
+  }, [getRichSelectedText, insertRichEditorHtml]);
+
+  const handleRichLink = useCallback(() => {
+    const text = escapeHtml(getRichSelectedText("链接文字"));
+    insertRichEditorHtml(`<a href="url">${text}</a>`);
+  }, [getRichSelectedText, insertRichEditorHtml]);
+
+  const handleRichDivider = useCallback(() => {
+    insertRichEditorHtml("<hr />");
+  }, [insertRichEditorHtml]);
 
   return (
     <div
@@ -170,12 +468,27 @@ export function MarkdownEditorPane({
 
       {isImportedHtmlDraft ? (
         <>
+          <DraftToolbar
+            onHeading={handleRichHeading}
+            onBold={handleRichBold}
+            onItalic={handleRichItalic}
+            onStrike={handleRichStrike}
+            onUnorderedList={handleRichUnorderedList}
+            onOrderedList={handleRichOrderedList}
+            onQuote={handleRichQuote}
+            onInlineCode={handleRichInlineCode}
+            onCodeBlock={handleRichCodeBlock}
+            onLink={handleRichLink}
+            onImage={insertImage}
+            onDivider={handleRichDivider}
+          />
           <div className="bg-(--neo-surface) px-3 py-2 border-b border-(--neo-line) flex flex-wrap items-center gap-2 shrink-0 text-xs font-bold text-(--neo-muted)">
             <span className="text-(--neo-ink)">公众号原文可视化编辑</span>
             <span>可直接点击正文修改文字，原排版会随内容一起保存。</span>
           </div>
           <RichHtmlDraftEditor
             key={`wechat-html-${htmlDraftRevision}`}
+            editorRef={richEditorRef}
             renderedValue={renderedInputText}
             onChange={onRenderedHtmlDraftChange}
             onScroll={(event) =>
@@ -185,126 +498,20 @@ export function MarkdownEditorPane({
         </>
       ) : (
         <>
-          <div className="bg-(--neo-surface) px-3 py-2 border-b border-(--neo-line) flex flex-wrap items-center gap-2 shrink-0">
-            <div className="flex items-center gap-1 mr-2">
-              <button
-                onClick={() => insertHeading(1)}
-                className="neo-toolbar-button p-1.5 text-sm"
-                data-tooltip="一级标题"
-                title="一级标题"
-              >
-                H1
-              </button>
-              <button
-                onClick={() => insertHeading(2)}
-                className="neo-toolbar-button p-1.5 text-sm"
-                data-tooltip="二级标题"
-                title="二级标题"
-              >
-                H2
-              </button>
-              <button
-                onClick={() => insertHeading(3)}
-                className="neo-toolbar-button p-1.5 text-sm"
-                data-tooltip="三级标题"
-                title="三级标题"
-              >
-                H3
-              </button>
-            </div>
-            <div className="w-px h-6 bg-(--neo-line) mx-1" />
-            <button
-              onClick={() => insertMarkdown("**", "**", "加粗")}
-              className="neo-toolbar-button p-1.5"
-              data-tooltip="加粗"
-              title="加粗 (Ctrl+B)"
-            >
-              B
-            </button>
-            <button
-              onClick={() => insertMarkdown("*", "*", "斜体")}
-              className="neo-toolbar-button p-1.5 italic"
-              data-tooltip="斜体"
-              title="斜体 (Ctrl+I)"
-            >
-              I
-            </button>
-            <button
-              onClick={() => insertMarkdown("~~", "~~", "删除线")}
-              className="neo-toolbar-button p-1.5 line-through"
-              data-tooltip="删除线"
-              title="删除线"
-            >
-              S
-            </button>
-            <div className="w-px h-6 bg-(--neo-line) mx-1" />
-            <button
-              onClick={() => insertList("ul")}
-              className="neo-toolbar-button p-1.5"
-              data-tooltip="无序列表"
-              title="无序列表"
-            >
-              <List className="w-4 h-4" />
-            </button>
-            <button
-              onClick={() => insertList("ol")}
-              className="neo-toolbar-button p-1.5"
-              data-tooltip="有序列表"
-              title="有序列表"
-            >
-              <ListOrdered className="w-4 h-4" />
-            </button>
-            <button
-              onClick={() => insertMarkdown("> ", "", "引用内容")}
-              className="neo-toolbar-button p-1.5"
-              data-tooltip="引用"
-              title="引用"
-            >
-              <Quote className="w-4 h-4" />
-            </button>
-            <div className="w-px h-6 bg-(--neo-line) mx-1" />
-            <button
-              onClick={() => insertMarkdown("`", "`", "代码")}
-              className="neo-toolbar-button p-1.5 font-mono text-sm"
-              data-tooltip="行内代码"
-              title="行内代码"
-            >
-              {"</>"}
-            </button>
-            <button
-              onClick={insertCodeBlock}
-              className="neo-toolbar-button p-1.5"
-              data-tooltip="代码块"
-              title="代码块"
-            >
-              <Code2 className="w-4 h-4" />
-            </button>
-            <div className="w-px h-6 bg-(--neo-line) mx-1" />
-            <button
-              onClick={insertLink}
-              className="neo-toolbar-button p-1.5"
-              data-tooltip="链接"
-              title="链接"
-            >
-              <LinkIcon className="w-4 h-4" />
-            </button>
-            <button
-              onClick={insertImage}
-              className="neo-toolbar-button p-1.5"
-              data-tooltip="图片"
-              title="图片"
-            >
-              <ImageIcon className="w-4 h-4" />
-            </button>
-            <button
-              onClick={() => insertMarkdown("---\n", "", "")}
-              className="neo-toolbar-button p-1.5"
-              data-tooltip="分隔线"
-              title="分隔线"
-            >
-              <Minus className="w-4 h-4" />
-            </button>
-          </div>
+          <DraftToolbar
+            onHeading={insertHeading}
+            onBold={() => insertMarkdown("**", "**", "加粗")}
+            onItalic={() => insertMarkdown("*", "*", "斜体")}
+            onStrike={() => insertMarkdown("~~", "~~", "删除线")}
+            onUnorderedList={() => insertList("ul")}
+            onOrderedList={() => insertList("ol")}
+            onQuote={() => insertMarkdown("> ", "", "引用内容")}
+            onInlineCode={() => insertMarkdown("`", "`", "代码")}
+            onCodeBlock={insertCodeBlock}
+            onLink={insertLink}
+            onImage={insertImage}
+            onDivider={() => insertMarkdown("---\n", "", "")}
+          />
 
           <textarea
             ref={inputRef}
