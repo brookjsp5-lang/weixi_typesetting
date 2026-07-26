@@ -234,6 +234,16 @@ const escapeHtml = (value: string) =>
 const RICH_SELECTED_ATTR = "data-typezen-selected";
 const VISUAL_ELEMENT_SELECTOR = "img, video, table, blockquote, pre, hr";
 
+function isDeleteKey(event: Pick<KeyboardEvent | React.KeyboardEvent, "key">) {
+  return event.key === "Backspace" || event.key === "Delete";
+}
+
+function isUndoKey(
+  event: Pick<KeyboardEvent | React.KeyboardEvent, "ctrlKey" | "metaKey" | "shiftKey" | "key">,
+) {
+  return (event.ctrlKey || event.metaKey) && !event.shiftKey && event.key.toLowerCase() === "z";
+}
+
 function serializeRichEditorHtml(editor: HTMLElement) {
   const clone = editor.cloneNode(true) as HTMLElement;
   clone.querySelectorAll(`[${RICH_SELECTED_ATTR}]`).forEach((element) => {
@@ -252,6 +262,11 @@ function isSelectionInsideRichEditor(selection: Selection, editor: HTMLElement) 
   const anchorNode = selection.anchorNode;
   const focusNode = selection.focusNode;
   return Boolean(anchorNode && focusNode && editor.contains(anchorNode) && editor.contains(focusNode));
+}
+
+function isRichEditorKeyContext(editor: HTMLElement) {
+  const activeElement = document.activeElement;
+  return !activeElement || activeElement === document.body || activeElement === editor || editor.contains(activeElement);
 }
 
 function findRichDeletableElement(target: EventTarget | null, editor: HTMLElement) {
@@ -290,6 +305,7 @@ function RichHtmlDraftEditor({
   const lastHtmlRef = useRef(renderedValue);
   const initialHtmlRef = useRef(renderedValue);
   const selectedElementRef = useRef<HTMLElement | null>(null);
+  const deletedHtmlStackRef = useRef<string[]>([]);
 
   const clearSelectedElement = useCallback(() => {
     selectedElementRef.current?.removeAttribute(RICH_SELECTED_ATTR);
@@ -318,6 +334,34 @@ function RichHtmlDraftEditor({
       });
     },
     [clearSelectedElement, onChange],
+  );
+
+  const restoreDeletedHtml = useCallback(
+    (editor: HTMLElement) => {
+      const previousHtml = deletedHtmlStackRef.current.pop();
+      if (!previousHtml) return false;
+
+      clearSelectedElement();
+      editor.innerHTML = previousHtml;
+      lastHtmlRef.current = previousHtml;
+      onChange(previousHtml);
+      return true;
+    },
+    [clearSelectedElement, onChange],
+  );
+
+  const deleteSelectedElement = useCallback(
+    (editor: HTMLElement) => {
+      const selectedElement = selectedElementRef.current;
+      if (!selectedElement || !editor.contains(selectedElement)) return false;
+
+      deletedHtmlStackRef.current.push(serializeRichEditorHtml(editor));
+      selectedElement.remove();
+      selectedElementRef.current = null;
+      commitEditorHtml(editor);
+      return true;
+    },
+    [commitEditorHtml],
   );
 
   useEffect(() => {
@@ -356,17 +400,22 @@ function RichHtmlDraftEditor({
 
   const handleVisualElementDelete = useCallback(
     (event: React.KeyboardEvent<HTMLDivElement>) => {
-      if (event.key !== "Backspace" && event.key !== "Delete") return;
-
       const editor = editorRef.current;
       if (!editor) return;
 
-      const selectedElement = selectedElementRef.current;
-      if (selectedElement && editor.contains(selectedElement)) {
+      if (isUndoKey(event)) {
+        if (restoreDeletedHtml(editor)) {
+          event.preventDefault();
+          event.stopPropagation();
+        }
+        return;
+      }
+
+      if (!isDeleteKey(event)) return;
+
+      if (deleteSelectedElement(editor)) {
         event.preventDefault();
-        selectedElement.remove();
-        selectedElementRef.current = null;
-        commitEditorHtml(editor);
+        event.stopPropagation();
         return;
       }
 
@@ -380,8 +429,40 @@ function RichHtmlDraftEditor({
       selection.deleteFromDocument();
       commitEditorHtml(editor);
     },
-    [commitEditorHtml, editorRef],
+    [commitEditorHtml, deleteSelectedElement, editorRef, restoreDeletedHtml],
   );
+
+  useEffect(() => {
+    const handleDocumentKeyDown = (event: KeyboardEvent) => {
+      const editor = editorRef.current;
+      if (!editor) return;
+      if (!isRichEditorKeyContext(editor)) return;
+
+      if (isUndoKey(event) && restoreDeletedHtml(editor)) {
+        event.preventDefault();
+        event.stopPropagation();
+        return;
+      }
+
+      if (selectedElementRef.current && isDeleteKey(event) && deleteSelectedElement(editor)) {
+        event.preventDefault();
+        event.stopPropagation();
+      }
+    };
+
+    document.addEventListener("keydown", handleDocumentKeyDown);
+    const handleDocumentPointerDown = (event: PointerEvent) => {
+      const editor = editorRef.current;
+      if (!editor || !(event.target instanceof Node) || editor.contains(event.target)) return;
+      clearSelectedElement();
+    };
+
+    document.addEventListener("pointerdown", handleDocumentPointerDown);
+    return () => {
+      document.removeEventListener("keydown", handleDocumentKeyDown);
+      document.removeEventListener("pointerdown", handleDocumentPointerDown);
+    };
+  }, [clearSelectedElement, deleteSelectedElement, editorRef, restoreDeletedHtml]);
 
   return (
     <div

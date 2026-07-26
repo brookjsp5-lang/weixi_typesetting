@@ -144,6 +144,27 @@ test("clicking imported visual elements keeps delete key in the editor", () => {
   );
 });
 
+test("selected imported visual elements can be deleted from document keydown", () => {
+  assert.match(editorSource, /function isDeleteKey/);
+  assert.match(editorSource, /function isUndoKey/);
+  assert.match(editorSource, /document\.addEventListener\("keydown", handleDocumentKeyDown\);/);
+  assert.match(editorSource, /document\.removeEventListener\("keydown", handleDocumentKeyDown\);/);
+  assert.match(
+    editorSource,
+    /selectedElementRef\.current && isDeleteKey\(event\)/,
+  );
+});
+
+test("imported visual deletions can be restored with keyboard undo", () => {
+  assert.match(editorSource, /deletedHtmlStackRef/);
+  assert.match(editorSource, /deletedHtmlStackRef\.current\.push\(serializeRichEditorHtml\(editor\)\);/);
+  assert.match(editorSource, /isUndoKey\(event\)/);
+  assert.match(editorSource, /const previousHtml = deletedHtmlStackRef\.current\.pop\(\);/);
+  assert.match(editorSource, /editor\.innerHTML = previousHtml;/);
+  assert.match(editorSource, /lastHtmlRef\.current = previousHtml;/);
+  assert.match(editorSource, /onChange\(previousHtml\);/);
+});
+
 test("imported WeChat html text selections can be deleted and synced", () => {
   assert.match(editorSource, /const selection = window\.getSelection\(\);/);
   assert.match(editorSource, /selection && !selection\.isCollapsed/);
