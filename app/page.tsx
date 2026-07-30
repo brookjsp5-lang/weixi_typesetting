@@ -34,6 +34,7 @@ import {
   normalizeCoverTitleStyle,
 } from "./_lib/cover-title-layout";
 import {
+  getDraftPlainText,
   isWechatImportedHtmlDraft,
   makeImportedHtmlDraftVisible,
   normalizeConsecutiveImageBlocks,
@@ -361,13 +362,17 @@ export default function Home() {
   };
 
   const openReversePromptModal = useCallback(() => {
-    setReversePromptArticle((current) => (current.trim() ? current : normalizedInputText));
+    setReversePromptArticle((current) => {
+      const currentArticle = getDraftPlainText(current).trim();
+      if (currentArticle) return currentArticle;
+      return getDraftPlainText(normalizedInputText).trim();
+    });
     setShowReversePromptModal(true);
   }, [normalizedInputText]);
 
   const runReversePromptGeneration = useCallback(async () => {
     const requirement = reversePromptRequirement.trim();
-    const article = reversePromptArticle.trim();
+    const article = getDraftPlainText(reversePromptArticle).trim();
 
     if (!requirement) {
       showToast("请先填写逆向提示词要求", "error");
@@ -390,6 +395,10 @@ export default function Home() {
 
     setIsGeneratingReversePrompt(true);
     try {
+      if (article !== reversePromptArticle.trim()) {
+        setReversePromptArticle(article);
+      }
+
       const response = await fetch("/api/ai-task", {
         method: "POST",
         headers: { "Content-Type": "application/json" },

@@ -59,6 +59,16 @@ test("page wires reverse prompt requirement persistence into the modal", () => {
   assert.match(pageSource, /reversePromptRequirementSettings\.deleteCurrentRequirement/);
 });
 
+test("reverse prompt article input uses readable text for imported WeChat drafts", () => {
+  assert.match(pageSource, /getDraftPlainText/);
+  assert.match(
+    pageSource,
+    /setReversePromptArticle\(\(current\) => \{\s+const currentArticle = getDraftPlainText\(current\)\.trim\(\);[\s\S]+return getDraftPlainText\(normalizedInputText\)\.trim\(\);[\s\S]+}\);/,
+  );
+  assert.match(pageSource, /const article = getDraftPlainText\(reversePromptArticle\)\.trim\(\);/);
+  assert.doesNotMatch(pageSource, /current\.trim\(\) \? current : normalizedInputText/);
+});
+
 test("reverse prompt requirements are persisted and editable", () => {
   assert.match(reversePromptRequirementHookSource, /reversePromptRequirements/);
   assert.match(reversePromptRequirementHookSource, /reversePromptRequirementDraft/);
