@@ -6,7 +6,6 @@ export interface TemplateConfig {
   name: string;
   desc: string;
   category: string;
-  variant: number;
   themeColor: string;
   backgroundColor: string;
   baseStyle: {
@@ -199,26 +198,9 @@ function ensureStyleValue(style: string, property: string, value: string) {
     : `${normalizedStyle}; ${property}: ${value};`;
 }
 
-function getStylesByCategory(category: string, color: string, variant = 0) {
-  const styleVariant = ((variant % 3) + 3) % 3;
-
+function getStylesByCategory(category: string, color: string) {
   switch (category) {
-    case "neo-brutalism": {
-      const brutalParagraphStyle = [
-        `margin: 0 0 18px 0; line-height: 1.75; font-weight: 600; background-color: ${hexToRgba(color, 0.14)}; border: 2px solid #000000; box-shadow: 4px 4px 0px #000000; padding: 12px 14px; text-indent: 0;`,
-        `margin: 0 0 18px 0; line-height: 1.75; font-weight: 600; background-color: #ffffff; border: 2px solid #000000; border-left: 8px solid ${color}; padding: 12px 14px; text-indent: 0;`,
-        `margin: 0 0 18px 0; line-height: 1.75; font-weight: 650; color: #ffffff; background-color: #000000; border: 3px solid ${color}; box-shadow: 5px 5px 0px ${color}; padding: 12px 14px; text-indent: 0;`,
-      ][styleVariant];
-      const brutalH2Style = [
-        `font-size: 1.4em; font-weight: 900; margin: 26px 0 18px; color: #000000; background-color: ${color}; border: 3px solid #000000; padding: 9px 16px; box-shadow: 5px 5px 0px #000000; display: inline-block; line-height: 1.2;`,
-        `font-size: 1.35em; font-weight: 900; margin: 28px 0 18px; color: #000000; background-color: #ffffff; border: 3px solid #000000; border-left: 12px solid ${color}; padding: 10px 16px; display: block; line-height: 1.25;`,
-        `font-size: 1.35em; font-weight: 900; margin: 28px 0 18px; color: #ffffff; background-color: #000000; border: 3px solid ${color}; padding: 10px 16px; box-shadow: 5px 5px 0px ${color}; display: block; line-height: 1.25;`,
-      ][styleVariant];
-      const brutalImageStyle = [
-        "max-width: 100%; border: 3px solid #000000; box-shadow: 6px 6px 0px #000000; display: block; margin: 24px auto;",
-        `max-width: 100%; border: 3px solid #000000; border-bottom: 10px solid ${color}; display: block; margin: 24px auto;`,
-        `max-width: 100%; border: 4px solid ${color}; box-shadow: 8px 8px 0px #000000; display: block; margin: 26px auto;`,
-      ][styleVariant];
+    case "neo-brutalism":
       return {
         themeColor: color,
         backgroundColor: "#ffffff",
@@ -228,9 +210,9 @@ function getStylesByCategory(category: string, color: string, variant = 0) {
         },
         containerStyle: "padding: 24px; background-color: #ffffff;",
         h1Style: `font-size: 1.6em; font-weight: 900; text-align: center; margin: 20px 0; color: #000000; background-color: ${color}; border: 3px solid #000000; padding: 15px 12px; box-shadow: 8px 8px 0px #000000; line-height: 1.3; text-transform: uppercase; letter-spacing: 1px; display: block;`,
-        h2Style: brutalH2Style,
+        h2Style: `font-size: 1.4em; font-weight: 800; margin: 24px 0 16px; color: #000000; background-color: ${color}; border: 3px solid #000000; padding: 8px 16px; box-shadow: 5px 5px 0px #000000; display: inline-block; line-height: 1.2;`,
         h3Style: `font-size: 1.15em; font-weight: 700; margin: 24px 0 12px; color: #000000; background-color: #ffffff; border: 2px solid #000000; padding: 4px 12px; box-shadow: 3px 3px 0px #000000; display: inline-block;`,
-        pStyle: brutalParagraphStyle,
+        pStyle: "margin: 0 0 16px 0; line-height: 1.8; font-weight: 500;",
         blockquoteStyle: `border: 3px solid #000000; margin: 24px 0; padding: 20px; color: #000000; background-color: ${hexToRgba(color, 0.1)}; box-shadow: 6px 6px 0px #000000;`,
         blockquoteInnerBefore: `<span style="display: block; font-size: 2em; line-height: 1; margin-bottom: 10px; color: #000000; font-family: Georgia, serif;">“</span>`,
         blockquoteInnerAfter: `<span style="display: block; font-size: 2em; line-height: 1; text-align: right; margin-top: 10px; color: #000000; font-family: Georgia, serif;">”</span>`,
@@ -242,7 +224,8 @@ function getStylesByCategory(category: string, color: string, variant = 0) {
         codeContainerStyle: `margin: 24px 0; border: 3px solid #000000; box-shadow: 6px 6px 0px #000000; background-color: #ffffff; overflow: hidden;`,
         codeHeaderStyle: `background-color: ${color}; padding: 8px 12px; border-bottom: 3px solid #000000;`,
         codeBlockStyle: `margin: 0; padding: 16px; overflow-x: auto; color: #000000; font-size: 13px; font-family: monospace; line-height: 1.6; white-space: pre-wrap; word-break: break-all;`,
-        imgStyle: brutalImageStyle,
+        imgStyle:
+          "max-width: 100%; border: 3px solid #000000; box-shadow: 6px 6px 0px #000000; display: block; margin: 24px auto;",
         hrStyle: `border: none; border-top: 4px solid #000000; margin: 40px 0;`,
         linkStyle: `color: #000000; font-weight: 700; text-decoration: none; border-bottom: 3px solid ${color};`,
         tableStyle:
@@ -252,23 +235,7 @@ function getStylesByCategory(category: string, color: string, variant = 0) {
         delStyle: "text-decoration: line-through; opacity: 0.6;",
         defaultH2Layout: "left" as H1LayoutType,
       };
-    }
-    case "minimalist": {
-      const minimalistParagraphStyle = [
-        `margin: 0 0 18px 0; line-height: 1.85; text-indent: 0; background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 14px; padding: 14px 16px;`,
-        `margin: 0 0 18px 0; line-height: 1.9; text-indent: 0; border-top: 1px solid ${hexToRgba(color, 0.25)}; padding: 14px 0 0 0;`,
-        `margin: 0 0 18px 0; line-height: 1.85; text-indent: 0; background-color: ${hexToRgba(color, 0.055)}; border-left: 3px solid ${color}; padding: 12px 0 12px 14px;`,
-      ][styleVariant];
-      const minimalistH2Style = [
-        `font-size: 1.18em; font-weight: 700; margin: 28px 0 18px; color: #111827; padding: 8px 0; border-top: 1px solid #e5e7eb; border-bottom: 1px solid #e5e7eb; line-height: 1.4;`,
-        `font-size: 1.15em; font-weight: 700; margin: 30px 0 18px; color: #111827; padding-left: 12px; border-left: 4px solid ${color}; line-height: 1.4; letter-spacing: 1px;`,
-        `font-size: 1.12em; font-weight: 700; margin: 28px 0 18px; color: ${color}; background-color: ${hexToRgba(color, 0.08)}; border-radius: 999px; padding: 8px 16px; display: inline-block; line-height: 1.4;`,
-      ][styleVariant];
-      const minimalistImageStyle = [
-        "max-width: 100%; border: 1px solid #e5e7eb; border-radius: 14px; display: block; margin: 24px auto; padding: 4px;",
-        `max-width: 100%; border-radius: 0; border-top: 3px solid ${color}; border-bottom: 1px solid #e5e7eb; display: block; margin: 26px auto; padding: 6px 0;`,
-        `max-width: 100%; border-radius: 16px; box-shadow: 0 10px 28px rgba(15,23,42,0.08); display: block; margin: 26px auto;`,
-      ][styleVariant];
+    case "minimalist":
       return {
         themeColor: color,
         backgroundColor: "#ffffff",
@@ -276,23 +243,23 @@ function getStylesByCategory(category: string, color: string, variant = 0) {
           color: "#374151",
           fontFamily: "system-ui, -apple-system, sans-serif",
         },
-        containerStyle: "padding: 18px; background-color: #ffffff;",
-        h1Style: `font-size: 1.42em; font-weight: 800; text-align: center; margin: 24px 0 20px; color: #111827; border-top: 2px solid ${color}; border-bottom: 1px solid #e5e7eb; padding: 14px 0 12px; line-height: 1.4;`,
-        h2Style: minimalistH2Style,
+        containerStyle: "padding: 16px; background-color: #ffffff;",
+        h1Style: `font-size: 1.4em; font-weight: bold; text-align: center; margin: 24px 0 16px; color: ${color}; border-bottom: 1px solid ${color}; padding-bottom: 8px; line-height: 1.4;`,
+        h2Style: `font-size: 1.25em; font-weight: bold; margin: 24px 0 16px; color: #111827; padding-left: 12px; border-left: 4px solid ${color}; line-height: 1.4;`,
         h3Style: `font-size: 1.1em; font-weight: bold; margin: 16px 0 12px; color: #374151; line-height: 1.4;`,
-        pStyle: minimalistParagraphStyle,
-        blockquoteStyle: `border: 1px solid #e5e7eb; border-left: 4px solid ${color}; margin: 22px 0; padding: 14px 16px; color: #4b5563; background-color: #f8fafc; border-radius: 12px;`,
+        pStyle: "margin: 0 0 16px 0; line-height: 1.8; text-indent: 0;",
+        blockquoteStyle: `border-left: 3px solid ${color}; margin: 20px 0; padding: 12px 16px; color: #4b5563; background-color: #f3f4f6;`,
         blockquoteInnerBefore: "",
         blockquoteInnerAfter: "",
         listStyle: "margin: 0 0 16px 0; padding: 0; list-style-type: none;",
-        listItemStyle: "margin: 0 0 10px 0; line-height: 1.7; background-color: #f8fafc; border-radius: 12px; padding: 8px 10px;",
+        listItemStyle: "margin: 0 0 8px 0; line-height: 1.6;",
         listIcon: `<section style="display: inline-block; color: ${color}; font-weight: bold;">•</section>`,
         strongStyle: `font-weight: bold; color: ${color};`,
         emStyle: "font-style: italic; color: #4b5563;",
         codeContainerStyle: `margin: 20px 0; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); border: 1px solid #e5e7eb; overflow: hidden; background-color: #f8fafc;`,
         codeHeaderStyle: `background-color: #e2e8f0; padding: 8px 12px; font-size: 0; line-height: 1;`,
         codeBlockStyle: `margin: 0; padding: 16px; overflow-x: auto; color: #334155; font-size: 13px; font-family: monospace; line-height: 1.6; white-space: pre-wrap; word-break: break-all;`,
-        imgStyle: minimalistImageStyle,
+        imgStyle: "max-width: 100%; border-radius: 8px; display: block; margin: 20px auto;",
         hrStyle: `border: none; border-top: 1px solid #e5e7eb; margin: 32px 0;`,
         linkStyle: `color: ${color}; text-decoration: none; border-bottom: 1px dashed ${color};`,
         tableStyle:
@@ -303,23 +270,7 @@ function getStylesByCategory(category: string, color: string, variant = 0) {
         delStyle: "text-decoration: line-through; color: #9ca3af;",
         defaultH2Layout: "left" as H1LayoutType,
       };
-    }
-    case "business": {
-      const businessParagraphStyle = [
-        `margin: 0 0 18px 0; line-height: 1.82; text-indent: 0; background-color: #f8fafc; border: 1px solid #cbd5e1; border-left: 5px solid ${color}; padding: 14px 16px;`,
-        `margin: 0 0 18px 0; line-height: 1.82; text-indent: 0; background-color: #ffffff; border: 1px solid #dbe4ef; border-top: 5px solid ${color}; padding: 14px 16px; box-shadow: 0 6px 16px rgba(15,23,42,0.06);`,
-        `margin: 0 0 18px 0; line-height: 1.82; text-indent: 0; color: #1e293b; background-color: ${hexToRgba(color, 0.07)}; border: 1px solid ${hexToRgba(color, 0.22)}; padding: 14px 16px; border-radius: 6px;`,
-      ][styleVariant];
-      const businessH2Style = [
-        `font-size: 1.18em; font-weight: 800; background-color: ${color}; color: #ffffff; display: block; padding: 10px 16px; margin: 28px 0 18px 0; border-radius: 2px; line-height: 1.4;`,
-        `font-size: 1.18em; font-weight: 800; color: ${color}; display: block; padding: 10px 16px; margin: 28px 0 18px 0; border: 1px solid #cbd5e1; border-left: 8px solid ${color}; line-height: 1.4;`,
-        `font-size: 1.16em; font-weight: 800; color: #0f172a; background-color: #f1f5f9; display: block; padding: 10px 16px; margin: 28px 0 18px 0; border-bottom: 3px solid ${color}; line-height: 1.4;`,
-      ][styleVariant];
-      const businessImageStyle = [
-        "max-width: 100%; border: 1px solid #cbd5e1; padding: 6px; background-color: #ffffff; display: block; margin: 24px auto;",
-        `max-width: 100%; border: 1px solid #cbd5e1; border-bottom: 6px solid ${color}; padding: 4px; background-color: #ffffff; display: block; margin: 24px auto;`,
-        `max-width: 100%; border-radius: 8px; box-shadow: 0 12px 24px rgba(15,23,42,0.12); display: block; margin: 26px auto;`,
-      ][styleVariant];
+    case "business":
       return {
         themeColor: color,
         backgroundColor: "#ffffff",
@@ -328,22 +279,23 @@ function getStylesByCategory(category: string, color: string, variant = 0) {
           fontFamily: "system-ui, -apple-system, sans-serif",
         },
         containerStyle: "padding: 20px; background-color: #ffffff;",
-        h1Style: `font-size: 1.5em; font-weight: 900; text-align: left; margin: 24px 0 24px 0; color: #0f172a; border-bottom: 4px solid ${color}; line-height: 1.4; padding-bottom: 10px;`,
-        h2Style: businessH2Style,
+        h1Style: `font-size: 1.5em; font-weight: 800; text-align: left; margin: 24px 0 24px 0; color: ${color}; border-bottom: 3px solid ${color}; line-height: 1.4; padding-bottom: 8px;`,
+        h2Style: `font-size: 1.2em; font-weight: 700; background-color: ${color}; color: #ffffff; display: inline-block; padding: 6px 16px; margin: 24px 0 16px 0; border-radius: 2px; line-height: 1.4;`,
         h3Style: `font-size: 1.1em; font-weight: bold; margin: 16px 0 12px 0; color: ${color}; border-bottom: 1px dashed ${hexToRgba(color, 0.502)}; padding-bottom: 4px; line-height: 1.4;`,
-        pStyle: businessParagraphStyle,
-        blockquoteStyle: `border-left: 6px solid ${color}; margin: 24px 0; padding: 18px; color: #1e293b; background-color: #f8fafc; font-weight: 650; box-shadow: inset 0 0 0 1px #e2e8f0;`,
+        pStyle: "margin: 0 0 16px 0; line-height: 1.8; text-indent: 2em;",
+        blockquoteStyle: `border-left: 6px solid ${color}; margin: 24px 0; padding: 16px; color: #475569; background-color: #f8fafc; font-weight: 500;`,
         blockquoteInnerBefore: "",
         blockquoteInnerAfter: "",
         listStyle: "margin: 0 0 16px 0; padding: 0; list-style-type: none;",
-        listItemStyle: "margin: 0 0 10px 0; line-height: 1.7; background-color: #f8fafc; border: 1px solid #e2e8f0; padding: 8px 10px;",
+        listItemStyle: "margin: 0 0 10px 0; line-height: 1.7;",
         listIcon: `<section style="display: inline-block; color: ${color}; font-size: 12px;">■</section>`,
         strongStyle: `font-weight: bold; color: ${color}; background-color: ${hexToRgba(color, 0.082)}; padding: 0 2px;`,
         emStyle: "font-style: italic; color: #64748b;",
         codeContainerStyle: `margin: 20px 0; border-radius: 6px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); border: 1px solid #475569; overflow: hidden; background-color: #1e293b;`,
         codeHeaderStyle: `background-color: #334155; padding: 8px 12px; font-size: 0; line-height: 1; border-bottom: 1px solid #0f172a;`,
         codeBlockStyle: `margin: 0; padding: 16px; overflow-x: auto; color: #f8fafc; font-size: 13px; font-family: monospace; line-height: 1.6; white-space: pre-wrap; word-break: break-all;`,
-        imgStyle: businessImageStyle,
+        imgStyle:
+          "max-width: 100%; border: 1px solid #e2e8f0; padding: 4px; display: block; margin: 20px auto;",
         hrStyle: `border: none; border-top: 2px dashed ${hexToRgba(color, 0.502)}; margin: 32px 0;`,
         linkStyle: `color: ${color}; font-weight: 500; text-decoration: none; border-bottom: 1px solid ${color};`,
         tableStyle:
@@ -353,23 +305,7 @@ function getStylesByCategory(category: string, color: string, variant = 0) {
         delStyle: "text-decoration: line-through; color: #cbd5e1;",
         defaultH2Layout: "left" as H1LayoutType,
       };
-    }
-    case "literary": {
-      const literaryParagraphStyle = [
-        `margin: 0 0 22px 0; line-height: 2.0; letter-spacing: 1px; text-indent: 0; background-color: #fffaf3; border: 1px solid ${hexToRgba(color, 0.18)}; padding: 16px 18px; border-radius: 14px;`,
-        `margin: 0 0 22px 0; line-height: 2.05; letter-spacing: 1px; text-indent: 0; background-color: #ffffff; border-left: 4px double ${hexToRgba(color, 0.45)}; padding: 10px 0 10px 18px;`,
-        `margin: 0 0 22px 0; line-height: 2.0; letter-spacing: 1px; text-indent: 0; color: #3f3a36; background-color: ${hexToRgba(color, 0.055)}; border-top: 1px solid ${hexToRgba(color, 0.22)}; border-bottom: 1px solid ${hexToRgba(color, 0.22)}; padding: 16px 12px;`,
-      ][styleVariant];
-      const literaryH2Style = [
-        `font-size: 1.14em; font-weight: 500; text-align: center; margin: 32px 0 22px; color: ${color}; padding: 10px 0; line-height: 1.4; border-top: 1px solid ${hexToRgba(color, 0.251)}; border-bottom: 1px solid ${hexToRgba(color, 0.251)}; letter-spacing: 3px; display: block;`,
-        `font-size: 1.14em; font-weight: 600; text-align: left; margin: 32px 0 22px; color: #374151; padding: 8px 0 8px 14px; line-height: 1.4; border-left: 4px double ${color}; letter-spacing: 2px; display: block;`,
-        `font-size: 1.12em; font-weight: 600; text-align: center; margin: 32px auto 22px; color: #ffffff; background-color: ${color}; padding: 8px 20px; line-height: 1.4; border-radius: 999px; letter-spacing: 2px; display: inline-block;`,
-      ][styleVariant];
-      const literaryImageStyle = [
-        `max-width: 100%; border-radius: 16px; border: 8px solid #fffaf3; box-shadow: 0 10px 28px rgba(80,60,40,0.12); display: block; margin: 32px auto;`,
-        `max-width: 100%; border-radius: 0; border: 1px solid ${hexToRgba(color, 0.25)}; padding: 8px; background-color: #ffffff; display: block; margin: 32px auto;`,
-        `max-width: 100%; border-radius: 18px 18px 4px 4px; box-shadow: 0 14px 28px rgba(80,60,40,0.14); display: block; margin: 32px auto;`,
-      ][styleVariant];
+    case "literary":
       return {
         themeColor: color,
         backgroundColor: "#fdfcfb",
@@ -378,22 +314,23 @@ function getStylesByCategory(category: string, color: string, variant = 0) {
           fontFamily: '"Noto Serif SC", serif, system-ui',
         },
         containerStyle: `padding: 24px 16px; background-color: #fdfcfb;`,
-        h1Style: `font-size: 1.36em; font-weight: 500; text-align: center; margin: 32px 0; color: ${color}; letter-spacing: 4px; line-height: 1.4;`,
-        h2Style: literaryH2Style,
+        h1Style: `font-size: 1.35em; font-weight: normal; text-align: center; margin: 30px 0; color: ${color}; letter-spacing: 4px; line-height: 1.4;`,
+        h2Style: `font-size: 1.15em; font-weight: normal; text-align: center; margin: 30px 0 20px; color: ${color}; padding: 8px 0; line-height: 1.4; border-top: 1px solid ${hexToRgba(color, 0.251)}; border-bottom: 1px solid ${hexToRgba(color, 0.251)}; letter-spacing: 2px; display: block;`,
         h3Style: `font-size: 1.05em; font-weight: bold; text-align: center; margin: 20px 0 16px 0; color: #374151; line-height: 1.4;`,
-        pStyle: literaryParagraphStyle,
-        blockquoteStyle: `margin: 32px 0; padding: 22px; color: ${color}; text-align: center; font-style: italic; font-size: 0.98em; border-radius: 16px; background-color: ${hexToRgba(color, 0.055)}; border: 1px solid ${hexToRgba(color, 0.18)};`,
+        pStyle: "margin: 0 0 20px 0; line-height: 2.0; letter-spacing: 1px;",
+        blockquoteStyle: `margin: 32px 0; padding: 20px; color: ${color}; text-align: center; font-style: italic; font-size: 0.95em; border-radius: 8px; background-color: ${hexToRgba(color, 0.031)};`,
         blockquoteInnerBefore: ``,
         blockquoteInnerAfter: ``,
         listStyle: "margin: 0 0 20px 0; padding: 0; list-style-type: none;",
-        listItemStyle: `margin: 0 0 12px 0; line-height: 1.8; background-color: #fffaf3; padding: 8px 10px; border-radius: 12px;`,
+        listItemStyle: `margin: 0 0 12px 0; line-height: 1.8;`,
         listIcon: `<section style="display: inline-block; width: 8px; height: 8px; border: 1px solid ${color}; border-radius: 50%; vertical-align: middle; box-sizing: border-box; overflow: hidden;"><br/></section>`,
         strongStyle: `font-weight: normal; color: #1f2937; border-bottom: 2px solid ${hexToRgba(color, 0.502)};`,
         emStyle: `font-style: italic; color: ${color};`,
         codeContainerStyle: `margin: 24px 0; border-radius: 12px; box-shadow: 0 8px 20px rgba(0,0,0,0.03); border: 1px solid ${hexToRgba(color, 0.188)}; overflow: hidden; background-color: #fdfaf6;`,
         codeHeaderStyle: `background-color: ${hexToRgba(color, 0.063)}; padding: 8px 12px; font-size: 0; line-height: 1; border-bottom: 1px solid ${hexToRgba(color, 0.125)};`,
         codeBlockStyle: `margin: 0; padding: 16px; overflow-x: auto; color: #374151; font-size: 13px; font-family: monospace; white-space: pre-wrap; word-break: break-all; line-height: 1.6;`,
-        imgStyle: literaryImageStyle,
+        imgStyle:
+          "max-width: 100%; border-radius: 12px; box-shadow: 0 8px 20px rgba(0,0,0,0.05); display: block; margin: 30px auto;",
         hrStyle: `border: none; border-top: 1px solid ${hexToRgba(color, 0.251)}; margin: 32px auto; width: 60%;`,
         linkStyle: `color: ${color}; text-decoration: none; border-bottom: 1px solid ${color}; padding-bottom: 1px;`,
         tableStyle:
@@ -403,24 +340,7 @@ function getStylesByCategory(category: string, color: string, variant = 0) {
         delStyle: "text-decoration: line-through; opacity: 0.5;",
         defaultH2Layout: "center" as H1LayoutType,
       };
-    }
-    case "tech": {
-      const techAccentColor = color === "#10b981" ? "#3b82f6" : "#10b981";
-      const techParagraphStyle = [
-        `margin: 0 0 18px 0; line-height: 1.78; color: #dbeafe; background-color: #111827; border: 1px solid ${hexToRgba(color, 0.5)}; border-radius: 2px; padding: 14px 16px; text-indent: 0;`,
-        `margin: 0 0 18px 0; line-height: 1.78; color: #cbd5e1; background-color: #020617; border-left: 4px solid ${techAccentColor}; padding: 14px 16px; text-indent: 0; font-family: monospace;`,
-        `margin: 0 0 18px 0; line-height: 1.78; color: #e2e8f0; background-color: #1e293b; border: 1px solid #334155; border-top: 4px solid ${color}; border-radius: 8px; padding: 14px 16px; text-indent: 0;`,
-      ][styleVariant];
-      const techH2Style = [
-        `font-size: 1.22em; font-weight: bold; margin: 30px 0 20px 0; color: #ffffff; border-left: 6px solid ${color}; padding-left: 14px; background-color: #1e293b; display: block; line-height: 1.4; padding-top: 8px; padding-bottom: 8px;`,
-        `font-size: 1.18em; font-weight: bold; margin: 30px 0 20px 0; color: ${techAccentColor}; border: 1px solid #334155; background-color: #020617; display: block; line-height: 1.4; padding: 10px 14px; font-family: monospace;`,
-        `font-size: 1.18em; font-weight: bold; margin: 30px 0 20px 0; color: #0f172a; background-color: ${color}; border-radius: 6px; display: inline-block; line-height: 1.4; padding: 8px 16px;`,
-      ][styleVariant];
-      const techImageStyle = [
-        `max-width: 100%; border: 2px solid #334155; border-radius: 8px; display: block; margin: 24px auto;`,
-        `max-width: 100%; border: 1px solid ${techAccentColor}; border-radius: 0; box-shadow: 0 0 0 4px #020617; display: block; margin: 28px auto;`,
-        `max-width: 100%; border: 1px solid #334155; border-top: 8px solid ${color}; border-radius: 10px; display: block; margin: 28px auto;`,
-      ][styleVariant];
+    case "tech":
       return {
         themeColor: color,
         backgroundColor: "#0f172a",
@@ -429,31 +349,30 @@ function getStylesByCategory(category: string, color: string, variant = 0) {
           fontFamily: '"Space Grotesk", sans-serif',
         },
         containerStyle: `padding: 20px; background-color: #0f172a;`,
-        h1Style: `font-size: 1.6em; font-weight: bold; text-align: left; margin: 20px 0 32px 0; color: ${techAccentColor}; text-transform: uppercase; letter-spacing: 2px; line-height: 1.4; border-bottom: 2px solid ${hexToRgba(color, 0.314)}; padding-bottom: 12px;`,
-        h2Style: techH2Style,
+        h1Style: `font-size: 1.6em; font-weight: bold; text-align: left; margin: 20px 0 32px 0; color: ${color === "#10b981" ? "#3b82f6" : "#10b981"}; text-transform: uppercase; letter-spacing: 2px; line-height: 1.4; border-bottom: 2px solid ${hexToRgba(color, 0.314)}; padding-bottom: 12px;`,
+        h2Style: `font-size: 1.25em; font-weight: bold; margin: 30px 0 20px 0; color: #ffffff; border-left: 6px solid ${color}; padding-left: 14px; background-color: #1e293b; display: block; line-height: 1.4; padding-top: 6px; padding-bottom: 6px;`,
         h3Style: `font-size: 1.1em; font-weight: bold; margin: 20px 0 16px 0; color: ${color}; line-height: 1.4;`,
-        pStyle: techParagraphStyle,
+        pStyle: "margin: 0 0 16px 0; line-height: 1.8; color: #cbd5e1;",
         blockquoteStyle: `border: 1px solid ${color}; margin: 24px 0; padding: 16px; color: #94a3b8; background-color: #1e293b; border-radius: 4px;`,
-        blockquoteInnerBefore: `<span style="color: ${techAccentColor}; margin-right: 8px;">></span>`,
+        blockquoteInnerBefore: `<span style="color: ${color === "#10b981" ? "#3b82f6" : "#10b981"}; margin-right: 8px;">></span>`,
         blockquoteInnerAfter: ``,
         listStyle: "margin: 0 0 16px 0; padding: 0; list-style-type: none;",
         listItemStyle: `margin: 0 0 10px 0; line-height: 1.7;`,
-        listIcon: `<section style="display: inline-block; color: ${techAccentColor}; font-weight: bold; font-family: monospace;">/&gt;</section>`,
+        listIcon: `<section style="display: inline-block; color: ${color === "#10b981" ? "#3b82f6" : "#10b981"}; font-weight: bold; font-family: monospace;">/&gt;</section>`,
         strongStyle: `font-weight: bold; color: #ffffff; border-bottom: 1px solid ${color};`,
         emStyle: `color: ${color}; font-style: normal; text-decoration: underline; text-decoration-color: ${color};`,
         codeContainerStyle: `margin: 24px 0; border-radius: 6px; border: 1px solid #334155; overflow: hidden; background-color: #000000;`,
         codeHeaderStyle: `background-color: #1e293b; padding: 8px 12px; font-size: 0; line-height: 1; border-bottom: 1px solid #334155;`,
-        codeBlockStyle: `margin: 0; padding: 16px; overflow-x: auto; color: ${techAccentColor}; font-size: 13px; font-family: monospace; white-space: pre-wrap; word-break: break-all; line-height: 1.5;`,
-        imgStyle: techImageStyle,
+        codeBlockStyle: `margin: 0; padding: 16px; overflow-x: auto; color: ${color === "#10b981" ? "#3b82f6" : "#10b981"}; font-size: 13px; font-family: monospace; white-space: pre-wrap; word-break: break-all; line-height: 1.5;`,
+        imgStyle: `max-width: 100%; border: 2px solid #334155; border-radius: 8px; display: block; margin: 24px auto;`,
         hrStyle: `border: none; border-top: 1px solid #334155; margin: 32px 0;`,
-        linkStyle: `color: ${techAccentColor}; text-decoration: underline; text-decoration-style: dashed;`,
+        linkStyle: `color: ${color === "#10b981" ? "#3b82f6" : "#10b981"}; text-decoration: underline; text-decoration-style: dashed;`,
         tableStyle: `width: 100%; max-width: 100%; border-collapse: collapse; margin: 24px 0; border: 1px solid #334155; font-size: 0.9em; table-layout: fixed; word-wrap: break-word;`,
         thStyle: `border: 1px solid #334155; padding: 10px; background-color: #1e293b; color: #ffffff; text-align: left; margin: 0;`,
         tdStyle: `border: 1px solid #334155; padding: 10px; color: #cbd5e1; margin: 0; word-wrap: break-word; word-break: break-all;`,
         delStyle: `text-decoration: line-through; color: #475569;`,
         defaultH2Layout: "left" as H1LayoutType,
       };
-    }
     default:
       return {
         themeColor: color,
@@ -497,8 +416,7 @@ function generateTemplates(): TemplateConfig[] {
       name: names[i],
       desc: "标准的点与线排版，适合日常阅读",
       category: "minimalist",
-      variant: i % 3,
-      ...getStylesByCategory("minimalist", color, i % 3),
+      ...getStylesByCategory("minimalist", color),
     });
   });
 
@@ -509,8 +427,7 @@ function generateTemplates(): TemplateConfig[] {
       name: names[i],
       desc: "方块标识符，适合严谨的行业报告",
       category: "business",
-      variant: i % 3,
-      ...getStylesByCategory("business", color, i % 3),
+      ...getStylesByCategory("business", color),
     });
   });
 
@@ -521,8 +438,7 @@ function generateTemplates(): TemplateConfig[] {
       name: names[i],
       desc: "配有小花图标，给文字呼吸喘息的空间",
       category: "literary",
-      variant: i % 3,
-      ...getStylesByCategory("literary", color, i % 3),
+      ...getStylesByCategory("literary", color),
     });
   });
 
@@ -533,8 +449,7 @@ function generateTemplates(): TemplateConfig[] {
       name: names[i],
       desc: "打破常规的终端 /> 标识设计",
       category: "tech",
-      variant: i % 3,
-      ...getStylesByCategory("tech", color, i % 3),
+      ...getStylesByCategory("tech", color),
     });
   });
 
@@ -545,8 +460,7 @@ function generateTemplates(): TemplateConfig[] {
       name: names[i],
       desc: "星星标识与浓烈色彩传递节日喜悦",
       category: "festive",
-      variant: i % 3,
-      ...getStylesByCategory("festive", color, i % 3),
+      ...getStylesByCategory("festive", color),
     });
   });
 
@@ -557,8 +471,7 @@ function generateTemplates(): TemplateConfig[] {
       name: names[i],
       desc: "高饱和度色彩、纯黑边框与硬投影，大胆不羁",
       category: "neo-brutalism",
-      variant: i % 3,
-      ...getStylesByCategory("neo-brutalism", color, i % 3),
+      ...getStylesByCategory("neo-brutalism", color),
     });
   });
 
@@ -580,11 +493,7 @@ export function renderArticle(
   const template = formatTweaks.themeColor
     ? {
         ...baseTemplate,
-        ...getStylesByCategory(
-          baseTemplate.category,
-          formatTweaks.themeColor,
-          baseTemplate.variant,
-        ),
+        ...getStylesByCategory(baseTemplate.category, formatTweaks.themeColor),
       }
     : baseTemplate;
 

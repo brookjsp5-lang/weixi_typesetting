@@ -10,7 +10,6 @@ const settingsPaneSource = readFileSync(
   resolve(testDir, "../app/_components/settings-pane.tsx"),
   "utf8",
 );
-const templateEngineSource = readFileSync(resolve(testDir, "../app/template-engine.ts"), "utf8");
 
 test("default format tweaks let templates use their own theme colors", () => {
   const defaultTweaksMatch = pageSource.match(
@@ -42,25 +41,4 @@ test("selecting a template converts imported WeChat html to Markdown before appl
   assert.match(pageSource, /isWechatImportedHtmlDraft\(inputText\)/);
   assert.match(pageSource, /htmlToMarkdownDraft\(\s*makeImportedHtmlDraftVisible\(inputText\),/);
   assert.match(pageSource, /setNormalizedInputText\(markdown\)/);
-});
-
-test("theme templates use layout variants instead of color-only variants", () => {
-  assert.match(templateEngineSource, /variant:\s*number/);
-  assert.equal((templateEngineSource.match(/variant:\s*i % 3/g) || []).length, 6);
-  assert.match(
-    templateEngineSource,
-    /getStylesByCategory\(\s*baseTemplate\.category,\s*formatTweaks\.themeColor,\s*baseTemplate\.variant,?\s*\)/,
-  );
-});
-
-test("non-festive themes expose distinctive visual treatment markers", () => {
-  for (const marker of [
-    "brutalParagraphStyle",
-    "minimalistParagraphStyle",
-    "businessParagraphStyle",
-    "literaryParagraphStyle",
-    "techParagraphStyle",
-  ]) {
-    assert.match(templateEngineSource, new RegExp(marker));
-  }
 });
