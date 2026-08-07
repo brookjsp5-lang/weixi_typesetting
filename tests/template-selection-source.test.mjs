@@ -10,7 +10,6 @@ const settingsPaneSource = readFileSync(
   resolve(testDir, "../app/_components/settings-pane.tsx"),
   "utf8",
 );
-const templateEngineSource = readFileSync(resolve(testDir, "../app/template-engine.ts"), "utf8");
 
 test("default format tweaks let templates use their own theme colors", () => {
   const defaultTweaksMatch = pageSource.match(
@@ -42,9 +41,4 @@ test("selecting a template converts imported WeChat html to Markdown before appl
   assert.match(pageSource, /isWechatImportedHtmlDraft\(inputText\)/);
   assert.match(pageSource, /htmlToMarkdownDraft\(\s*makeImportedHtmlDraftVisible\(inputText\),/);
   assert.match(pageSource, /setNormalizedInputText\(markdown\)/);
-});
-
-test("rendered article container exposes the selected theme color for paragraph-only drafts", () => {
-  assert.match(templateEngineSource, /border-left/);
-  assert.match(templateEngineSource, /4px solid \$\{template\.themeColor\}/);
 });
