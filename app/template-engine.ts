@@ -343,34 +343,34 @@ function getStylesByCategory(category: string, color: string) {
     case "tech":
       return {
         themeColor: color,
-        backgroundColor: "#0f172a",
+        backgroundColor: "#f8fafc",
         baseStyle: {
-          color: "#e5e7eb",
+          color: "#334155",
           fontFamily: '"Space Grotesk", sans-serif',
         },
-        containerStyle: `padding: 20px; background-color: #0f172a;`,
-        h1Style: `font-size: 1.6em; font-weight: bold; text-align: left; margin: 20px 0 32px 0; color: ${color === "#10b981" ? "#3b82f6" : "#10b981"}; text-transform: uppercase; letter-spacing: 2px; line-height: 1.4; border-bottom: 2px solid ${hexToRgba(color, 0.314)}; padding-bottom: 12px;`,
-        h2Style: `font-size: 1.25em; font-weight: bold; margin: 30px 0 20px 0; color: #ffffff; border-left: 6px solid ${color}; padding-left: 14px; background-color: #1e293b; display: block; line-height: 1.4; padding-top: 6px; padding-bottom: 6px;`,
-        h3Style: `font-size: 1.1em; font-weight: bold; margin: 20px 0 16px 0; color: ${color}; line-height: 1.4;`,
-        pStyle: "margin: 0 0 16px 0; line-height: 1.8; color: #cbd5e1;",
-        blockquoteStyle: `border: 1px solid ${color}; margin: 24px 0; padding: 16px; color: #94a3b8; background-color: #1e293b; border-radius: 4px;`,
-        blockquoteInnerBefore: `<span style="color: ${color === "#10b981" ? "#3b82f6" : "#10b981"}; margin-right: 8px;">></span>`,
+        containerStyle: `padding: 20px; background-color: #f8fafc;`,
+        h1Style: `font-size: 1.55em; font-weight: 800; text-align: left; margin: 20px 0 28px 0; color: #0f172a; line-height: 1.4; border-bottom: 2px solid ${hexToRgba(color, 0.251)}; padding-bottom: 12px;`,
+        h2Style: `font-size: 1.22em; font-weight: 800; margin: 28px 0 18px 0; color: #0f172a; border-left: 5px solid ${color}; padding: 10px 14px; background-color: ${hexToRgba(color, 0.082)}; display: block; line-height: 1.4;`,
+        h3Style: `font-size: 1.08em; font-weight: 800; margin: 20px 0 14px 0; color: ${color}; line-height: 1.4;`,
+        pStyle: "margin: 0 0 16px 0; line-height: 1.8; color: #334155;",
+        blockquoteStyle: `border: 1px solid ${hexToRgba(color, 0.314)}; border-left: 5px solid ${color}; margin: 24px 0; padding: 16px; color: #475569; background-color: #ffffff; border-radius: 6px;`,
+        blockquoteInnerBefore: `<span style="color: ${color === "#10b981" ? "#2563eb" : "#10b981"}; margin-right: 8px; font-weight: bold;">></span>`,
         blockquoteInnerAfter: ``,
         listStyle: "margin: 0 0 16px 0; padding: 0; list-style-type: none;",
         listItemStyle: `margin: 0 0 10px 0; line-height: 1.7;`,
-        listIcon: `<section style="display: inline-block; color: ${color === "#10b981" ? "#3b82f6" : "#10b981"}; font-weight: bold; font-family: monospace;">/&gt;</section>`,
-        strongStyle: `font-weight: bold; color: #ffffff; border-bottom: 1px solid ${color};`,
+        listIcon: `<section style="display: inline-block; color: ${color === "#10b981" ? "#2563eb" : "#10b981"}; font-weight: bold; font-family: monospace;">/&gt;</section>`,
+        strongStyle: `font-weight: bold; color: #0f172a; border-bottom: 2px solid ${hexToRgba(color, 0.502)};`,
         emStyle: `color: ${color}; font-style: normal; text-decoration: underline; text-decoration-color: ${color};`,
-        codeContainerStyle: `margin: 24px 0; border-radius: 6px; border: 1px solid #334155; overflow: hidden; background-color: #000000;`,
+        codeContainerStyle: `margin: 24px 0; border-radius: 6px; border: 1px solid #334155; overflow: hidden; background-color: #0f172a;`,
         codeHeaderStyle: `background-color: #1e293b; padding: 8px 12px; font-size: 0; line-height: 1; border-bottom: 1px solid #334155;`,
         codeBlockStyle: `margin: 0; padding: 16px; overflow-x: auto; color: ${color === "#10b981" ? "#3b82f6" : "#10b981"}; font-size: 13px; font-family: monospace; white-space: pre-wrap; word-break: break-all; line-height: 1.5;`,
-        imgStyle: `max-width: 100%; border: 2px solid #334155; border-radius: 8px; display: block; margin: 24px auto;`,
-        hrStyle: `border: none; border-top: 1px solid #334155; margin: 32px 0;`,
-        linkStyle: `color: ${color === "#10b981" ? "#3b82f6" : "#10b981"}; text-decoration: underline; text-decoration-style: dashed;`,
-        tableStyle: `width: 100%; max-width: 100%; border-collapse: collapse; margin: 24px 0; border: 1px solid #334155; font-size: 0.9em; table-layout: fixed; word-wrap: break-word;`,
-        thStyle: `border: 1px solid #334155; padding: 10px; background-color: #1e293b; color: #ffffff; text-align: left; margin: 0;`,
-        tdStyle: `border: 1px solid #334155; padding: 10px; color: #cbd5e1; margin: 0; word-wrap: break-word; word-break: break-all;`,
-        delStyle: `text-decoration: line-through; color: #475569;`,
+        imgStyle: `max-width: 100%; border: 1px solid ${hexToRgba(color, 0.376)}; border-radius: 8px; padding: 4px; background-color: #ffffff; display: block; margin: 24px auto;`,
+        hrStyle: `border: none; border-top: 1px dashed ${hexToRgba(color, 0.502)}; margin: 32px 0;`,
+        linkStyle: `color: ${color === "#10b981" ? "#2563eb" : "#10b981"}; text-decoration: underline; text-decoration-style: dashed;`,
+        tableStyle: `width: 100%; max-width: 100%; border-collapse: collapse; margin: 24px 0; border: 1px solid ${hexToRgba(color, 0.376)}; font-size: 0.9em; table-layout: fixed; word-wrap: break-word;`,
+        thStyle: `border: 1px solid ${hexToRgba(color, 0.376)}; padding: 10px; background-color: ${hexToRgba(color, 0.082)}; color: #0f172a; text-align: left; margin: 0;`,
+        tdStyle: `border: 1px solid ${hexToRgba(color, 0.251)}; padding: 10px; color: #334155; margin: 0; word-wrap: break-word; word-break: break-all;`,
+        delStyle: `text-decoration: line-through; color: #94a3b8;`,
         defaultH2Layout: "left" as H1LayoutType,
       };
     default:
@@ -414,7 +414,7 @@ function generateTemplates(): TemplateConfig[] {
     result.push({
       id: `minimalist-${i}`,
       name: names[i],
-      desc: "标准的点与线排版，适合日常阅读",
+      desc: "清爽留白，点线层次，适合日常阅读",
       category: "minimalist",
       ...getStylesByCategory("minimalist", color),
     });
@@ -425,7 +425,7 @@ function generateTemplates(): TemplateConfig[] {
     result.push({
       id: `business-${i}`,
       name: names[i],
-      desc: "方块标识符，适合严谨的行业报告",
+      desc: "报告结构，实底标题，适合行业分析",
       category: "business",
       ...getStylesByCategory("business", color),
     });
@@ -436,7 +436,7 @@ function generateTemplates(): TemplateConfig[] {
     result.push({
       id: `literary-${i}`,
       name: names[i],
-      desc: "配有小花图标，给文字呼吸喘息的空间",
+      desc: "书页质感，留白温和，适合读书随笔",
       category: "literary",
       ...getStylesByCategory("literary", color),
     });
@@ -447,7 +447,7 @@ function generateTemplates(): TemplateConfig[] {
     result.push({
       id: `tech-${i}`,
       name: names[i],
-      desc: "打破常规的终端 /> 标识设计",
+      desc: "浅科技模块，终端符号，适合 AI 工具教程",
       category: "tech",
       ...getStylesByCategory("tech", color),
     });
@@ -458,7 +458,7 @@ function generateTemplates(): TemplateConfig[] {
     result.push({
       id: `festive-${i}`,
       name: names[i],
-      desc: "星星标识与浓烈色彩传递节日喜悦",
+      desc: "暖色活动感，醒目节点，适合节日活动",
       category: "festive",
       ...getStylesByCategory("festive", color),
     });
@@ -469,7 +469,7 @@ function generateTemplates(): TemplateConfig[] {
     result.push({
       id: `neo-brutalism-${i}`,
       name: names[i],
-      desc: "高饱和度色彩、纯黑边框与硬投影，大胆不羁",
+      desc: "强对比标题，粗边硬影，适合观点表达",
       category: "neo-brutalism",
       ...getStylesByCategory("neo-brutalism", color),
     });

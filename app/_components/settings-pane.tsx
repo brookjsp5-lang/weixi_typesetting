@@ -35,6 +35,15 @@ const badgeClassNames = {
   cyan: "bg-(--neo-cyan)",
 } as const;
 
+const categoryStyleDescriptions: Record<string, string> = {
+  "neo-brutalism": "强对比标题，适合观点表达和工具清单。",
+  minimalist: "清爽留白，适合日常阅读和轻量分享。",
+  business: "报告结构，适合行业分析和结论梳理。",
+  literary: "书页质感，适合读书笔记和生活随笔。",
+  tech: "浅科技模块，适合 AI、工具和教程内容。",
+  festive: "暖色活动感，适合节日、活动和福利通知。",
+};
+
 function RangeControl({
   label,
   value,
@@ -155,6 +164,8 @@ export function SettingsPane({
   const currentTemplate = groupedTemplates
     .flatMap((group) => group.templates)
     .find((t) => t.id === currentTemplateId);
+  const currentCategoryDescription =
+    categoryStyleDescriptions[currentCategory] || "结构元素会随模板调整。";
 
   return (
     <div
@@ -221,6 +232,13 @@ export function SettingsPane({
             </div>
 
             <div className="p-3 overflow-y-auto flex-1 content-start bg-(--neo-surface) custom-scrollbar space-y-3">
+              <div className="rounded-lg border border-(--neo-line) bg-(--neo-sub-header) px-3 py-2 text-[11px] font-bold leading-relaxed text-(--neo-ink)">
+                <div className="font-black">{currentCategoryDescription}</div>
+                <div className="mt-1 neo-text-muted">
+                  当前文章结构较少时，部分模板差异会偏细微；可先用 AI 排版整理标题和重点。
+                </div>
+              </div>
+
               <div className="grid grid-cols-3 2xl:grid-cols-4 gap-3">
                 {groupedTemplates
                   .find((group) => group.id === currentCategory)
@@ -228,29 +246,33 @@ export function SettingsPane({
                     <button
                       key={template.id}
                       onClick={() => onSelectTemplate(template)}
-                      className={`relative p-2 border border-(--neo-line) rounded-xl text-center transition-all duration-200 flex flex-col gap-1 items-center justify-center bg-(--neo-surface) shadow-sm active:translate-y-px active:shadow-none ${
+                      title={template.desc}
+                      className={`relative min-h-[58px] p-2 border border-(--neo-line) rounded-xl text-center transition-all duration-200 flex flex-col gap-1 items-center justify-center bg-(--neo-surface) shadow-sm active:translate-y-px active:shadow-none ${
                         currentTemplateId === template.id
                           ? "bg-(--neo-pink) border-(--neo-green)"
                           : "hover:bg-(--neo-cyan)"
                       }`}
                     >
-                    <div className="flex items-center justify-center gap-1.5 w-full">
-                      <span
-                        className="w-2.5 h-2.5 border border-(--neo-line) rounded-full shrink-0"
-                        style={{ backgroundColor: template.themeColor }}
-                      />
-                      <span className="font-black text-xs text-(--neo-ink) truncate">
-                        {template.name}
-                      </span>
-                    </div>
-
-                    {currentTemplateId === template.id && (
-                      <div className="absolute -top-2 -right-2 bg-(--neo-green) text-white border border-white rounded-full p-0.5 shadow-sm">
-                        <Check className="w-2.5 h-2.5" strokeWidth={3} />
+                      <div className="flex items-center justify-center gap-1.5 w-full">
+                        <span
+                          className="w-2.5 h-2.5 border border-(--neo-line) rounded-full shrink-0"
+                          style={{ backgroundColor: template.themeColor }}
+                        />
+                        <span className="font-black text-xs text-(--neo-ink) truncate">
+                          {template.name}
+                        </span>
                       </div>
-                    )}
-                  </button>
-                ))}
+                      <span className="max-w-full truncate text-[10px] font-bold neo-text-muted">
+                        {template.desc}
+                      </span>
+
+                      {currentTemplateId === template.id && (
+                        <div className="absolute -top-2 -right-2 bg-(--neo-green) text-white border border-white rounded-full p-0.5 shadow-sm">
+                          <Check className="w-2.5 h-2.5" strokeWidth={3} />
+                        </div>
+                      )}
+                    </button>
+                  ))}
               </div>
 
               {/* 调色板工具 */}

@@ -10,6 +10,7 @@ const settingsPaneSource = readFileSync(
   resolve(testDir, "../app/_components/settings-pane.tsx"),
   "utf8",
 );
+const templateEngineSource = readFileSync(resolve(testDir, "../app/template-engine.ts"), "utf8");
 
 test("default format tweaks let templates use their own theme colors", () => {
   const defaultTweaksMatch = pageSource.match(
@@ -41,4 +42,31 @@ test("selecting a template converts imported WeChat html to Markdown before appl
   assert.match(pageSource, /isWechatImportedHtmlDraft\(inputText\)/);
   assert.match(pageSource, /htmlToMarkdownDraft\(\s*makeImportedHtmlDraftVisible\(inputText\),/);
   assert.match(pageSource, /setNormalizedInputText\(markdown\)/);
+});
+
+test("theme template copy explains the category design intent", () => {
+  for (const copy of [
+    "清爽留白",
+    "报告结构",
+    "书页质感",
+    "浅科技模块",
+    "强对比标题",
+    "暖色活动感",
+  ]) {
+    assert.match(settingsPaneSource, new RegExp(copy));
+  }
+});
+
+test("settings pane tells users why plain drafts may show subtle template differences", () => {
+  assert.match(settingsPaneSource, /当前文章结构较少/);
+  assert.match(settingsPaneSource, /AI 排版整理标题和重点/);
+});
+
+test("tech theme uses a light article surface while keeping dark terminal code blocks", () => {
+  const techCase = templateEngineSource.match(/case "tech":[\s\S]*?default:/)?.[0] ?? "";
+
+  assert.match(techCase, /backgroundColor:\s*"#f8fafc"/);
+  assert.match(techCase, /containerStyle:\s*`padding: 20px; background-color: #f8fafc;/);
+  assert.match(techCase, /codeContainerStyle:[\s\S]*background-color: #0f172a/);
+  assert.doesNotMatch(techCase, /baseStyle:[\s\S]*color:\s*"#e5e7eb"/);
 });
