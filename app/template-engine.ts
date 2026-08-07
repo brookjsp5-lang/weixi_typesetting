@@ -848,7 +848,7 @@ export function renderArticle(
   });
 
   const innerHtml = marked.parse(markdownText) as string;
-  const articleContainerStyle = ensureStyleValue(
+  const articleContainerBaseStyle = ensureStyleValue(
     ensureStyleValue(
       `${template.containerStyle} font-size: ${formatTweaks.fontSize}px; line-height: ${formatTweaks.lineHeight}; letter-spacing: ${formatTweaks.letterSpacing}px; color: ${template.baseStyle.color}; font-family: ${template.baseStyle.fontFamily}; word-wrap: break-word; word-break: break-all; box-sizing: border-box;`,
       "padding",
@@ -856,6 +856,11 @@ export function renderArticle(
     ),
     "background-color",
     template.backgroundColor,
+  );
+  const articleContainerStyle = ensureStyleValue(
+    articleContainerBaseStyle,
+    "border-left",
+    `4px solid ${template.themeColor}`,
   );
 
   return `<section style="width: 100%; max-width: 100%; box-sizing: border-box; background-color: ${template.backgroundColor};"><section style="${articleContainerStyle}">${innerHtml}</section></section>`;
