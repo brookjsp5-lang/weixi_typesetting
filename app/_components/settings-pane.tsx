@@ -79,7 +79,7 @@ type SettingsPaneProps = {
   currentCategory: string;
   setCurrentCategory: React.Dispatch<React.SetStateAction<string>>;
   currentTemplateId: string;
-  setCurrentTemplateId: React.Dispatch<React.SetStateAction<string>>;
+  onSelectTemplate: (template: TemplateConfig) => void;
   formatTweaks: FormatTweaks;
   setFormatTweaks: React.Dispatch<React.SetStateAction<FormatTweaks>>;
   onResetFormatTweaks: () => void;
@@ -95,7 +95,7 @@ export function SettingsPane({
   currentCategory,
   setCurrentCategory,
   currentTemplateId,
-  setCurrentTemplateId,
+  onSelectTemplate,
   formatTweaks,
   setFormatTweaks,
   onResetFormatTweaks,
@@ -197,7 +197,11 @@ export function SettingsPane({
                 {groupedTemplates.map((cat) => (
                   <button
                     key={cat.id}
-                    onClick={() => setCurrentCategory(cat.id)}
+                    onClick={() => {
+                      setCurrentCategory(cat.id);
+                      const firstTemplate = cat.templates.at(0);
+                      if (firstTemplate) onSelectTemplate(firstTemplate);
+                    }}
                     className={`whitespace-nowrap px-3 py-1.5 text-xs font-black ${currentCategory === cat.id ? "neo-tab neo-tab-active" : "neo-tab"}`}
                   >
                     {cat.name}
@@ -223,13 +227,7 @@ export function SettingsPane({
                   ?.templates.map((template) => (
                     <button
                       key={template.id}
-                      onClick={() => {
-                        setCurrentTemplateId(template.id);
-                        // Clear custom color so the selected template can use its own palette.
-                        updateFormatTweaks("themeColor", undefined);
-                        // 同步二级标题排版到模板默认值
-                        updateFormatTweaks("h2Layout", template.defaultH2Layout);
-                      }}
+                      onClick={() => onSelectTemplate(template)}
                       className={`relative p-2 border border-(--neo-line) rounded-xl text-center transition-all duration-200 flex flex-col gap-1 items-center justify-center bg-(--neo-surface) shadow-sm active:translate-y-px active:shadow-none ${
                         currentTemplateId === template.id
                           ? "bg-(--neo-pink) border-(--neo-green)"

@@ -35,6 +35,7 @@ import {
 } from "./_lib/cover-title-layout";
 import {
   getDraftPlainText,
+  htmlToMarkdownDraft,
   isWechatImportedHtmlDraft,
   makeImportedHtmlDraftVisible,
   normalizeConsecutiveImageBlocks,
@@ -59,7 +60,7 @@ import type {
   PosterTextStyle,
   PublishStepId,
 } from "./_types/formatter";
-import { allTemplates, groupedTemplates, renderArticle } from "./template-engine";
+import { allTemplates, groupedTemplates, renderArticle, type TemplateConfig } from "./template-engine";
 
 const DEFAULT_FORMAT_TWEAKS: FormatTweaks = {
   fontSize: 16,
@@ -290,6 +291,49 @@ export default function Home() {
 
   const currentTemplate =
     allTemplates.find((template) => template.id === currentTemplateId) || allTemplates[0];
+
+  const handleSelectTemplate = useCallback(
+    (template: TemplateConfig) => {
+      if (isWechatImportedHtmlDraft(inputText)) {
+        const createdImages = new Map<string, string>();
+        const { markdown } = htmlToMarkdownDraft(
+          makeImportedHtmlDraftVisible(inputText),
+          (dataUrl) => {
+            const imageId = `img-${++imageCounterRef.current}`;
+            createdImages.set(imageId, dataUrl);
+            return `#${imageId}`;
+          },
+        );
+
+        if (!markdown.trim()) {
+          showToast("当前公众号原文无法转换为模板草稿", "error");
+          return;
+        }
+
+        if (createdImages.size > 0) {
+          setImageMap((current) => {
+            const next = new Map(current);
+            for (const [imageId, dataUrl] of createdImages) {
+              next.set(imageId, dataUrl);
+            }
+            return next;
+          });
+        }
+
+        setNormalizedInputText(markdown);
+        showToast("已将公众号原文转为 Markdown 并套用主题模板");
+      }
+
+      setCurrentCategory(template.category);
+      setCurrentTemplateId(template.id);
+      setFormatTweaks((current) => ({
+        ...current,
+        themeColor: undefined,
+        h2Layout: template.defaultH2Layout,
+      }));
+    },
+    [inputText, setNormalizedInputText, showToast],
+  );
 
   const outputHtml = useMemo(() => {
     if (!normalizedInputText.trim()) return "";
@@ -644,7 +688,7 @@ export default function Home() {
               currentCategory={currentCategory}
               setCurrentCategory={setCurrentCategory}
               currentTemplateId={currentTemplateId}
-              setCurrentTemplateId={setCurrentTemplateId}
+              onSelectTemplate={handleSelectTemplate}
               formatTweaks={formatTweaks}
               setFormatTweaks={setFormatTweaks}
               onResetFormatTweaks={() => setFormatTweaks(DEFAULT_FORMAT_TWEAKS)}

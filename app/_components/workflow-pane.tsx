@@ -123,7 +123,7 @@ type WorkflowPaneProps = {
   currentCategory: string;
   setCurrentCategory: React.Dispatch<React.SetStateAction<string>>;
   currentTemplateId: string;
-  setCurrentTemplateId: React.Dispatch<React.SetStateAction<string>>;
+  onSelectTemplate: (template: TemplateConfig) => void;
   formatTweaks: FormatTweaks;
   setFormatTweaks: React.Dispatch<React.SetStateAction<FormatTweaks>>;
   onResetFormatTweaks: () => void;
@@ -888,7 +888,7 @@ export function WorkflowPane({
   currentCategory,
   setCurrentCategory,
   currentTemplateId,
-  setCurrentTemplateId,
+  onSelectTemplate,
   formatTweaks,
   setFormatTweaks,
   onResetFormatTweaks,
@@ -1383,7 +1383,7 @@ export function WorkflowPane({
                       currentCategory={currentCategory}
                       setCurrentCategory={setCurrentCategory}
                       currentTemplateId={currentTemplateId}
-                      setCurrentTemplateId={setCurrentTemplateId}
+                      onSelectTemplate={onSelectTemplate}
                       formatTweaks={formatTweaks}
                       setFormatTweaks={setFormatTweaks}
                       onResetFormatTweaks={onResetFormatTweaks}

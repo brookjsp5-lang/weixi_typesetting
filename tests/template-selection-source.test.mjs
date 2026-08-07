@@ -21,10 +21,24 @@ test("default format tweaks let templates use their own theme colors", () => {
 });
 
 test("selecting a template clears the custom theme color override", () => {
-  assert.match(settingsPaneSource, /setCurrentTemplateId\(template\.id\)/);
-  assert.match(settingsPaneSource, /updateFormatTweaks\("themeColor",\s*undefined\)/);
+  assert.match(settingsPaneSource, /onSelectTemplate\(template\)/);
+  assert.match(pageSource, /setCurrentTemplateId\(template\.id\)/);
+  assert.match(pageSource, /themeColor:\s*undefined/);
   assert.doesNotMatch(
-    settingsPaneSource,
-    /updateFormatTweaks\("themeColor",\s*template\.themeColor\)/,
+    pageSource,
+    /themeColor:\s*template\.themeColor/,
   );
+});
+
+test("selecting a template category also applies its first template", () => {
+  assert.match(settingsPaneSource, /const firstTemplate = cat\.templates\.at\(0\)/);
+  assert.match(settingsPaneSource, /if \(firstTemplate\) onSelectTemplate\(firstTemplate\)/);
+});
+
+test("selecting a template converts imported WeChat html to Markdown before applying the template", () => {
+  assert.match(pageSource, /htmlToMarkdownDraft/);
+  assert.match(pageSource, /const handleSelectTemplate = useCallback/);
+  assert.match(pageSource, /isWechatImportedHtmlDraft\(inputText\)/);
+  assert.match(pageSource, /htmlToMarkdownDraft\(\s*makeImportedHtmlDraftVisible\(inputText\),/);
+  assert.match(pageSource, /setNormalizedInputText\(markdown\)/);
 });

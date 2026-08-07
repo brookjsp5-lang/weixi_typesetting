@@ -180,6 +180,10 @@ function imageToMarkdown(node, createImageRef, state) {
     return "";
   }
 
+  if (/^#[A-Za-z0-9_-]+$/.test(src)) {
+    return `![${alt}](${src})`;
+  }
+
   if (/^data:image\//i.test(src)) {
     return `![${alt}](${createImageRef(src)})`;
   }

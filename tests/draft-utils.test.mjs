@@ -70,6 +70,21 @@ test("htmlToMarkdownDraft stores data images through createImageRef", () => {
   assert.match(result.markdown, /!\[截图\]\(#img-1\)/);
 });
 
+test("htmlToMarkdownDraft preserves local image refs from imported html", () => {
+  const refs = [];
+  const result = htmlToMarkdownDraft(
+    `<section><p>正文</p><img src="#img-12" alt="本地图"></section>`,
+    (dataUrl) => {
+      refs.push(dataUrl);
+      return "#img-unused";
+    },
+  );
+
+  assert.deepEqual(refs, []);
+  assert.match(result.markdown, /!\[本地图\]\(#img-12\)/);
+  assert.equal(result.skippedImages, 0);
+});
+
 test("normalizeConsecutiveImageBlocks separates adjacent image lines", () => {
   assert.equal(
     normalizeConsecutiveImageBlocks("before\n\n![one](#img-1)\n![two](#img-2)\n\nnext"),
