@@ -246,8 +246,7 @@ export function SettingsPane({
                     <button
                       key={template.id}
                       onClick={() => onSelectTemplate(template)}
-                      title={template.desc}
-                      className={`relative min-h-[58px] p-2 border border-(--neo-line) rounded-xl text-center transition-all duration-200 flex flex-col gap-1 items-center justify-center bg-(--neo-surface) shadow-sm active:translate-y-px active:shadow-none ${
+                      className={`relative p-2 border border-(--neo-line) rounded-xl text-center transition-all duration-200 flex flex-col gap-1 items-center justify-center bg-(--neo-surface) shadow-sm active:translate-y-px active:shadow-none ${
                         currentTemplateId === template.id
                           ? "bg-(--neo-pink) border-(--neo-green)"
                           : "hover:bg-(--neo-cyan)"
@@ -262,9 +261,6 @@ export function SettingsPane({
                           {template.name}
                         </span>
                       </div>
-                      <span className="max-w-full truncate text-[10px] font-bold neo-text-muted">
-                        {template.desc}
-                      </span>
 
                       {currentTemplateId === template.id && (
                         <div className="absolute -top-2 -right-2 bg-(--neo-green) text-white border border-white rounded-full p-0.5 shadow-sm">

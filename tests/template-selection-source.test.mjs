@@ -62,6 +62,17 @@ test("settings pane tells users why plain drafts may show subtle template differ
   assert.match(settingsPaneSource, /AI 排版整理标题和重点/);
 });
 
+test("template buttons keep repeated descriptions out of visible labels", () => {
+  const templateGridMatch = settingsPaneSource.match(
+    /<div className="grid grid-cols-3[\s\S]*?\{\/\* 调色板工具 \*\//,
+  );
+
+  assert.ok(templateGridMatch, "template button grid should exist");
+  assert.doesNotMatch(templateGridMatch[0], /title=\{template\.desc\}/);
+  assert.doesNotMatch(templateGridMatch[0], /\{template\.desc\}/);
+  assert.match(settingsPaneSource, /currentCategoryDescription/);
+});
+
 test("tech theme uses a light article surface while keeping dark terminal code blocks", () => {
   const techCase = templateEngineSource.match(/case "tech":[\s\S]*?default:/)?.[0] ?? "";
 
