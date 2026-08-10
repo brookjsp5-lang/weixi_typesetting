@@ -1,6 +1,6 @@
 import { X } from "lucide-react";
 import type React from "react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { ActiveTab } from "../_types/formatter";
 
 type PreviewPaneProps = {
@@ -8,6 +8,7 @@ type PreviewPaneProps = {
   previewRef: React.RefObject<HTMLDivElement | null>;
   onPreviewScroll: (e: React.UIEvent<HTMLDivElement>) => void;
   outputHtml: string;
+  onSourceHover?: (sourceStart: number) => void;
 };
 
 const emptyPreviewHtml = '<div class="neo-preview-empty">这里空空如也，请在左侧输入内容</div>';
@@ -17,8 +18,10 @@ export function PreviewPane({
   previewRef,
   onPreviewScroll,
   outputHtml,
+  onSourceHover,
 }: PreviewPaneProps) {
   const [previewImage, setPreviewImage] = useState<{ src: string; alt: string } | null>(null);
+  const lastHoveredSourceRef = useRef<number | null>(null);
 
   useEffect(() => {
     if (!previewImage) return;
@@ -42,6 +45,17 @@ export function PreviewPane({
       src,
       alt: target.alt || "文章图片",
     });
+  };
+
+  const handlePreviewPointerMove = (event: React.PointerEvent<HTMLDivElement>) => {
+    if (!onSourceHover || !(event.target instanceof HTMLElement)) return;
+
+    const sourceElement = event.target.closest<HTMLElement>("[data-typezen-source-start]");
+    const sourceStart = Number(sourceElement?.dataset.typezenSourceStart);
+    if (!Number.isInteger(sourceStart) || lastHoveredSourceRef.current === sourceStart) return;
+
+    lastHoveredSourceRef.current = sourceStart;
+    onSourceHover(sourceStart);
   };
 
   return (
@@ -69,6 +83,10 @@ export function PreviewPane({
                 <div
                   className="w-full prose-img:max-w-full [&_img]:cursor-zoom-in"
                   onClick={handlePreviewClick}
+                  onPointerMove={handlePreviewPointerMove}
+                  onPointerLeave={() => {
+                    lastHoveredSourceRef.current = null;
+                  }}
                   dangerouslySetInnerHTML={{
                     __html: outputHtml || emptyPreviewHtml,
                   }}

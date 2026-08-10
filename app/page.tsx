@@ -44,6 +44,10 @@ import {
 } from "./_lib/draft-utils";
 import { aiStorageKeys, sampleText } from "./_lib/formatter-constants";
 import {
+  annotateMarkdownWithSourceAnchors,
+  attachSourceAnchorsToPreviewHtml,
+} from "./_lib/preview-source-map";
+import {
   DEFAULT_POSTER_TEXT_STYLE,
   normalizePosterTextStyle,
 } from "./_lib/poster-text-style";
@@ -347,6 +351,36 @@ export default function Home() {
     return renderArticle(processedText, currentTemplate, formatTweaks);
   }, [normalizedInputText, currentTemplate, formatTweaks, imageMap]);
 
+  const previewOutputHtml = useMemo(() => {
+    if (!normalizedInputText.trim()) return "";
+
+    const processedText = replaceLocalImageRefs(normalizedInputText, imageMap);
+    if (isWechatImportedHtmlDraft(processedText)) return outputHtml;
+
+    const markdownWithSourceAnchors = annotateMarkdownWithSourceAnchors(normalizedInputText);
+    const previewText = replaceLocalImageRefs(markdownWithSourceAnchors, imageMap);
+    return attachSourceAnchorsToPreviewHtml(
+      renderArticle(previewText, currentTemplate, formatTweaks),
+    );
+  }, [currentTemplate, formatTweaks, imageMap, normalizedInputText, outputHtml]);
+
+  const handlePreviewSourceHover = useCallback((sourceStart: number) => {
+    const textarea = inputRef.current;
+    if (!textarea) return;
+
+    const caretPosition = Math.min(Math.max(sourceStart, 0), textarea.value.length);
+    const sourceBeforeCaret = textarea.value.slice(0, caretPosition);
+    const lineNumber = sourceBeforeCaret.split("\n").length - 1;
+    const computedLineHeight = Number.parseFloat(window.getComputedStyle(textarea).lineHeight);
+    const lineHeight = Number.isFinite(computedLineHeight) ? computedLineHeight : 23;
+
+    textarea.focus({ preventScroll: true });
+    textarea.setSelectionRange(caretPosition, caretPosition);
+    window.requestAnimationFrame(() => {
+      textarea.scrollTop = Math.max(0, lineNumber * lineHeight - textarea.clientHeight / 2);
+    });
+  }, []);
+
   const publishChecks = useMemo(
     () => runPublishChecks(inputText, { hasCoverImage: aiWorkflow.hasGeneratedCover }),
     [inputText, aiWorkflow.hasGeneratedCover],
@@ -614,7 +648,12 @@ export default function Home() {
               activeTab={activeTab}
               previewRef={previewRef}
               onPreviewScroll={handlePreviewScroll}
-              outputHtml={outputHtml}
+              outputHtml={previewOutputHtml}
+              onSourceHover={
+                isWechatImportedHtmlDraft(normalizedInputText)
+                  ? undefined
+                  : handlePreviewSourceHover
+              }
             />
 
             <WorkflowPane
