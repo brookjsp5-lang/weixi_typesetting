@@ -42,6 +42,8 @@ const categoryStyleDescriptions: Record<string, string> = {
   literary: "书页质感，适合读书笔记和生活随笔。",
   tech: "浅科技模块，适合 AI、工具和教程内容。",
   festive: "暖色活动感，适合节日、活动和福利通知。",
+  "food-journal": "暖食材色和便签分隔，适合探店、食谱与生活记录。",
+  "pet-sticker": "明快贴纸框和小爪标记，适合萌宠、亲子与轻松分享。",
 };
 
 function RangeControl({

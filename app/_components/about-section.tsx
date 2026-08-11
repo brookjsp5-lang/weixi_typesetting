@@ -22,7 +22,7 @@ export function AboutSection() {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-4">
             <div className="flex items-start gap-3">
               <CheckCircle2 className="w-6 h-6 text-(--neo-green) shrink-0 mt-1" />
-              <span className="font-bold">72 套手工精选模板，涵盖多种风格</span>
+              <span className="font-bold">96 套手工精选模板，涵盖 8 大风格分类</span>
             </div>
             <div className="flex items-start gap-3">
               <CheckCircle2 className="w-6 h-6 text-(--neo-green) shrink-0 mt-1" />
@@ -54,7 +54,7 @@ export function AboutSection() {
                 TypeZen 是什么？
               </h3>
               <p className="font-bold text-(--neo-muted)">
-                TypeZen 是一个免费在线的 Markdown 转微信公众号排版工具。它支持 AI 一键优化文章结构，提供 72 套精美排版模板，帮助用户快速生成适合公众号阅读的精美文章。
+                TypeZen 是一个免费在线的 Markdown 转微信公众号排版工具。它支持 AI 一键优化文章结构，提供 96 套精美排版模板，覆盖 8 大风格分类，帮助用户快速生成适合公众号阅读的精美文章。
               </p>
             </div>
             
