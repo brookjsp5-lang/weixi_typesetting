@@ -14,7 +14,6 @@ export interface TemplateConfig {
   };
   containerStyle: string;
   h1Style: string;
-  h1Badge?: string;
   h2Style: string;
   h3Style: string;
   pStyle: string;
@@ -124,34 +123,6 @@ const colorPalettes = {
     "#e11d48",
     "#ca8a04",
   ],
-  foodJournal: [
-    "#e86f51",
-    "#d9a441",
-    "#d77a61",
-    "#6e9e75",
-    "#b85b62",
-    "#c98252",
-    "#d2a12a",
-    "#d96d7c",
-    "#aa6a46",
-    "#ca7651",
-    "#4f9a8a",
-    "#c35c3e",
-  ],
-  petSticker: [
-    "#f59e0b",
-    "#fb7185",
-    "#38bdf8",
-    "#34d399",
-    "#f97316",
-    "#facc15",
-    "#f472b6",
-    "#2dd4bf",
-    "#a3e635",
-    "#fb923c",
-    "#60a5fa",
-    "#ef4444",
-  ],
 };
 
 const names = [
@@ -169,36 +140,6 @@ const names = [
   "幽蓝",
 ];
 
-const foodJournalNames = [
-  "番茄晚餐",
-  "抹茶午后",
-  "柚子气泡",
-  "草莓奶油",
-  "焦糖吐司",
-  "咖喱便当",
-  "胡椒烤物",
-  "蜜桃冰茶",
-  "海盐拿铁",
-  "柠檬糖渍",
-  "莓果酸奶",
-  "夜市炭火",
-];
-
-const petStickerNames = [
-  "奶油猫爪",
-  "桃桃小狗",
-  "薄荷兔耳",
-  "向日葵仓鼠",
-  "蓝天小鸟",
-  "橘子猫窝",
-  "草地汪汪",
-  "西瓜小爪",
-  "蜂蜜布丁",
-  "海盐企鹅",
-  "番茄柴犬",
-  "云朵抱抱",
-];
-
 const categoriesList = [
   { id: "neo-brutalism", name: "新粗野风" },
   { id: "minimalist", name: "极简风" },
@@ -206,8 +147,6 @@ const categoriesList = [
   { id: "literary", name: "文艺风" },
   { id: "tech", name: "科技风" },
   { id: "festive", name: "节庆风" },
-  { id: "food-journal", name: "好味手帐" },
-  { id: "pet-sticker", name: "宠物贴贴社" },
 ];
 
 function hexToRgb(hex: string) {
@@ -434,74 +373,6 @@ function getStylesByCategory(category: string, color: string) {
         delStyle: `text-decoration: line-through; color: #94a3b8;`,
         defaultH2Layout: "left" as H1LayoutType,
       };
-    case "food-journal":
-      return {
-        themeColor: color,
-        backgroundColor: "#fff8ee",
-        baseStyle: {
-          color: "#5c4230",
-          fontFamily: "system-ui, -apple-system, sans-serif",
-        },
-        containerStyle: "padding: 24px 16px; background-color: #fff8ee;",
-        h1Style: `font-size: 1.48em; font-weight: 800; text-align: center; margin: 12px 0 28px; color: #5c4230; background-color: #fffdf7; border: 2px solid ${color}; border-radius: 18px 18px 6px 18px; padding: 14px 12px; box-shadow: 4px 4px 0 ${hexToRgba(color, 0.251)}; line-height: 1.35; letter-spacing: 1px; display: block;`,
-        h1Badge: `<span style="display: inline-block; margin-bottom: 7px; color: #ffffff; background-color: ${color}; border-radius: 8px; padding: 3px 8px; font-size: 10px; font-weight: bold; letter-spacing: 1.5px;">TODAY'S MENU</span><br/>`,
-        h2Style: `font-size: 1.18em; font-weight: 800; margin: 28px 0 16px; color: ${color}; border-top: 2px dashed ${color}; border-bottom: 2px dashed ${color}; padding: 9px 4px; line-height: 1.45; letter-spacing: 1px; display: block;`,
-        h3Style: `font-size: 1.06em; font-weight: 800; margin: 20px 0 12px; color: #5c4230; border-left: 4px solid ${color}; padding-left: 10px; line-height: 1.45;`,
-        pStyle: "margin: 0 0 16px 0; line-height: 1.9; color: #604633; letter-spacing: 0.35px;",
-        blockquoteStyle: `border: 1px solid ${hexToRgba(color, 0.502)}; border-radius: 14px; margin: 24px 0; padding: 16px; color: #754d35; background-color: #fffdf7; box-shadow: 3px 3px 0 ${hexToRgba(color, 0.125)};`,
-        blockquoteInnerBefore: `<span style="display: inline-block; margin-bottom: 8px; color: #ffffff; background-color: ${color}; border-radius: 10px; padding: 3px 8px; font-size: 11px; font-weight: bold; letter-spacing: 1px;">TODAY'S TASTE</span><br/>`,
-        blockquoteInnerAfter: "",
-        listStyle: "margin: 0 0 16px 0; padding: 0; list-style-type: none;",
-        listItemStyle: "margin: 0 0 10px 0; line-height: 1.75; color: #604633;",
-        listIcon: `<section style="display: inline-block; width: 11px; height: 11px; border: 2px solid ${color}; border-radius: 50%; background-color: #fff8ee; vertical-align: middle; box-sizing: border-box; overflow: hidden;"><br/></section>`,
-        strongStyle: `font-weight: 800; color: #5c4230; background-color: ${hexToRgba(color, 0.188)}; border-bottom: 2px solid ${color}; padding: 0 3px;`,
-        emStyle: `font-style: normal; color: ${color}; text-decoration: underline; text-decoration-style: dashed;`,
-        codeContainerStyle: `margin: 24px 0; border: 1px solid ${hexToRgba(color, 0.502)}; border-radius: 14px; overflow: hidden; background-color: #fffdf7;`,
-        codeHeaderStyle: `background-color: ${hexToRgba(color, 0.125)}; padding: 8px 12px; font-size: 0; line-height: 1; border-bottom: 1px dashed ${color};`,
-        codeBlockStyle: "margin: 0; padding: 16px; overflow-x: auto; color: #604633; font-size: 13px; font-family: monospace; line-height: 1.6; white-space: pre-wrap; word-break: break-all;",
-        imgStyle: `max-width: 100%; border: 5px solid #fffdf7; border-radius: 14px; box-shadow: 0 4px 14px ${hexToRgba(color, 0.188)}; display: block; margin: 24px auto;`,
-        hrStyle: `border: none; border-top: 2px dashed ${color}; margin: 32px 0;`,
-        linkStyle: `color: ${color}; font-weight: bold; text-decoration: none; border-bottom: 2px solid ${hexToRgba(color, 0.502)};`,
-        tableStyle: `width: 100%; max-width: 100%; border-collapse: separate; border-spacing: 0; margin: 24px 0; border: 1px solid ${hexToRgba(color, 0.502)}; border-radius: 10px; overflow: hidden; font-size: 0.9em; table-layout: fixed; word-wrap: break-word;`,
-        thStyle: `border-bottom: 1px solid ${hexToRgba(color, 0.502)}; padding: 10px; background-color: ${hexToRgba(color, 0.125)}; color: #5c4230; font-weight: bold; text-align: left; margin: 0;`,
-        tdStyle: "border-bottom: 1px dashed #ead6c5; padding: 10px; color: #604633; margin: 0; word-wrap: break-word; word-break: break-all; background-color: #fffdf7;",
-        delStyle: "text-decoration: line-through; color: #b99983;",
-        defaultH2Layout: "left" as H1LayoutType,
-      };
-    case "pet-sticker":
-      return {
-        themeColor: color,
-        backgroundColor: "#fffdf7",
-        baseStyle: {
-          color: "#384b47",
-          fontFamily: "system-ui, -apple-system, sans-serif",
-        },
-        containerStyle: "padding: 22px 14px; background-color: #fffdf7;",
-        h1Style: `font-size: 1.52em; font-weight: 900; text-align: center; margin: 12px 0 28px; color: #384b47; background-color: ${hexToRgba(color, 0.125)}; border: 2px solid ${color}; border-radius: 18px 18px 18px 5px; padding: 14px 12px; box-shadow: 4px 4px 0 ${color}; line-height: 1.3; letter-spacing: 1px; display: block;`,
-        h1Badge: `<span style="display: inline-block; margin-bottom: 7px; color: #ffffff; background-color: ${color}; border: 1px solid #ffffff; border-radius: 999px 999px 999px 5px; padding: 3px 9px; font-size: 10px; font-weight: 900; letter-spacing: 1.5px;">PAW CLUB</span><br/>`,
-        h2Style: `font-size: 1.22em; font-weight: 900; margin: 28px 0 16px; color: #384b47; background-color: #ffffff; border: 2px solid ${color}; border-radius: 14px 14px 14px 4px; padding: 9px 13px; box-shadow: 3px 3px 0 ${hexToRgba(color, 0.753)}; line-height: 1.4; display: inline-block;`,
-        h3Style: `font-size: 1.06em; font-weight: 900; margin: 20px 0 12px; color: ${color}; line-height: 1.45; border-bottom: 2px dotted ${color}; padding-bottom: 5px;`,
-        pStyle: "margin: 0 0 16px 0; line-height: 1.88; color: #405a54; letter-spacing: 0.25px;",
-        blockquoteStyle: `border: 2px solid ${color}; border-radius: 16px 16px 5px 16px; margin: 24px 0; padding: 16px; color: #405a54; background-color: ${hexToRgba(color, 0.063)}; box-shadow: 3px 3px 0 ${hexToRgba(color, 0.376)};`,
-        blockquoteInnerBefore: `<span style="display: inline-block; margin-bottom: 8px; color: #ffffff; background-color: ${color}; border: 1px solid #ffffff; border-radius: 999px; padding: 3px 9px; font-size: 10px; font-weight: 900; letter-spacing: 1px;">PAW NOTE</span><br/>`,
-        blockquoteInnerAfter: "",
-        listStyle: "margin: 0 0 16px 0; padding: 0; list-style-type: none;",
-        listItemStyle: "margin: 0 0 10px 0; line-height: 1.75; color: #405a54;",
-        listIcon: `<section style="display: inline-block; min-width: 18px; padding: 1px 3px; border: 1px solid ${color}; border-radius: 8px 8px 8px 2px; color: ${color}; background-color: #ffffff; font-size: 9px; font-weight: 900; line-height: 1.2; text-align: center; vertical-align: middle; box-sizing: border-box;">PAW</section>`,
-        strongStyle: `font-weight: 900; color: #384b47; background-color: ${hexToRgba(color, 0.251)}; border-radius: 5px; padding: 1px 4px;`,
-        emStyle: `font-style: normal; color: ${color}; font-weight: bold; text-decoration: underline; text-decoration-style: wavy;`,
-        codeContainerStyle: `margin: 24px 0; border: 2px solid ${color}; border-radius: 14px 14px 5px 14px; overflow: hidden; background-color: #ffffff;`,
-        codeHeaderStyle: `background-color: ${hexToRgba(color, 0.125)}; padding: 8px 12px; font-size: 0; line-height: 1; border-bottom: 2px solid ${color};`,
-        codeBlockStyle: "margin: 0; padding: 16px; overflow-x: auto; color: #405a54; font-size: 13px; font-family: monospace; line-height: 1.6; white-space: pre-wrap; word-break: break-all;",
-        imgStyle: `max-width: 100%; border: 4px solid #ffffff; border-radius: 16px 16px 6px 16px; box-shadow: 0 4px 0 ${hexToRgba(color, 0.627)}; display: block; margin: 24px auto;`,
-        hrStyle: `border: none; border-top: 2px dotted ${color}; margin: 32px 0;`,
-        linkStyle: `color: ${color}; font-weight: 900; text-decoration: none; border-bottom: 2px solid ${color};`,
-        tableStyle: `width: 100%; max-width: 100%; border-collapse: separate; border-spacing: 0; margin: 24px 0; border: 2px solid ${color}; border-radius: 12px; overflow: hidden; font-size: 0.9em; table-layout: fixed; word-wrap: break-word;`,
-        thStyle: `border-bottom: 2px solid ${color}; padding: 10px; background-color: ${hexToRgba(color, 0.125)}; color: #384b47; font-weight: 900; text-align: left; margin: 0;`,
-        tdStyle: "border-bottom: 1px solid #e5eee9; padding: 10px; color: #405a54; margin: 0; word-wrap: break-word; word-break: break-all; background-color: #ffffff;",
-        delStyle: "text-decoration: line-through; color: #9cb0a9;",
-        defaultH2Layout: "left" as H1LayoutType,
-      };
     default:
       return {
         themeColor: color,
@@ -593,29 +464,7 @@ function generateTemplates(): TemplateConfig[] {
     });
   });
 
-  // 6. 好味手帐 (Food Journal) - 暖食材色、便签分隔、生活记录
-  colorPalettes.foodJournal.forEach((color, i) => {
-    result.push({
-      id: `food-journal-${i}`,
-      name: foodJournalNames[i],
-      desc: "暖食材色与手帐便签，适合探店、食谱和生活记录",
-      category: "food-journal",
-      ...getStylesByCategory("food-journal", color),
-    });
-  });
-
-  // 7. 宠物贴贴社 (Pet Sticker) - 明快贴纸框、小爪标记、轻松活泼
-  colorPalettes.petSticker.forEach((color, i) => {
-    result.push({
-      id: `pet-sticker-${i}`,
-      name: petStickerNames[i],
-      desc: "明快贴纸框与小爪标记，适合萌宠、亲子和轻松分享",
-      category: "pet-sticker",
-      ...getStylesByCategory("pet-sticker", color),
-    });
-  });
-
-  // 8. 新粗野主义 (Neo-Brutalism) - 粗黑边框、硬投影、高对比
+  // 6. 新粗野主义 (Neo-Brutalism) - 粗黑边框、硬投影、高对比
   colorPalettes.neoBrutalism.forEach((color, i) => {
     result.push({
       id: `neo-brutalism-${i}`,
@@ -718,8 +567,6 @@ export function renderArticle(
   customRenderer.heading = function (token: Tokens.Heading) {
     const depth = token.depth;
     const textHtml = this.parser.parseInline(token.tokens);
-    const headingBadge = depth === 1 ? (template.h1Badge ? template.h1Badge : "") : "";
-    const headingHtml = `${headingBadge}${textHtml}`;
 
     let baseStyle = "";
     if (depth === 1) baseStyle = template.h1Style;
@@ -771,7 +618,7 @@ export function renderArticle(
       return `<section style="margin: ${margin}; text-align: ${textAlign};">
         <section style="${cleanStyle} display: inline-block; text-align: left;">
           <section style="margin: 0; padding: 0; font-size: 1em; font-weight: inherit; line-height: 1.4; background: none; border: none; color: inherit;">
-            ${headingHtml}
+            ${textHtml}
           </section>
         </section>
       </section>`;
@@ -780,7 +627,7 @@ export function renderArticle(
     return `<section style="margin: ${margin}; text-align: ${textAlign};">
       <section style="${cleanStyle}">
         <section style="margin: 0; padding: 0; font-size: 1em; font-weight: inherit; line-height: 1.4; background: none; border: none; color: inherit;">
-          ${headingHtml}
+          ${textHtml}
         </section>
       </section>
     </section>`;

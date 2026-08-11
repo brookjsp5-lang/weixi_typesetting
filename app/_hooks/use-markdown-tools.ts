@@ -6,7 +6,6 @@ import {
   localizeRemoteMarkdownImages,
   normalizeConsecutiveImageBlocks,
 } from "../_lib/draft-utils";
-import { setMarkdownHeadingLevel } from "../_lib/markdown-heading";
 import type { ShowToast } from "./use-toast";
 
 type UseMarkdownToolsParams = {
@@ -89,14 +88,21 @@ export function useMarkdownTools({
       const scrollTop = textarea.scrollTop;
       const start = textarea.selectionStart;
       const end = textarea.selectionEnd;
-      const update = setMarkdownHeadingLevel(inputText, start, end, level);
+      const selectedText = inputText.substring(start, end);
+      const prefix = "#".repeat(level) + " ";
+      const textToInsert = selectedText || "标题";
+      const newText =
+        inputText.substring(0, start) + prefix + textToInsert + inputText.substring(end);
 
-      setInputText(update.markdown);
+      setInputText(newText);
 
       setTimeout(() => {
         textarea.focus();
         textarea.scrollTop = scrollTop;
-        textarea.setSelectionRange(update.selectionStart, update.selectionEnd);
+        textarea.setSelectionRange(
+          start + prefix.length,
+          start + prefix.length + textToInsert.length,
+        );
       }, 0);
     },
     [inputRef, inputText, setInputText],
