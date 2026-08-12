@@ -64,6 +64,18 @@ test("setMarkdownListType replaces existing unordered markers while keeping blan
   });
 });
 
+test("setMarkdownListType replaces ordered markers with unordered markers", () => {
+  const markdown = "1. 芝麻酱\n2. 加生抽\n\n3. 淋酱汁";
+  const expected = "- 芝麻酱\n- 加生抽\n\n- 淋酱汁";
+  const result = setListType(markdown, 0, markdown.length, "ul");
+
+  assert.deepEqual(result, {
+    markdown: expected,
+    selectionStart: 0,
+    selectionEnd: expected.length,
+  });
+});
+
 test("setMarkdownQuote prefixes every selected non-empty line", () => {
   const markdown = "第一条\n第二条\n\n第三条";
   const expected = "> 第一条\n> 第二条\n\n> 第三条";
