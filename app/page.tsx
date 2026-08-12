@@ -604,6 +604,7 @@ export default function Home() {
               insertMarkdown={markdownTools.insertMarkdown}
               insertHeading={markdownTools.insertHeading}
               insertList={markdownTools.insertList}
+              insertQuote={markdownTools.insertQuote}
               insertCodeBlock={markdownTools.insertCodeBlock}
               insertLink={markdownTools.insertLink}
               insertImage={markdownTools.insertImage}

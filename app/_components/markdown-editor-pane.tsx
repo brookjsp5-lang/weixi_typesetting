@@ -33,6 +33,7 @@ type MarkdownEditorPaneProps = {
   insertMarkdown: (prefix: string, suffix?: string, placeholder?: string) => void;
   insertHeading: (level: number) => void;
   insertList: (type: "ul" | "ol") => void;
+  insertQuote: () => void;
   insertCodeBlock: () => void;
   insertLink: () => void;
   insertImage: () => void;
@@ -695,6 +696,7 @@ export function MarkdownEditorPane({
   insertMarkdown,
   insertHeading,
   insertList,
+  insertQuote,
   insertCodeBlock,
   insertLink,
   insertImage,
@@ -902,7 +904,7 @@ export function MarkdownEditorPane({
             onStrike={() => insertMarkdown("~~", "~~", "删除线")}
             onUnorderedList={() => insertList("ul")}
             onOrderedList={() => insertList("ol")}
-            onQuote={() => insertMarkdown("> ", "", "引用内容")}
+            onQuote={insertQuote}
             onInlineCode={() => insertMarkdown("`", "`", "代码")}
             onCodeBlock={insertCodeBlock}
             onLink={insertLink}

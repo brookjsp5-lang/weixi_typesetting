@@ -6,6 +6,9 @@ import {
   localizeRemoteMarkdownImages,
   normalizeConsecutiveImageBlocks,
 } from "../_lib/draft-utils";
+import { setMarkdownHeadingLevel } from "../_lib/markdown-heading";
+import { setMarkdownListType } from "../_lib/markdown-list";
+import { setMarkdownQuote } from "../_lib/markdown-quote";
 import type { ShowToast } from "./use-toast";
 
 type UseMarkdownToolsParams = {
@@ -88,21 +91,14 @@ export function useMarkdownTools({
       const scrollTop = textarea.scrollTop;
       const start = textarea.selectionStart;
       const end = textarea.selectionEnd;
-      const selectedText = inputText.substring(start, end);
-      const prefix = "#".repeat(level) + " ";
-      const textToInsert = selectedText || "标题";
-      const newText =
-        inputText.substring(0, start) + prefix + textToInsert + inputText.substring(end);
+      const update = setMarkdownHeadingLevel(inputText, start, end, level);
 
-      setInputText(newText);
+      setInputText(update.markdown);
 
       setTimeout(() => {
         textarea.focus();
         textarea.scrollTop = scrollTop;
-        textarea.setSelectionRange(
-          start + prefix.length,
-          start + prefix.length + textToInsert.length,
-        );
+        textarea.setSelectionRange(update.selectionStart, update.selectionEnd);
       }, 0);
     },
     [inputRef, inputText, setInputText],
@@ -116,25 +112,34 @@ export function useMarkdownTools({
       const scrollTop = textarea.scrollTop;
       const start = textarea.selectionStart;
       const end = textarea.selectionEnd;
-      const selectedText = inputText.substring(start, end);
-      const prefix = type === "ul" ? "- " : "1. ";
-      const textToInsert = selectedText || "列表项";
-      const newText =
-        inputText.substring(0, start) + prefix + textToInsert + inputText.substring(end);
+      const update = setMarkdownListType(inputText, start, end, type);
 
-      setInputText(newText);
+      setInputText(update.markdown);
 
       setTimeout(() => {
         textarea.focus();
         textarea.scrollTop = scrollTop;
-        textarea.setSelectionRange(
-          start + prefix.length,
-          start + prefix.length + textToInsert.length,
-        );
+        textarea.setSelectionRange(update.selectionStart, update.selectionEnd);
       }, 0);
     },
     [inputRef, inputText, setInputText],
   );
+
+  const insertQuote = useCallback(() => {
+    const textarea = inputRef.current;
+    if (!textarea) return;
+
+    const scrollTop = textarea.scrollTop;
+    const update = setMarkdownQuote(inputText, textarea.selectionStart, textarea.selectionEnd);
+
+    setInputText(update.markdown);
+
+    setTimeout(() => {
+      textarea.focus();
+      textarea.scrollTop = scrollTop;
+      textarea.setSelectionRange(update.selectionStart, update.selectionEnd);
+    }, 0);
+  }, [inputRef, inputText, setInputText]);
 
   const insertCodeBlock = useCallback(() => {
     const textarea = inputRef.current;
@@ -485,6 +490,7 @@ export function useMarkdownTools({
     insertMarkdown,
     insertHeading,
     insertList,
+    insertQuote,
     insertCodeBlock,
     insertLink,
     insertImage,
