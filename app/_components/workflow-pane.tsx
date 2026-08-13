@@ -161,10 +161,10 @@ const posterAccentColors = ["#10b981", "#22c55e", "#2563eb", "#e11d48", "#f59e0b
 const posterCardColors = ["#ffffff", "#f8fafc", "#fff7ed", "#ecfeff", "#111827", "#000000"];
 
 const workflowStepClassNames = {
-  done: "border-emerald-300 bg-emerald-50 text-emerald-700",
-  active: "border-(--neo-green) bg-white text-[#065f46] shadow-sm",
-  warning: "border-amber-300 bg-amber-50 text-amber-800",
-  pending: "border-(--neo-line) bg-white/75 text-(--neo-muted)",
+  done: "neo-workflow-step-done",
+  active: "neo-workflow-step-active",
+  warning: "neo-workflow-step-warning",
+  pending: "neo-workflow-step-pending",
 } as const;
 
 const workflowStepStatusLabels = {
@@ -227,13 +227,11 @@ function StepActions({
 function CompletionCard({ done, text }: { done: boolean; text: string }) {
   return (
     <section
-      className={`rounded-xl border p-3 text-xs font-bold leading-relaxed ${
-        done
-          ? "border-emerald-300 bg-emerald-50 text-emerald-700"
-          : "border-(--neo-line) bg-white neo-text-muted"
+      className={`neo-workflow-completion-card rounded-xl border p-3 text-xs font-bold leading-relaxed ${
+        done ? "is-complete" : ""
       }`}
     >
-      <div className="mb-1 flex items-center gap-1.5 text-[11px] font-black text-(--neo-ink)">
+      <div className="neo-workflow-completion-title mb-1 flex items-center gap-1.5 text-[11px] font-black">
         <CheckCircle2 className="h-3.5 w-3.5" />
         {done ? "本步已完成" : "本步完成条件"}
       </div>
@@ -1105,8 +1103,8 @@ export function WorkflowPane({
                 onClick={() => setWorkflowModule(module.id)}
                 className={`rounded-lg border px-2 py-2 text-left transition ${
                   workflowModule === module.id
-                    ? "border-(--neo-green) bg-emerald-50 text-emerald-700"
-                    : "border-(--neo-line) bg-white text-(--neo-ink)"
+                    ? "neo-workflow-module is-active"
+                    : "neo-workflow-module"
                 }`}
                 title={module.description}
               >
@@ -1132,7 +1130,7 @@ export function WorkflowPane({
                   } ${publishStep === step.id ? "ring-2 ring-(--neo-green)" : ""}`}
                   title={`${step.label}：${step.description}`}
                 >
-                  <div className="mx-auto mb-1 flex h-5 w-5 items-center justify-center rounded-full bg-white/85 text-[10px] font-black">
+                  <div className="neo-workflow-step-number mx-auto mb-1 flex h-5 w-5 items-center justify-center rounded-full text-[10px] font-black">
                     {index + 1}
                   </div>
                   <div className="truncate text-[10px] font-black">{step.label}</div>
@@ -1149,7 +1147,7 @@ export function WorkflowPane({
         <div className="flex-1 min-h-0 overflow-y-auto p-3 bg-(--neo-surface) custom-scrollbar">
           {workflowModule === "guide" && (
             <>
-          <div className="mb-3 rounded-xl border border-(--neo-line) bg-white p-3">
+          <div className="neo-workflow-info-card mb-3 rounded-xl border p-3">
             <div className="text-[11px] font-black neo-text-muted">当前步骤</div>
             <div className="mt-1 text-lg font-black text-(--neo-ink)">{currentStepLabel}</div>
             <p className="mt-1 text-xs font-bold leading-relaxed neo-text-muted">

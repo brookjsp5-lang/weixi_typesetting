@@ -151,6 +151,12 @@ body {
   color: var(--neo-ink);
 }
 
+.dark .neo-button-secondary {
+  background-color: var(--neo-cyan);
+  border-color: #334155;
+  color: var(--neo-ink);
+}
+
 .neo-button-pink {
   background-color: color-mix(in srgb, var(--neo-green) 12%, #ffffff);
   color: #065f46;
@@ -168,9 +174,35 @@ body {
 
 .neo-button:disabled {
   cursor: not-allowed;
-  opacity: 0.55;
+  opacity: 1;
   transform: none;
   box-shadow: none;
+}
+
+.neo-button-primary:disabled {
+  background-color: #94a3b8;
+  border-color: #94a3b8;
+  color: #ffffff;
+}
+
+.neo-button-secondary:disabled,
+.neo-button-ghost:disabled {
+  background-color: #e2e8f0;
+  border-color: #cbd5e1;
+  color: #64748b;
+}
+
+.dark .neo-button-primary:disabled {
+  background-color: #334155;
+  border-color: #475569;
+  color: #cbd5e1;
+}
+
+.dark .neo-button-secondary:disabled,
+.dark .neo-button-ghost:disabled {
+  background-color: #1e293b;
+  border-color: #334155;
+  color: #94a3b8;
 }
 
 .neo-input {
@@ -391,6 +423,19 @@ body {
   scrollbar-color: #cbd5e1 var(--neo-surface);
 }
 
+.dark .neo-scrollbar::-webkit-scrollbar-track {
+  background: var(--neo-stage);
+}
+
+.dark .neo-scrollbar::-webkit-scrollbar-thumb {
+  background: #475569;
+  border-color: var(--neo-stage);
+}
+
+.dark .neo-scrollbar {
+  scrollbar-color: #475569 var(--neo-stage);
+}
+
 .scrollbar-hide::-webkit-scrollbar {
   display: none;
 }
@@ -438,6 +483,126 @@ body {
   background-color: color-mix(in srgb, var(--neo-phone-screen) 92%, var(--neo-ink));
   border-radius: 8px;
   margin: 20px;
+}
+
+.neo-preview-scroll-hint {
+  color: var(--neo-muted);
+}
+
+.neo-footer-muted {
+  color: var(--neo-muted);
+}
+
+.dark .neo-footer-muted {
+  color: #cbd5e1;
+}
+
+.neo-workflow-module,
+.neo-workflow-info-card,
+.neo-workflow-completion-card {
+  border-color: var(--neo-line);
+  background-color: var(--neo-surface);
+  color: var(--neo-ink);
+}
+
+.neo-workflow-module.is-active {
+  border-color: color-mix(in srgb, var(--neo-green) 78%, var(--neo-line));
+  background-color: color-mix(in srgb, var(--neo-green) 11%, var(--neo-surface));
+  color: #047857;
+}
+
+.neo-workflow-step-done,
+.neo-workflow-step-active,
+.neo-workflow-step-warning,
+.neo-workflow-step-pending {
+  border-width: 1px;
+  border-style: solid;
+}
+
+.neo-workflow-step-done {
+  border-color: #6ee7b7;
+  background-color: #ecfdf5;
+  color: #047857;
+}
+
+.neo-workflow-step-active {
+  border-color: var(--neo-green);
+  background-color: #ffffff;
+  color: #065f46;
+  box-shadow: 0 1px 2px rgb(15 23 42 / 8%);
+}
+
+.neo-workflow-step-warning {
+  border-color: #fcd34d;
+  background-color: #fffbeb;
+  color: #92400e;
+}
+
+.neo-workflow-step-pending {
+  border-color: var(--neo-line);
+  background-color: #f8fafc;
+  color: #475569;
+}
+
+.neo-workflow-step-number {
+  background-color: rgb(255 255 255 / 85%);
+  color: currentColor;
+}
+
+.neo-workflow-completion-card {
+  color: var(--neo-muted);
+}
+
+.neo-workflow-completion-card.is-complete {
+  border-color: #6ee7b7;
+  background-color: #ecfdf5;
+  color: #047857;
+}
+
+.neo-workflow-completion-title {
+  color: var(--neo-ink);
+}
+
+.dark .neo-workflow-module.is-active {
+  border-color: color-mix(in srgb, var(--neo-green) 72%, #334155);
+  background-color: color-mix(in srgb, var(--neo-green) 16%, var(--neo-surface));
+  color: #d1fae5;
+}
+
+.dark .neo-workflow-step-done {
+  border-color: #34d399;
+  background-color: #064e3b;
+  color: #d1fae5;
+}
+
+.dark .neo-workflow-step-active {
+  border-color: var(--neo-green);
+  background-color: #064e3b;
+  color: #ecfdf5;
+  box-shadow: 0 0 0 1px rgb(7 193 96 / 20%);
+}
+
+.dark .neo-workflow-step-warning {
+  border-color: #f59e0b;
+  background-color: #78350f;
+  color: #fef3c7;
+}
+
+.dark .neo-workflow-step-pending {
+  border-color: #334155;
+  background-color: #1e293b;
+  color: #cbd5e1;
+}
+
+.dark .neo-workflow-step-number {
+  background-color: #0f172a;
+  color: #e2e8f0;
+}
+
+.dark .neo-workflow-completion-card.is-complete {
+  border-color: #34d399;
+  background-color: #064e3b;
+  color: #d1fae5;
 }
 
 header [class*="border-(--neo-ink)"],

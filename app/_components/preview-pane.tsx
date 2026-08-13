@@ -1,4 +1,4 @@
-import { X } from "lucide-react";
+import { ArrowDown, X } from "lucide-react";
 import type React from "react";
 import { useEffect, useState } from "react";
 import type { ActiveTab } from "../_types/formatter";
@@ -49,7 +49,7 @@ export function PreviewPane({
       <div
         ref={previewRef}
         onScroll={onPreviewScroll}
-        className={`flex-[1.2] flex-col overflow-y-auto ${activeTab === "preview" ? "flex" : "hidden md:flex"} custom-scrollbar`}
+        className={`neo-scrollbar flex-[1.2] flex-col overflow-y-auto ${activeTab === "preview" ? "flex" : "hidden md:flex"}`}
       >
         <div className="flex-1 neo-panel-strong flex justify-center py-6 px-4 md:py-8">
           <div className="neo-phone-shell h-fit min-h-[667px] w-full max-w-[375px] shrink-0 relative transition-all duration-300 transform origin-top p-1.5">
@@ -61,8 +61,12 @@ export function PreviewPane({
                 <div className="neo-phone-notch w-3 h-2 rounded-sm" />
               </div>
             </div>
-            <div className="neo-phone-status-strip pt-10 pb-2 px-4 text-center rounded-t-4xl">
+            <div className="neo-phone-status-strip pt-9 pb-2 px-4 text-center rounded-t-4xl">
               <div className="text-sm font-bold text-(--neo-ink) truncate">文章预览</div>
+              <div className="neo-preview-scroll-hint mt-0.5 inline-flex items-center gap-1 text-[10px] font-bold">
+                <ArrowDown className="h-3 w-3" />
+                滚动查看全文
+              </div>
             </div>
             <div className="neo-phone-screen-area w-full rounded-b-4xl overflow-hidden flex flex-col pt-2 pb-6">
               <div className="flex-1 overflow-visible">

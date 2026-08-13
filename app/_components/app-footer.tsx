@@ -14,7 +14,7 @@ export function AppFooter() {
           <span className="font-black text-sm tracking-tighter uppercase text-(--neo-ink)">
             {FOOTER_BRAND}
           </span>
-          <span className="hidden sm:inline text-[10px] font-medium text-(--neo-muted)">
+          <span className="neo-footer-muted hidden sm:inline text-[10px] font-medium">
             专注公众号的 Markdown 排版工具
           </span>
         </div>
@@ -39,7 +39,7 @@ export function AppFooter() {
           >
             <Star className="w-4 h-4" />
           </a>
-          <div className="text-[10px] font-bold text-(--neo-muted) tracking-tight uppercase">
+          <div className="neo-footer-muted text-[10px] font-bold tracking-tight uppercase">
             © {currentYear} {FOOTER_PRODUCT_NAME}
           </div>
         </div>

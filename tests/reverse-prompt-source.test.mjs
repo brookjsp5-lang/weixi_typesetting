@@ -16,9 +16,12 @@ const reversePromptRequirementHookSource = readFileSync(
   "utf8",
 );
 
-test("app header exposes the reverse prompt generator button", () => {
-  assert.match(appHeaderSource, /onOpenReversePrompt/);
-  assert.match(appHeaderSource, /逆向提示词/);
+test("app header keeps the reverse prompt generator hidden", () => {
+  assert.match(appHeaderSource, /const REVERSE_PROMPT_VISIBLE = false/);
+  assert.match(
+    appHeaderSource,
+    /REVERSE_PROMPT_VISIBLE && \(\s*<button[\s\S]*onClick=\{onOpenReversePrompt\}/,
+  );
 });
 
 test("reverse prompt modal captures instruction article and target type", () => {
