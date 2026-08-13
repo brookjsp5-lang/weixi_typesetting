@@ -660,6 +660,17 @@ export function renderArticle(
   customRenderer.heading = function (token: Tokens.Heading) {
     const depth = token.depth;
     const textHtml = this.parser.parseInline(token.tokens);
+    const foodHeadingHtml = template.category === "food"
+      ? (() => {
+          const foodTextColor = foodTextColors[template.themeColor] || "#43332b";
+          const foodHeadingLabel = depth === 1
+            ? `<span style="display: block; margin-bottom: 6px; color: ${foodTextColor}; font-size: 11px; font-weight: 800; letter-spacing: 1.2px;">MENU_TITLE · 今日菜单 🍔</span>`
+            : depth === 2
+              ? `<span style="display: inline-block; margin-right: 7px; color: ${foodTextColor}; font-size: 11px; font-weight: 800; letter-spacing: 0.8px;">MENU_SECTION · 🍉</span>`
+              : `<span style="display: inline-block; margin-right: 6px; color: ${foodTextColor}; font-size: 12px;">🍈</span>`;
+          return `${foodHeadingLabel}${textHtml}`;
+        })()
+      : textHtml;
 
     let baseStyle = "";
     if (depth === 1) baseStyle = template.h1Style;
@@ -711,7 +722,7 @@ export function renderArticle(
       return `<section style="margin: ${margin}; text-align: ${textAlign};">
         <section style="${cleanStyle} display: inline-block; text-align: left;">
           <section style="margin: 0; padding: 0; font-size: 1em; font-weight: inherit; line-height: 1.4; background: none; border: none; color: inherit;">
-            ${textHtml}
+            ${foodHeadingHtml}
           </section>
         </section>
       </section>`;
@@ -720,7 +731,7 @@ export function renderArticle(
     return `<section style="margin: ${margin}; text-align: ${textAlign};">
       <section style="${cleanStyle}">
         <section style="margin: 0; padding: 0; font-size: 1em; font-weight: inherit; line-height: 1.4; background: none; border: none; color: inherit;">
-          ${textHtml}
+          ${foodHeadingHtml}
         </section>
       </section>
     </section>`;
@@ -810,15 +821,20 @@ export function renderArticle(
         } else if (template.category === "food") {
           const step = String(num).padStart(2, "0");
           const foodTextColor = foodTextColors[template.themeColor] || "#43332b";
-          icon = `<section style="display: inline-block; min-width: 22px; color: ${foodTextColor}; font-size: 12px; font-weight: 800; letter-spacing: 0.5px;">${step}</section>`;
+          icon = `<section style="display: inline-block; min-width: 28px; padding: 4px 5px; border: 1px solid ${hexToRgba(template.themeColor, 0.45)}; border-radius: 5px; background-color: ${hexToRgba(template.themeColor, 0.08)}; color: ${foodTextColor}; font-size: 11px; font-weight: 800; letter-spacing: 0.4px; text-align: center; box-sizing: border-box;">步骤 ${step}</section>`;
         } else {
           icon = `<section style="display: inline-block; color: ${template.themeColor}; font-weight: bold; font-family: sans-serif;">${num}.</section>`;
         }
       } else {
-        icon = template.listIcon;
+        if (template.category === "food") {
+          const foodTextColor = foodTextColors[template.themeColor] || "#43332b";
+          icon = `<section style="display: inline-block; min-width: 28px; color: ${foodTextColor}; font-size: 11px; font-weight: 800; letter-spacing: 0.3px;">食材 ●</section>`;
+        } else {
+          icon = template.listIcon;
+        }
       }
 
-      const iconWidth = template.category === "neo-brutalism" ? 32 : template.category === "food" ? 30 : 24;
+      const iconWidth = template.category === "neo-brutalism" ? 32 : template.category === "food" ? 54 : 24;
 
       // Extremely robust float layout for WeChat Official Accounts
       return `<section style="display: block; clear: both; margin-bottom: 12px;">
@@ -873,10 +889,19 @@ export function renderArticle(
 
   customRenderer.image = function (token: Tokens.Image) {
     const html = defaultRenderer.image.call(this, token);
-    return html.replace(/^<img([^>]*)>/i, `<img$1 style="${imageStyle}" />`);
+    const styledImage = html.replace(/^<img([^>]*)>/i, `<img$1 style="${imageStyle}" />`);
+    if (template.category === "food") {
+      const foodTextColor = foodTextColors[template.themeColor] || "#43332b";
+      return `<section style="margin: 24px auto; text-align: center; background-color: ${template.backgroundColor};"><section style="display: inline-block; max-width: 100%; position: relative;"><span style="display: block; margin: 0 0 5px; color: ${foodTextColor}; font-size: 10px; font-weight: 800; letter-spacing: 1px; text-align: left;">MENU_IMAGE · 主厨推荐</span>${styledImage}</section></section>`;
+    }
+    return styledImage;
   };
 
   customRenderer.hr = function () {
+    if (template.category === "food") {
+      const foodTextColor = foodTextColors[template.themeColor] || "#43332b";
+      return `<section style="margin: 30px 0; text-align: center; color: ${foodTextColor}; font-size: 13px; letter-spacing: 6px; line-height: 1; background-color: ${template.backgroundColor};">MENU_DIVIDER · 🍔 ✦ 🍉 ✦ 🍔</section>`;
+    }
     return `<hr style="${template.hrStyle}" />`;
   };
 
