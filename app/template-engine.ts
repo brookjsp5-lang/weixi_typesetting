@@ -430,25 +430,25 @@ function getStylesByCategory(category: string, color: string) {
           fontFamily: "system-ui, -apple-system, sans-serif",
         },
         containerStyle: "padding: 20px; background-color: #fff9f4;",
-        h1Style: `font-size: 1.55em; font-weight: 800; text-align: left; margin: 24px 0 26px; color: #34241d; border: 1px solid ${hexToRgba(color, 0.45)}; border-top: 5px solid ${color}; border-radius: 6px; padding: 14px 16px 12px; background-color: #fffdf9; box-shadow: 3px 3px 0px ${hexToRgba(color, 0.5)}; line-height: 1.4;`,
-        h2Style: `font-size: 1.2em; font-weight: 800; margin: 28px 0 16px; color: #34241d; border: 1px solid ${hexToRgba(color, 0.45)}; border-left: 5px solid ${color}; border-radius: 6px; padding: 9px 12px; background-color: ${hexToRgba(color, 0.08)}; box-shadow: 2px 2px 0px ${hexToRgba(color, 0.35)}; line-height: 1.4;`,
+        h1Style: `font-size: 1.55em; font-weight: 800; text-align: left; margin: 24px 0 26px; color: #34241d; border-top: 4px solid ${color}; border-bottom: 1px solid ${hexToRgba(color, 0.35)}; padding: 12px 0 10px; line-height: 1.4;`,
+        h2Style: `font-size: 1.24em; font-weight: 800; margin: 28px 0 16px; color: #34241d; border-bottom: 2px solid ${color}; padding: 0 0 8px; line-height: 1.4;`,
         h3Style: `font-size: 1.08em; font-weight: 700; margin: 20px 0 12px; color: #43332b; border-left: 3px solid ${color}; padding-left: 9px; line-height: 1.5;`,
         pStyle: "margin: 0 0 16px 0; line-height: 1.85; color: #43332b;",
-        blockquoteStyle: `border: 1px solid ${hexToRgba(color, 0.4)}; border-left: 5px solid ${color}; border-radius: 6px; margin: 24px 0; padding: 14px 16px; color: #624b3f; background-color: ${hexToRgba(color, 0.08)}; box-shadow: 3px 3px 0px ${hexToRgba(color, 0.25)}; line-height: 1.8;`,
-        blockquoteInnerBefore: `<span style="display: block; margin-bottom: 7px; color: ${foodTextColor}; font-size: 12px; font-weight: 800; letter-spacing: 1px;">🐱 主厨小贴士 · 🥄</span>`,
+        blockquoteStyle: `border-top: 1px solid ${hexToRgba(color, 0.45)}; border-bottom: 1px solid ${hexToRgba(color, 0.45)}; margin: 24px 0; padding: 14px 16px; color: #624b3f; background-color: ${hexToRgba(color, 0.08)}; line-height: 1.8;`,
+        blockquoteInnerBefore: `<span style="display: block; margin-bottom: 6px; color: ${foodTextColor}; font-size: 12px; font-weight: 700; letter-spacing: 1px;">烹饪小贴士</span>`,
         blockquoteInnerAfter: "",
         listStyle: "margin: 0 0 16px 0; padding: 0; list-style-type: none;",
         listItemStyle: "margin: 0 0 10px 0; line-height: 1.75; color: #43332b;",
-        listIcon: `<section style="display: inline-block; color: ${foodTextColor}; font-size: 13px; line-height: 1; vertical-align: middle;">●</section>`,
+        listIcon: `<section style="display: inline-block; width: 10px; height: 2px; background-color: ${color}; vertical-align: middle; box-sizing: border-box; overflow: hidden;"><br/></section>`,
         strongStyle: `font-weight: 700; color: #34241d; background-color: ${hexToRgba(color, 0.15)}; padding: 0 3px;`,
         emStyle: `font-style: normal; color: ${foodTextColor};`,
         codeContainerStyle: `margin: 24px 0; border: 1px solid ${hexToRgba(color, 0.35)}; border-radius: 6px; overflow: hidden; background-color: #fffdf9;`,
         codeHeaderStyle: `background-color: ${hexToRgba(color, 0.1)}; padding: 8px 12px; font-size: 0; line-height: 1; border-bottom: 1px solid ${hexToRgba(color, 0.2)};`,
         codeBlockStyle: "margin: 0; padding: 16px; overflow-x: auto; color: #43332b; font-size: 13px; font-family: monospace; white-space: pre-wrap; word-break: break-all; line-height: 1.6;",
-        imgStyle: `max-width: 100%; border: 1px solid ${hexToRgba(color, 0.4)}; border-radius: 8px; padding: 4px; background-color: #fffdf9; box-shadow: 3px 3px 0px ${hexToRgba(color, 0.3)}; display: block; margin: 24px auto;`,
+        imgStyle: `max-width: 100%; border: 1px solid ${hexToRgba(color, 0.35)}; border-radius: 8px; padding: 4px; background-color: #fffdf9; display: block; margin: 24px auto;`,
         hrStyle: `border: none; border-top: 1px solid ${hexToRgba(color, 0.4)}; margin: 32px 0;`,
         linkStyle: `color: ${foodTextColor}; font-weight: 700; text-decoration: none; border-bottom: 1px solid ${color};`,
-        tableStyle: `width: 100%; max-width: 100%; border-collapse: separate; border-spacing: 0; margin: 24px 0; font-size: 0.92em; table-layout: fixed; word-wrap: break-word; border: 1px solid ${hexToRgba(color, 0.35)}; border-radius: 6px; overflow: hidden; background-color: #fffdf9;`,
+        tableStyle: `width: 100%; max-width: 100%; border-collapse: collapse; margin: 24px 0; font-size: 0.92em; table-layout: fixed; word-wrap: break-word;`,
         thStyle: `border-bottom: 2px solid ${color}; padding: 10px; background-color: ${hexToRgba(color, 0.1)}; color: #34241d; font-weight: 700; text-align: left;`,
         tdStyle: `border-bottom: 1px solid ${hexToRgba(color, 0.18)}; padding: 10px; color: #43332b; word-wrap: break-word; word-break: break-all;`,
         delStyle: "text-decoration: line-through; color: #a89b92;",
@@ -660,17 +660,6 @@ export function renderArticle(
   customRenderer.heading = function (token: Tokens.Heading) {
     const depth = token.depth;
     const textHtml = this.parser.parseInline(token.tokens);
-    const foodHeadingHtml = template.category === "food"
-      ? (() => {
-          const foodTextColor = foodTextColors[template.themeColor] || "#43332b";
-          const foodHeadingLabel = depth === 1
-            ? `<span style="display: block; margin-bottom: 6px; color: ${foodTextColor}; font-size: 11px; font-weight: 800; letter-spacing: 1.2px;">MENU_TITLE · 今日菜单 🍽</span>`
-            : depth === 2
-              ? `<span style="display: inline-block; margin-right: 7px; color: ${foodTextColor}; font-size: 11px; font-weight: 800; letter-spacing: 0.8px;">MENU_SECTION · 🥄</span>`
-              : `<span style="display: inline-block; margin-right: 6px; color: ${foodTextColor}; font-size: 12px;">🍴</span>`;
-          return `${foodHeadingLabel}${textHtml}`;
-        })()
-      : textHtml;
 
     let baseStyle = "";
     if (depth === 1) baseStyle = template.h1Style;
@@ -722,7 +711,7 @@ export function renderArticle(
       return `<section style="margin: ${margin}; text-align: ${textAlign};">
         <section style="${cleanStyle} display: inline-block; text-align: left;">
           <section style="margin: 0; padding: 0; font-size: 1em; font-weight: inherit; line-height: 1.4; background: none; border: none; color: inherit;">
-            ${foodHeadingHtml}
+            ${textHtml}
           </section>
         </section>
       </section>`;
@@ -731,7 +720,7 @@ export function renderArticle(
     return `<section style="margin: ${margin}; text-align: ${textAlign};">
       <section style="${cleanStyle}">
         <section style="margin: 0; padding: 0; font-size: 1em; font-weight: inherit; line-height: 1.4; background: none; border: none; color: inherit;">
-          ${foodHeadingHtml}
+          ${textHtml}
         </section>
       </section>
     </section>`;
@@ -760,14 +749,6 @@ export function renderArticle(
 
         const flexItems = imagesMatch
           .map((imgHtml: string) => {
-            if (template.category === "food") {
-              const foodTextColor = foodTextColors[template.themeColor] || "#43332b";
-              const styledImg = imgHtml.replace(
-                /style="[^"]*"/i,
-                `style="${ensureStyleValue(ensureStyleValue(ensureStyleValue(ensureStyleValue(imageStyle, "width", "100%"), "height", "auto"), "object-fit", "cover"), "vertical-align", "middle")}"`,
-              );
-              return `<section style="display: inline-block; width: ${widthPercent}%; padding: 0 ${gapWidth}px; box-sizing: border-box; vertical-align: top; background-color: ${template.backgroundColor};"><span style="display: block; margin: 0 0 5px; color: ${foodTextColor}; font-size: 10px; font-weight: 800; letter-spacing: 1px; line-height: 1.4; text-align: left;">MENU_IMAGE · 主厨推荐</span>${styledImg}</section>`;
-            }
             const styledImg = imgHtml.replace(
               /style="[^"]*"/i,
               `style="width: 100%; height: auto; object-fit: cover; border-radius: ${formatTweaks.imageRadius}px; display: block; vertical-align: middle;"`,
@@ -776,13 +757,7 @@ export function renderArticle(
           })
           .join("");
 
-        const foodBackground = template.category === "food" ? ` background-color: ${template.backgroundColor};` : "";
-        return `<section style="text-align: center; margin: 0 0 16px 0; line-height: 0;${foodBackground}">${flexItems}</section>`;
-      }
-
-      if (imagesMatch && imagesMatch.length === 1 && template.category === "food") {
-        const foodTextColor = foodTextColors[template.themeColor] || "#43332b";
-        return `<section style="margin: 24px auto; text-align: center; background-color: ${template.backgroundColor};"><section style="display: inline-block; max-width: 100%; position: relative;"><span style="display: block; margin: 0 0 5px; color: ${foodTextColor}; font-size: 10px; font-weight: 800; letter-spacing: 1px; text-align: left;">MENU_IMAGE · 主厨推荐</span>${imagesMatch[0]}</section></section>`;
+        return `<section style="text-align: center; margin: 0 0 16px 0; line-height: 0;">${flexItems}</section>`;
       }
     }
 
@@ -835,20 +810,15 @@ export function renderArticle(
         } else if (template.category === "food") {
           const step = String(num).padStart(2, "0");
           const foodTextColor = foodTextColors[template.themeColor] || "#43332b";
-          icon = `<section style="display: inline-block; min-width: 28px; padding: 4px 5px; border: 1px solid ${hexToRgba(template.themeColor, 0.45)}; border-radius: 5px; background-color: ${hexToRgba(template.themeColor, 0.08)}; color: ${foodTextColor}; font-size: 11px; font-weight: 800; letter-spacing: 0.4px; text-align: center; box-sizing: border-box;">步骤 ${step}</section>`;
+          icon = `<section style="display: inline-block; min-width: 22px; color: ${foodTextColor}; font-size: 12px; font-weight: 800; letter-spacing: 0.5px;">${step}</section>`;
         } else {
           icon = `<section style="display: inline-block; color: ${template.themeColor}; font-weight: bold; font-family: sans-serif;">${num}.</section>`;
         }
       } else {
-        if (template.category === "food") {
-          const foodTextColor = foodTextColors[template.themeColor] || "#43332b";
-          icon = `<section style="display: inline-block; min-width: 28px; color: ${foodTextColor}; font-size: 11px; font-weight: 800; letter-spacing: 0.3px;">食材 ●</section>`;
-        } else {
-          icon = template.listIcon;
-        }
+        icon = template.listIcon;
       }
 
-      const iconWidth = template.category === "neo-brutalism" ? 32 : template.category === "food" ? 54 : 24;
+      const iconWidth = template.category === "neo-brutalism" ? 32 : template.category === "food" ? 30 : 24;
 
       // Extremely robust float layout for WeChat Official Accounts
       return `<section style="display: block; clear: both; margin-bottom: 12px;">
@@ -907,10 +877,6 @@ export function renderArticle(
   };
 
   customRenderer.hr = function () {
-    if (template.category === "food") {
-      const foodTextColor = foodTextColors[template.themeColor] || "#43332b";
-      return `<section style="margin: 30px 0; text-align: center; color: ${foodTextColor}; font-size: 13px; letter-spacing: 6px; line-height: 1; background-color: ${template.backgroundColor};">MENU_DIVIDER · 🍽 ✦ 🥄 ✦ 🍽</section>`;
-    }
     return `<hr style="${template.hrStyle}" />`;
   };
 
