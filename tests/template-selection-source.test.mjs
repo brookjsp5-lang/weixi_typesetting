@@ -147,6 +147,29 @@ test("food templates register twelve recipe-focused styles", () => {
   assert.match(settingsPaneSource, /food: "\u6696\u98df\u914d\u8272\u4e0e\u6e05\u6670\u6b65\u9aa4/);
 });
 
+test("food templates use the shared Neo menu-card component language", () => {
+  const foodCase = templateEngineSource.match(/case "food":[\s\S]*?default:/)?.[0] ?? "";
+
+  assert.match(foodCase, /box-shadow:\s*3px 3px 0px/);
+  assert.match(foodCase, /border:\s*1px solid/);
+  assert.match(foodCase, /border-radius:\s*6px/);
+  assert.match(foodCase, /主厨小贴士/);
+  assert.match(foodCase, /🐱/);
+  assert.match(foodCase, /🥄/);
+  assert.match(foodCase, /max-width:\s*100%/);
+  assert.match(foodCase, /table-layout:\s*fixed/);
+});
+
+test("food renderer adds menu labels without changing other categories", () => {
+  assert.match(templateEngineSource, /template\.category === "food"[\s\S]*?MENU_TITLE · 今日菜单 🍽/);
+  assert.match(templateEngineSource, /MENU_SECTION · 🥄/);
+  assert.match(templateEngineSource, /<span[^>]*>🍴<\/span>/);
+  assert.match(templateEngineSource, /template\.category === "food"[\s\S]*?MENU_DIVIDER · 🍽 ✦ 🥄 ✦ 🍽/);
+  assert.match(templateEngineSource, /template\.category === "food"[\s\S]*?MENU_IMAGE/);
+  assert.match(templateEngineSource, /食材/);
+  assert.match(templateEngineSource, /步骤/);
+});
+
 test("template generation remains seven categories and eighty-four templates", () => {
   const categoryIds = getCategoryIds(templateEngineSource);
   const paletteKeys = ["neoBrutalism", "minimalist", "business", "literary", "tech", "festive", "food"];
