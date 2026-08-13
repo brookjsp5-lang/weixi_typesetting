@@ -161,9 +161,10 @@ test("food templates use the shared Neo menu-card component language", () => {
 });
 
 test("food renderer adds menu labels without changing other categories", () => {
-  assert.match(templateEngineSource, /template\.category === "food"[\s\S]*?MENU_TITLE/);
-  assert.match(templateEngineSource, /template\.category === "food"[\s\S]*?MENU_SECTION/);
-  assert.match(templateEngineSource, /template\.category === "food"[\s\S]*?MENU_DIVIDER/);
+  assert.match(templateEngineSource, /template\.category === "food"[\s\S]*?MENU_TITLE · 今日菜单 🍽/);
+  assert.match(templateEngineSource, /MENU_SECTION · 🥄/);
+  assert.match(templateEngineSource, /<span[^>]*>🍴<\/span>/);
+  assert.match(templateEngineSource, /template\.category === "food"[\s\S]*?MENU_DIVIDER · 🍽 ✦ 🥄 ✦ 🍽/);
   assert.match(templateEngineSource, /template\.category === "food"[\s\S]*?MENU_IMAGE/);
   assert.match(templateEngineSource, /食材/);
   assert.match(templateEngineSource, /步骤/);

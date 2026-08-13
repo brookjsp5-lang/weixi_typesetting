@@ -664,10 +664,10 @@ export function renderArticle(
       ? (() => {
           const foodTextColor = foodTextColors[template.themeColor] || "#43332b";
           const foodHeadingLabel = depth === 1
-            ? `<span style="display: block; margin-bottom: 6px; color: ${foodTextColor}; font-size: 11px; font-weight: 800; letter-spacing: 1.2px;">MENU_TITLE · 今日菜单 🍔</span>`
+            ? `<span style="display: block; margin-bottom: 6px; color: ${foodTextColor}; font-size: 11px; font-weight: 800; letter-spacing: 1.2px;">MENU_TITLE · 今日菜单 🍽</span>`
             : depth === 2
-              ? `<span style="display: inline-block; margin-right: 7px; color: ${foodTextColor}; font-size: 11px; font-weight: 800; letter-spacing: 0.8px;">MENU_SECTION · 🍉</span>`
-              : `<span style="display: inline-block; margin-right: 6px; color: ${foodTextColor}; font-size: 12px;">🍈</span>`;
+              ? `<span style="display: inline-block; margin-right: 7px; color: ${foodTextColor}; font-size: 11px; font-weight: 800; letter-spacing: 0.8px;">MENU_SECTION · 🥄</span>`
+              : `<span style="display: inline-block; margin-right: 6px; color: ${foodTextColor}; font-size: 12px;">🍴</span>`;
           return `${foodHeadingLabel}${textHtml}`;
         })()
       : textHtml;
@@ -900,7 +900,7 @@ export function renderArticle(
   customRenderer.hr = function () {
     if (template.category === "food") {
       const foodTextColor = foodTextColors[template.themeColor] || "#43332b";
-      return `<section style="margin: 30px 0; text-align: center; color: ${foodTextColor}; font-size: 13px; letter-spacing: 6px; line-height: 1; background-color: ${template.backgroundColor};">MENU_DIVIDER · 🍔 ✦ 🍉 ✦ 🍔</section>`;
+      return `<section style="margin: 30px 0; text-align: center; color: ${foodTextColor}; font-size: 13px; letter-spacing: 6px; line-height: 1; background-color: ${template.backgroundColor};">MENU_DIVIDER · 🍽 ✦ 🥄 ✦ 🍽</section>`;
     }
     return `<hr style="${template.hrStyle}" />`;
   };
