@@ -12,6 +12,7 @@ import {
 import { useCallback, useEffect, useLayoutEffect, useRef } from "react";
 import type React from "react";
 import { isWechatImportedHtmlDraft } from "../_lib/draft-utils";
+import { getMarkdownShortcutAction } from "../_lib/markdown-shortcut";
 import type { ActiveTab, WordCount } from "../_types/formatter";
 
 type MarkdownEditorPaneProps = {
@@ -705,6 +706,22 @@ export function MarkdownEditorPane({
   const isImportedHtmlDraft = isWechatImportedHtmlDraft(inputText);
   const richEditorRef = useRef<HTMLDivElement>(null);
 
+  const handleMarkdownShortcut = useCallback(
+    (event: React.KeyboardEvent<HTMLTextAreaElement>) => {
+      const action = getMarkdownShortcutAction(event);
+      if (!action) return;
+
+      event.preventDefault();
+      if (action === "bold") {
+        insertMarkdown("**", "**", "加粗");
+        return;
+      }
+
+      insertMarkdown("*", "*", "斜体");
+    },
+    [insertMarkdown],
+  );
+
   const syncRichEditorHtml = useCallback(() => {
     const editor = richEditorRef.current;
     if (!editor) return;
@@ -916,6 +933,7 @@ export function MarkdownEditorPane({
             ref={inputRef}
             value={inputText}
             onChange={(e) => setInputText(e.target.value)}
+            onKeyDown={handleMarkdownShortcut}
             onScroll={onInputScroll}
             onPaste={onPaste}
             className="flex-1 w-full p-4 lg:p-6 resize-none focus:outline-none text-(--neo-ink) leading-relaxed font-mono text-[14px] bg-(--neo-surface) overflow-y-auto custom-scrollbar"

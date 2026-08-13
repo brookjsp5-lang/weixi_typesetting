@@ -7,6 +7,7 @@ import {
   normalizeConsecutiveImageBlocks,
 } from "../_lib/draft-utils";
 import { setMarkdownHeadingLevel } from "../_lib/markdown-heading";
+import { insertInlineMarkdown } from "../_lib/markdown-inline";
 import { setMarkdownListType } from "../_lib/markdown-list";
 import { setMarkdownQuote } from "../_lib/markdown-quote";
 import type { ShowToast } from "./use-toast";
@@ -66,18 +67,14 @@ export function useMarkdownTools({
       const scrollTop = textarea.scrollTop;
       const start = textarea.selectionStart;
       const end = textarea.selectionEnd;
-      const selectedText = inputText.substring(start, end);
-      const textToInsert = selectedText || placeholder;
-      const newText =
-        inputText.substring(0, start) + prefix + textToInsert + suffix + inputText.substring(end);
+      const update = insertInlineMarkdown(inputText, start, end, prefix, suffix, placeholder);
 
-      setInputText(newText);
+      setInputText(update.markdown);
 
       setTimeout(() => {
         textarea.focus();
         textarea.scrollTop = scrollTop;
-        const newCursorPos = start + prefix.length + textToInsert.length;
-        textarea.setSelectionRange(newCursorPos, newCursorPos);
+        textarea.setSelectionRange(update.selectionStart, update.selectionEnd);
       }, 0);
     },
     [inputRef, inputText, setInputText],
