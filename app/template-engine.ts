@@ -123,6 +123,20 @@ const colorPalettes = {
     "#e11d48",
     "#ca8a04",
   ],
+  food: [
+    "#c94f3d",
+    "#d69a2d",
+    "#618162",
+    "#4a8294",
+    "#b7422e",
+    "#766451",
+    "#d47c70",
+    "#8d963f",
+    "#91603f",
+    "#b39a28",
+    "#5c6e9d",
+    "#544a42",
+  ],
 };
 
 const names = [
@@ -140,6 +154,36 @@ const names = [
   "幽蓝",
 ];
 
+const foodNames = [
+  "番茄",
+  "黄油",
+  "抹茶",
+  "海盐",
+  "香辣",
+  "菌菇",
+  "蜜桃",
+  "柚子",
+  "焦糖",
+  "柠檬",
+  "蓝莓",
+  "芝麻",
+];
+
+const foodTextColors: Record<string, string> = {
+  "#c94f3d": "#9f3325",
+  "#d69a2d": "#87600d",
+  "#618162": "#426144",
+  "#4a8294": "#2d5968",
+  "#b7422e": "#8d2c20",
+  "#766451": "#544538",
+  "#d47c70": "#98483f",
+  "#8d963f": "#596319",
+  "#91603f": "#684024",
+  "#b39a28": "#74600b",
+  "#5c6e9d": "#394b79",
+  "#544a42": "#40352e",
+};
+
 const categoriesList = [
   { id: "neo-brutalism", name: "新粗野风" },
   { id: "minimalist", name: "极简风" },
@@ -147,6 +191,7 @@ const categoriesList = [
   { id: "literary", name: "文艺风" },
   { id: "tech", name: "科技风" },
   { id: "festive", name: "节庆风" },
+  { id: "food", name: "美食风" },
 ];
 
 function hexToRgb(hex: string) {
@@ -373,6 +418,43 @@ function getStylesByCategory(category: string, color: string) {
         delStyle: `text-decoration: line-through; color: #94a3b8;`,
         defaultH2Layout: "left" as H1LayoutType,
       };
+    case "food":
+      {
+        const foodTextColor = foodTextColors[color] || "#43332b";
+
+      return {
+        themeColor: color,
+        backgroundColor: "#fff9f4",
+        baseStyle: {
+          color: "#43332b",
+          fontFamily: "system-ui, -apple-system, sans-serif",
+        },
+        containerStyle: "padding: 20px; background-color: #fff9f4;",
+        h1Style: `font-size: 1.55em; font-weight: 800; text-align: left; margin: 24px 0 26px; color: #34241d; border-top: 4px solid ${color}; border-bottom: 1px solid ${hexToRgba(color, 0.35)}; padding: 12px 0 10px; line-height: 1.4;`,
+        h2Style: `font-size: 1.24em; font-weight: 800; margin: 28px 0 16px; color: #34241d; border-bottom: 2px solid ${color}; padding: 0 0 8px; line-height: 1.4;`,
+        h3Style: `font-size: 1.08em; font-weight: 700; margin: 20px 0 12px; color: #43332b; border-left: 3px solid ${color}; padding-left: 9px; line-height: 1.5;`,
+        pStyle: "margin: 0 0 16px 0; line-height: 1.85; color: #43332b;",
+        blockquoteStyle: `border-top: 1px solid ${hexToRgba(color, 0.45)}; border-bottom: 1px solid ${hexToRgba(color, 0.45)}; margin: 24px 0; padding: 14px 16px; color: #624b3f; background-color: ${hexToRgba(color, 0.08)}; line-height: 1.8;`,
+        blockquoteInnerBefore: `<span style="display: block; margin-bottom: 6px; color: ${foodTextColor}; font-size: 12px; font-weight: 700; letter-spacing: 1px;">烹饪小贴士</span>`,
+        blockquoteInnerAfter: "",
+        listStyle: "margin: 0 0 16px 0; padding: 0; list-style-type: none;",
+        listItemStyle: "margin: 0 0 10px 0; line-height: 1.75; color: #43332b;",
+        listIcon: `<section style="display: inline-block; width: 10px; height: 2px; background-color: ${color}; vertical-align: middle; box-sizing: border-box; overflow: hidden;"><br/></section>`,
+        strongStyle: `font-weight: 700; color: #34241d; background-color: ${hexToRgba(color, 0.15)}; padding: 0 3px;`,
+        emStyle: `font-style: normal; color: ${foodTextColor};`,
+        codeContainerStyle: `margin: 24px 0; border: 1px solid ${hexToRgba(color, 0.35)}; border-radius: 6px; overflow: hidden; background-color: #fffdf9;`,
+        codeHeaderStyle: `background-color: ${hexToRgba(color, 0.1)}; padding: 8px 12px; font-size: 0; line-height: 1; border-bottom: 1px solid ${hexToRgba(color, 0.2)};`,
+        codeBlockStyle: "margin: 0; padding: 16px; overflow-x: auto; color: #43332b; font-size: 13px; font-family: monospace; white-space: pre-wrap; word-break: break-all; line-height: 1.6;",
+        imgStyle: `max-width: 100%; border: 1px solid ${hexToRgba(color, 0.35)}; border-radius: 8px; padding: 4px; background-color: #fffdf9; display: block; margin: 24px auto;`,
+        hrStyle: `border: none; border-top: 1px solid ${hexToRgba(color, 0.4)}; margin: 32px 0;`,
+        linkStyle: `color: ${foodTextColor}; font-weight: 700; text-decoration: none; border-bottom: 1px solid ${color};`,
+        tableStyle: `width: 100%; max-width: 100%; border-collapse: collapse; margin: 24px 0; font-size: 0.92em; table-layout: fixed; word-wrap: break-word;`,
+        thStyle: `border-bottom: 2px solid ${color}; padding: 10px; background-color: ${hexToRgba(color, 0.1)}; color: #34241d; font-weight: 700; text-align: left;`,
+        tdStyle: `border-bottom: 1px solid ${hexToRgba(color, 0.18)}; padding: 10px; color: #43332b; word-wrap: break-word; word-break: break-all;`,
+        delStyle: "text-decoration: line-through; color: #a89b92;",
+        defaultH2Layout: "left" as H1LayoutType,
+      };
+      }
     default:
       return {
         themeColor: color,
@@ -464,7 +546,18 @@ function generateTemplates(): TemplateConfig[] {
     });
   });
 
-  // 6. 新粗野主义 (Neo-Brutalism) - 粗黑边框、硬投影、高对比
+  // 6. 美食风 (Food) - 暖食配色、清晰步骤、菜谱便签
+  colorPalettes.food.forEach((color, i) => {
+    result.push({
+      id: `food-${i}`,
+      name: foodNames[i],
+      desc: "暖食配色，清晰步骤，适合食谱与探店记录",
+      category: "food",
+      ...getStylesByCategory("food", color),
+    });
+  });
+
+  // 7. 新粗野主义 (Neo-Brutalism) - 粗黑边框、硬投影、高对比
   colorPalettes.neoBrutalism.forEach((color, i) => {
     result.push({
       id: `neo-brutalism-${i}`,
@@ -714,6 +807,10 @@ export function renderArticle(
         const num = start + index;
         if (template.category === "neo-brutalism") {
           icon = `<section style="display: inline-block; width: 20px; height: 20px; line-height: 20px; text-align: center; background-color: ${template.themeColor}; color: #000000; border: 2px solid #000000; font-size: 12px; font-weight: 900; box-shadow: 2px 2px 0px #000000; box-sizing: border-box; overflow: hidden;">${num}</section>`;
+        } else if (template.category === "food") {
+          const step = String(num).padStart(2, "0");
+          const foodTextColor = foodTextColors[template.themeColor] || "#43332b";
+          icon = `<section style="display: inline-block; min-width: 22px; color: ${foodTextColor}; font-size: 12px; font-weight: 800; letter-spacing: 0.5px;">${step}</section>`;
         } else {
           icon = `<section style="display: inline-block; color: ${template.themeColor}; font-weight: bold; font-family: sans-serif;">${num}.</section>`;
         }
@@ -721,7 +818,7 @@ export function renderArticle(
         icon = template.listIcon;
       }
 
-      const iconWidth = template.category === "neo-brutalism" ? 32 : 24;
+      const iconWidth = template.category === "neo-brutalism" ? 32 : template.category === "food" ? 30 : 24;
 
       // Extremely robust float layout for WeChat Official Accounts
       return `<section style="display: block; clear: both; margin-bottom: 12px;">

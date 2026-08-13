@@ -4,7 +4,7 @@
 [![GitHub stars](https://img.shields.io/github/stars/brookjsp5-lang/weixi_typesetting.svg?style=social)](https://github.com/brookjsp5-lang/weixi_typesetting/stargazers)
 [![GitHub issues](https://img.shields.io/github/issues/brookjsp5-lang/weixi_typesetting.svg)](https://github.com/brookjsp5-lang/weixi_typesetting/issues)
 
-TypeZen 是一款面向微信公众号创作者的在线排版工作台。你可以把 Markdown 草稿放进编辑区，使用 AI 优化排版结构，套用 72 套微信公众号兼容模板，并在发布前生成封面图、公众号贴图和发布检查清单。
+TypeZen 是一款面向微信公众号创作者的在线排版工作台。你可以把 Markdown 草稿放进编辑区，使用 AI 优化排版结构，套用 84 套微信公众号兼容模板，并在发布前生成封面图、公众号贴图和发布检查清单。
 
 - 在线体验：[https://weixi-typesetting.vercel.app](https://weixi-typesetting.vercel.app)
 - GitHub 仓库：[https://github.com/brookjsp5-lang/weixi_typesetting](https://github.com/brookjsp5-lang/weixi_typesetting)
@@ -12,7 +12,7 @@ TypeZen 是一款面向微信公众号创作者的在线排版工作台。你可
 ## 核心能力
 
 - **Markdown 转微信公众号排版**：基于 `marked` 解析 Markdown，并输出微信公众号编辑器友好的内联 CSS。
-- **72 套精美模板**：覆盖新粗野、极简、商务、文艺、科技、节庆 6 大风格分类。
+- **84 套精美模板**：覆盖新粗野、极简、商务、文艺、科技、节庆、美食 7 大风格分类。
 - **AI 一键排版**：只优化标题层级、空行、列表、加粗、引用、分隔线等结构，不静默改写正文事实。
 - **AI 发布工作区**：从草稿出发生成发布方向、封面图、公众号贴图和发布检查结果。
 - **AI 封面生图**：支持 `工具叠字` 与 `模型直出`，默认用 TypeZen 在封面背景上叠加中文标题，降低模型错字风险。
