@@ -154,8 +154,8 @@ test("food templates use the shared Neo menu-card component language", () => {
   assert.match(foodCase, /border:\s*1px solid/);
   assert.match(foodCase, /border-radius:\s*6px/);
   assert.match(foodCase, /主厨小贴士/);
-  assert.match(foodCase, /🍐/);
-  assert.match(foodCase, /🍉/);
+  assert.match(foodCase, /🐱/);
+  assert.match(foodCase, /🥄/);
   assert.match(foodCase, /max-width:\s*100%/);
   assert.match(foodCase, /table-layout:\s*fixed/);
 });
