@@ -39,3 +39,15 @@ Result: Biome checked 90 files with no fixes; `git diff --check` produced no whi
 ## Concerns
 
 - The specified test suite intentionally remains non-zero until Task 3 implements renderer menu labels.
+
+## Review Fix
+
+Replaced the food list marker with the required filled-circle glyph `●` at `app/template-engine.ts:442`; no other implementation changes were made.
+
+Focused verification:
+
+```powershell
+node --test tests/template-selection-source.test.mjs
+```
+
+Output: 13 passed, 1 failed. The shared Neo menu-card contract passes; the sole failure remains the expected Task 3 pending renderer-label contract, `food renderer adds menu labels without changing other categories`.

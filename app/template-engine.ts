@@ -439,7 +439,7 @@ function getStylesByCategory(category: string, color: string) {
         blockquoteInnerAfter: "",
         listStyle: "margin: 0 0 16px 0; padding: 0; list-style-type: none;",
         listItemStyle: "margin: 0 0 10px 0; line-height: 1.75; color: #43332b;",
-        listIcon: `<section style="display: inline-block; color: ${foodTextColor}; font-size: 13px; line-height: 1; vertical-align: middle;">•</section>`,
+        listIcon: `<section style="display: inline-block; color: ${foodTextColor}; font-size: 13px; line-height: 1; vertical-align: middle;">●</section>`,
         strongStyle: `font-weight: 700; color: #34241d; background-color: ${hexToRgba(color, 0.15)}; padding: 0 3px;`,
         emStyle: `font-style: normal; color: ${foodTextColor};`,
         codeContainerStyle: `margin: 24px 0; border: 1px solid ${hexToRgba(color, 0.35)}; border-radius: 6px; overflow: hidden; background-color: #fffdf9;`,
