@@ -760,6 +760,14 @@ export function renderArticle(
 
         const flexItems = imagesMatch
           .map((imgHtml: string) => {
+            if (template.category === "food") {
+              const foodTextColor = foodTextColors[template.themeColor] || "#43332b";
+              const styledImg = imgHtml.replace(
+                /style="[^"]*"/i,
+                `style="${ensureStyleValue(ensureStyleValue(ensureStyleValue(ensureStyleValue(imageStyle, "width", "100%"), "height", "auto"), "object-fit", "cover"), "vertical-align", "middle")}"`,
+              );
+              return `<section style="display: inline-block; width: ${widthPercent}%; padding: 0 ${gapWidth}px; box-sizing: border-box; vertical-align: top; background-color: ${template.backgroundColor};"><span style="display: block; margin: 0 0 5px; color: ${foodTextColor}; font-size: 10px; font-weight: 800; letter-spacing: 1px; line-height: 1.4; text-align: left;">MENU_IMAGE · 主厨推荐</span>${styledImg}</section>`;
+            }
             const styledImg = imgHtml.replace(
               /style="[^"]*"/i,
               `style="width: 100%; height: auto; object-fit: cover; border-radius: ${formatTweaks.imageRadius}px; display: block; vertical-align: middle;"`,
@@ -768,7 +776,13 @@ export function renderArticle(
           })
           .join("");
 
-        return `<section style="text-align: center; margin: 0 0 16px 0; line-height: 0;">${flexItems}</section>`;
+        const foodBackground = template.category === "food" ? ` background-color: ${template.backgroundColor};` : "";
+        return `<section style="text-align: center; margin: 0 0 16px 0; line-height: 0;${foodBackground}">${flexItems}</section>`;
+      }
+
+      if (imagesMatch && imagesMatch.length === 1 && template.category === "food") {
+        const foodTextColor = foodTextColors[template.themeColor] || "#43332b";
+        return `<section style="margin: 24px auto; text-align: center; background-color: ${template.backgroundColor};"><section style="display: inline-block; max-width: 100%; position: relative;"><span style="display: block; margin: 0 0 5px; color: ${foodTextColor}; font-size: 10px; font-weight: 800; letter-spacing: 1px; text-align: left;">MENU_IMAGE · 主厨推荐</span>${imagesMatch[0]}</section></section>`;
       }
     }
 
@@ -889,12 +903,7 @@ export function renderArticle(
 
   customRenderer.image = function (token: Tokens.Image) {
     const html = defaultRenderer.image.call(this, token);
-    const styledImage = html.replace(/^<img([^>]*)>/i, `<img$1 style="${imageStyle}" />`);
-    if (template.category === "food") {
-      const foodTextColor = foodTextColors[template.themeColor] || "#43332b";
-      return `<section style="margin: 24px auto; text-align: center; background-color: ${template.backgroundColor};"><section style="display: inline-block; max-width: 100%; position: relative;"><span style="display: block; margin: 0 0 5px; color: ${foodTextColor}; font-size: 10px; font-weight: 800; letter-spacing: 1px; text-align: left;">MENU_IMAGE · 主厨推荐</span>${styledImage}</section></section>`;
-    }
-    return styledImage;
+    return html.replace(/^<img([^>]*)>/i, `<img$1 style="${imageStyle}" />`);
   };
 
   customRenderer.hr = function () {
